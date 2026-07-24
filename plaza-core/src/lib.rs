@@ -7,12 +7,18 @@
 
 pub mod error;
 pub mod id;
+pub mod logging;
+pub mod object_model;
+pub mod panic_handler;
 pub mod paths;
+pub mod puri;
 pub mod security;
 pub mod types;
 
 // ── Convenience re-exports ──────────────────────────────────────────────────
 
-pub use error::{PlazaError, PlazaResult};
+pub use error::{CanonicalError, ErrorSeverity, PlazaError, PlazaResult};
 pub use id::{PluginId, RuntimeId, WorkspaceId};
+pub use object_model::PlazaObjectHeader;
+pub use puri::PlazaUri;
 pub use types::{Architecture, HealthStatus, OperatingSystem, Timestamp};

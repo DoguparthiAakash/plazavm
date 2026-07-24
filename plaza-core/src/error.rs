@@ -85,4 +85,56 @@ impl PlazaError {
     pub fn serialization(msg: impl std::fmt::Display) -> Self {
         Self::Serialization(msg.to_string())
     }
+
+    /// Returns the canonical error details (code, category, severity, resolution).
+    pub fn canonical(&self) -> CanonicalError {
+        match self {
+            Self::WorkspaceNotFound(id) => CanonicalError {
+                code: "PZE-3001".into(),
+                category: "Workspace".into(),
+                message: format!("Workspace not found: {}", id),
+                severity: ErrorSeverity::Error,
+                recoverable: false,
+                resolution: "Verify workspace ID via 'plaza workspace list'".into(),
+                correlation_id: uuid::Uuid::new_v4().to_string(),
+            },
+            Self::Config(msg) => CanonicalError {
+                code: "PZE-2001".into(),
+                category: "Config".into(),
+                message: msg.clone(),
+                severity: ErrorSeverity::Error,
+                recoverable: true,
+                resolution: "Check plaza.yaml syntax and configuration parameters".into(),
+                correlation_id: uuid::Uuid::new_v4().to_string(),
+            },
+            _ => CanonicalError {
+                code: "PZE-1001".into(),
+                category: "Core".into(),
+                message: self.to_string(),
+                severity: ErrorSeverity::Error,
+                recoverable: false,
+                resolution: "Check application logs in ~/.plazavm/logs/plazavm.log".into(),
+                correlation_id: uuid::Uuid::new_v4().to_string(),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum ErrorSeverity {
+    Fatal,
+    Error,
+    Warning,
+    Info,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct CanonicalError {
+    pub code: String,
+    pub category: String,
+    pub message: String,
+    pub severity: ErrorSeverity,
+    pub recoverable: bool,
+    pub resolution: String,
+    pub correlation_id: String,
 }

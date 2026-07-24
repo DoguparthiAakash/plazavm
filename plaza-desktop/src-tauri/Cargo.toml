@@ -13,6 +13,7 @@ plaza-api.workspace = true
 plaza-workspace.workspace = true
 plaza-platform.workspace = true
 plaza-monitor.workspace = true
+plaza-config.workspace = true
 tauri.workspace = true
 serde.workspace = true
 serde_json.workspace = true

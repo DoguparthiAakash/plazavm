@@ -8,7 +8,7 @@ interface PlatformInfoProps {
 
 export const PlatformInfo: React.FC<PlatformInfoProps> = ({ info }) => {
   if (!info) {
-    return <div className="text-slate-400">Loading platform capabilities...</div>;
+    return <div className="text-slate-400 text-xs p-4">Loading platform capabilities...</div>;
   }
 
   return (
@@ -19,7 +19,7 @@ export const PlatformInfo: React.FC<PlatformInfoProps> = ({ info }) => {
             Host OS
           </div>
           <div className="text-xl font-bold text-white">
-            {info.os.name} {info.os.version}
+            {info.os.name}
           </div>
           <div className="text-xs text-slate-500 mt-1">Arch: {info.os.arch}</div>
         </div>
@@ -40,36 +40,38 @@ export const PlatformInfo: React.FC<PlatformInfoProps> = ({ info }) => {
           </div>
           <div className="text-xl font-bold text-white">{info.memory.total_mb} MB</div>
           <div className="text-xs text-slate-500 mt-1">
-            {info.memory.available_mb} MB Available
+            System RAM
           </div>
         </div>
       </div>
 
-      <div>
-        <h3 className="text-md font-semibold text-white mb-3">Detected Runtime Backends</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {info.installed_runtimes.map((rt) => (
-            <div
-              key={rt.id}
-              className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-                  <ShieldCheck className="w-5 h-5" />
+      {info.gpu && info.gpu.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-white mb-3">GPU Accelerators</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {info.gpu.map((g, idx) => (
+              <div
+                key={idx}
+                className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-white text-sm">{g.name}</div>
+                    <div className="text-xs text-slate-400">VRAM: {g.vram_mb} MB</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-semibold text-white text-sm">{rt.name}</div>
-                  <div className="text-xs text-slate-400">Version: {rt.version}</div>
+                <div className="flex items-center gap-1 text-xs text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Detected</span>
                 </div>
               </div>
-              <div className="flex items-center gap-1 text-xs text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Available</span>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

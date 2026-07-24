@@ -8,6 +8,9 @@ members = [
     "plaza-monitor",
     "plaza-registry",
 
+    # ── Foundation Layer ──
+    "plaza-foundation",
+
     # ── Platform Layer ──
     "plaza-platform",
 
@@ -43,7 +46,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.0-dp1"
 edition = "2021"
 authors = ["PlazaVM Contributors"]
 license = "MIT"
@@ -60,6 +63,7 @@ toml = "0.8"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "io-util", "process", "net", "signal"] }
 async-trait = "0.1"
 tokio-util = { version = "0.7", features = ["rt"] }
+bollard = "0.18"
 
 # Error handling
 thiserror = "2"
@@ -78,7 +82,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 
 # System info and directories
 sysinfo = "0.33"
+lazy_static = "1.4"
 dirs = "6"
+zip = "2"
 
 # Semver
 semver = { version = "1", features = ["serde"] }
@@ -106,3 +112,4 @@ plaza-ai = { path = "plaza-ai" }
 plaza-runtime = { path = "plaza-runtime" }
 plaza-plugin = { path = "plaza-plugin" }
 plaza-api = { path = "plaza-api" }
+plaza-foundation = { path = "plaza-foundation" }

@@ -1,0 +1,36 @@
+{
+  "version": "0.1.0-dp1",
+  "name": "PlazaVM v2 Developer Preview 1",
+  "release_date": "2026-07-24T20:00:00Z",
+  "channel": "dev-preview",
+  "artifacts": [
+    {
+      "platform": "windows",
+      "arch": "x64",
+      "kind": "msi",
+      "filename": "PlazaVM_0.1.0-dp1_x64_en-US.msi",
+      "url": "https://github.com/plazavm/plazavm/releases/download/v0.1.0-dp1/PlazaVM_0.1.0-dp1_x64_en-US.msi"
+    },
+    {
+      "platform": "windows",
+      "arch": "x64",
+      "kind": "portable_zip",
+      "filename": "PlazaVM_v0.1.0-dp1_win_x64_portable.zip",
+      "url": "https://github.com/plazavm/plazavm/releases/download/v0.1.0-dp1/PlazaVM_v0.1.0-dp1_win_x64_portable.zip"
+    },
+    {
+      "platform": "linux",
+      "arch": "x64",
+      "kind": "appimage",
+      "filename": "PlazaVM_0.1.0-dp1_amd64.AppImage",
+      "url": "https://github.com/plazavm/plazavm/releases/download/v0.1.0-dp1/PlazaVM_0.1.0-dp1_amd64.AppImage"
+    },
+    {
+      "platform": "macos",
+      "arch": "universal",
+      "kind": "dmg",
+      "filename": "PlazaVM_0.1.0-dp1.dmg",
+      "url": "https://github.com/plazavm/plazavm/releases/download/v0.1.0-dp1/PlazaVM_0.1.0-dp1.dmg"
+    }
+  ]
+}

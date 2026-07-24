@@ -1,17 +1,19 @@
 import React, { useState } from "react";
-import { apiCreateWorkspace, CreateWorkspaceRequest } from "../api";
+import { createWorkspace, CreateWorkspaceRequest } from "../api";
 import { X, Sparkles } from "lucide-react";
 
 interface WorkspaceCreatorProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess?: () => void;
+  onCreated?: () => void;
 }
 
 export const WorkspaceCreator: React.FC<WorkspaceCreatorProps> = ({
-  isOpen,
+  isOpen = true,
   onClose,
   onSuccess,
+  onCreated,
 }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -30,16 +32,16 @@ export const WorkspaceCreator: React.FC<WorkspaceCreatorProps> = ({
     try {
       const req: CreateWorkspaceRequest = {
         name,
-        description,
         image,
         cpu_cores: cores,
         memory_mb: memory,
       };
-      await apiCreateWorkspace(req);
-      onSuccess();
+      await createWorkspace(req);
+      if (onSuccess) onSuccess();
+      if (onCreated) onCreated();
       onClose();
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -50,7 +52,7 @@ export const WorkspaceCreator: React.FC<WorkspaceCreatorProps> = ({
       <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md overflow-hidden shadow-2xl">
         <div className="flex items-center justify-between p-5 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-blue-400" />
+            <Sparkles className="w-5 h-5 text-cyan-400" />
             <h2 className="font-semibold text-white">Create Workspace</h2>
           </div>
           <button
@@ -72,7 +74,7 @@ export const WorkspaceCreator: React.FC<WorkspaceCreatorProps> = ({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. python-ai-lab"
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
             />
           </div>
 
@@ -85,7 +87,7 @@ export const WorkspaceCreator: React.FC<WorkspaceCreatorProps> = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Development workspace description"
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
             />
           </div>
 
@@ -96,7 +98,7 @@ export const WorkspaceCreator: React.FC<WorkspaceCreatorProps> = ({
             <select
               value={image}
               onChange={(e) => setImage(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
             >
               <option value="ubuntu:24.04">Ubuntu 24.04 LTS (Container)</option>
               <option value="python:3.12">Python 3.12 Dev Container</option>
@@ -116,7 +118,7 @@ export const WorkspaceCreator: React.FC<WorkspaceCreatorProps> = ({
                 max={16}
                 value={cores}
                 onChange={(e) => setCores(Number(e.target.value))}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
               />
             </div>
             <div>
@@ -129,7 +131,7 @@ export const WorkspaceCreator: React.FC<WorkspaceCreatorProps> = ({
                 step={512}
                 value={memory}
                 onChange={(e) => setMemory(Number(e.target.value))}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
               />
             </div>
           </div>
@@ -145,7 +147,7 @@ export const WorkspaceCreator: React.FC<WorkspaceCreatorProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 rounded-lg text-sm bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-md shadow-blue-600/20 disabled:opacity-50"
+              className="px-4 py-2 rounded-lg text-sm bg-cyan-600 hover:bg-cyan-500 text-white font-medium shadow-md shadow-cyan-600/20 disabled:opacity-50"
             >
               {loading ? "Creating..." : "Create Workspace"}
             </button>

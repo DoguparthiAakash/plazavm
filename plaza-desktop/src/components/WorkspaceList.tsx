@@ -1,5 +1,5 @@
 import React from "react";
-import { WorkspaceDto, apiStartWorkspace, apiStopWorkspace } from "../api";
+import { WorkspaceDto, startWorkspace, stopWorkspace } from "../api";
 import { Play, Square, Cpu, HardDrive, ShieldCheck, ExternalLink } from "lucide-react";
 
 interface WorkspaceListProps {
@@ -9,12 +9,12 @@ interface WorkspaceListProps {
 
 export const WorkspaceList: React.FC<WorkspaceListProps> = ({ workspaces, onRefresh }) => {
   const handleStart = async (id: string) => {
-    await apiStartWorkspace(id);
+    await startWorkspace(id);
     onRefresh();
   };
 
   const handleStop = async (id: string) => {
-    await apiStopWorkspace(id);
+    await stopWorkspace(id);
     onRefresh();
   };
 

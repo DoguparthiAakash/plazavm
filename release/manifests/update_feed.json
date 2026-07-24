@@ -1,0 +1,19 @@
+{
+  "channels": {
+    "stable": {
+      "latest_version": "0.1.0-dp1",
+      "release_notes": "PlazaVM Developer Preview 1",
+      "mandatory": false
+    },
+    "beta": {
+      "latest_version": "0.1.0-dp1",
+      "release_notes": "PlazaVM Developer Preview 1 (Beta Feed)",
+      "mandatory": false
+    },
+    "dev-preview": {
+      "latest_version": "0.1.0-dp1",
+      "release_notes": "PlazaVM Developer Preview 1",
+      "mandatory": false
+    }
+  }
+}

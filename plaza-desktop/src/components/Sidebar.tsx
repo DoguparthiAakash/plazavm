@@ -1,72 +1,79 @@
 import React from "react";
-import { LayoutGrid, Cpu, Activity, Settings, Plus, Terminal } from "lucide-react";
+import { Terminal, Cpu, Plug, ShieldCheck, Settings, Plus, Keyboard } from "lucide-react";
 
 interface SidebarProps {
   activeTab: string;
-  setActiveTab: (tab: string) => void;
-  onNewWorkspace: () => void;
+  onTabChange: (tab: string) => void;
+  onCreateWorkspace: () => void;
+  onOpenShortcuts: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onNewWorkspace }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  activeTab,
+  onTabChange,
+  onCreateWorkspace,
+  onOpenShortcuts,
+}) => {
   const navItems = [
-    { id: "workspaces", label: "Workspaces", icon: LayoutGrid },
-    { id: "platform", label: "Host Platform", icon: Cpu },
-    { id: "metrics", label: "System Monitor", icon: Activity },
-    { id: "settings", label: "Settings", icon: Settings },
+    { id: "workspaces", label: "Workspaces", icon: Terminal },
+    { id: "platform", label: "Platform Inspector", icon: Cpu },
+    { id: "plugins", label: "Runtime Plugins", icon: Plug },
+    { id: "validation", label: "QA Certification", icon: ShieldCheck },
+    { id: "config", label: "Configuration", icon: Settings },
   ];
 
   return (
-    <aside className="w-64 bg-slate-900/60 backdrop-blur-md border-r border-slate-800 flex flex-col h-screen select-none">
-      {/* Brand Header */}
-      <div className="p-5 flex items-center justify-between border-b border-slate-800/60">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20">
+    <aside className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col justify-between p-4 select-none shrink-0">
+      <div>
+        <div className="flex items-center gap-3 px-2 mb-6">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-600 to-emerald-500 flex items-center justify-center font-black text-slate-950 shadow-md">
             P
           </div>
           <div>
-            <h1 className="font-bold tracking-tight text-white leading-none">PlazaVM</h1>
-            <span className="text-[10px] uppercase font-semibold text-blue-400 tracking-wider">v2.0 Platform</span>
+            <h1 className="font-bold text-slate-100 text-sm tracking-wide">PlazaVM v2</h1>
+            <div className="text-[10px] text-emerald-400 font-mono">Dev Preview (DP1)</div>
           </div>
         </div>
-      </div>
 
-      {/* Primary CTA */}
-      <div className="p-4">
         <button
-          onClick={onNewWorkspace}
-          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-sm shadow-md shadow-blue-600/20 transition-all active:scale-[0.98]"
+          onClick={onCreateWorkspace}
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 mb-6 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-cyan-900/20 transition"
         >
-          <Plus className="w-4 h-4" />
-          <span>New Workspace</span>
+          <Plus className="w-4 h-4" /> New Workspace
         </button>
+
+        <nav className="space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onTabChange(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition ${
+                  active
+                    ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${active ? "text-cyan-400" : "text-slate-500"}`} />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-2 space-y-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-blue-600/10 text-blue-400 border border-blue-500/20"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Footer Status */}
-      <div className="p-4 border-t border-slate-800/60 text-xs text-slate-500 flex items-center gap-2">
-        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-        <span>Controller active</span>
+      <div className="pt-4 border-t border-slate-900">
+        <button
+          onClick={onOpenShortcuts}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[11px] text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition"
+        >
+          <span className="flex items-center gap-2">
+            <Keyboard className="w-3.5 h-3.5" /> Shortcuts
+          </span>
+          <kbd className="font-mono text-[9px] bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">Ctrl+K</kbd>
+        </button>
       </div>
     </aside>
   );
