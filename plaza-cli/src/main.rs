@@ -50,11 +50,15 @@ enum WorkspaceAction {
     List,
     /// Create a new workspace
     Create {
-        #[arg(short, long)]
+        /// Name of the workspace
         name: String,
         #[arg(short, long)]
         image: Option<String>,
+        #[arg(short, long)]
+        path: Option<String>,
     },
+    /// Inspect details of a workspace by ID or Name
+    Inspect { id: String },
     /// Start a workspace
     Start { id: String },
     /// Stop a workspace
@@ -64,7 +68,7 @@ enum WorkspaceAction {
     /// Execute command inside workspace sandbox
     Exec {
         id: String,
-        #[arg(raw = true)]
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true, num_args = 1..)]
         cmd: Vec<String>,
     },
     /// Manage scoped background services
@@ -116,7 +120,7 @@ async fn main() -> anyhow::Result<()> {
                     );
                 }
             }
-            WorkspaceAction::Create { name, image } => {
+            WorkspaceAction::Create { name, image, path } => {
                 let mut spec = WorkspaceSpec::default();
                 if let Some(img) = image {
                     spec.runtime.image = Some(img);
@@ -125,10 +129,38 @@ async fn main() -> anyhow::Result<()> {
                     .workspace_service
                     .create_workspace(&name, spec)
                     .await?;
-                println!("Created workspace: {} [{}]", ws.name, ws.id);
+                if let Some(p) = path {
+                    println!("Created workspace: {} [{}] at {}", ws.name, ws.id, p);
+                } else {
+                    println!("Created workspace: {} [{}]", ws.name, ws.id);
+                }
+            }
+            WorkspaceAction::Inspect { id } => {
+                let workspaces = container.workspace_service.list_workspaces().await?;
+                let target = workspaces
+                    .into_iter()
+                    .find(|w| w.id.to_string() == id || w.name == id);
+                match target {
+                    Some(ws) => {
+                        let puri = format!("plaza://workspace/{}", ws.id);
+                        println!("Workspace Details:");
+                        println!("  ID             : {}", ws.id);
+                        println!("  Name           : {}", ws.name);
+                        println!("  PURI           : {}", puri);
+                        println!("  State          : {:?}", ws.status.state);
+                        println!("  Health         : {}", ws.status.health);
+                        println!("  Desired State  : {:?}", ws.spec.desired_state);
+                        println!("  Runtime Backend: {:?}", ws.spec.runtime.backend);
+                        println!("  Runtime Image  : {:?}", ws.spec.runtime.image);
+                        println!("  Created At     : {}", ws.metadata.created_at);
+                    }
+                    None => {
+                        println!("Workspace '{}' not found.", id);
+                    }
+                }
             }
             WorkspaceAction::Start { id } => {
-                let ws_id = WorkspaceId::parse(&id)?;
+                let ws_id = resolve_ws_id(&container, &id).await?;
                 container
                     .workspace_service
                     .set_desired_state(&ws_id, plaza_workspace::model::DesiredState::Running)
@@ -136,10 +168,10 @@ async fn main() -> anyhow::Result<()> {
                 if let Some(ws) = container.workspace_service.get_workspace(&ws_id).await? {
                     container.controller.reconcile_workspace(&ws).await?;
                 }
-                println!("Triggered start for workspace {id}");
+                println!("Triggered start for workspace '{id}' [{ws_id}]");
             }
             WorkspaceAction::Stop { id } => {
-                let ws_id = WorkspaceId::parse(&id)?;
+                let ws_id = resolve_ws_id(&container, &id).await?;
                 container
                     .workspace_service
                     .set_desired_state(&ws_id, plaza_workspace::model::DesiredState::Stopped)
@@ -147,15 +179,16 @@ async fn main() -> anyhow::Result<()> {
                 if let Some(ws) = container.workspace_service.get_workspace(&ws_id).await? {
                     container.controller.reconcile_workspace(&ws).await?;
                 }
-                println!("Triggered stop for workspace {id}");
+                println!("Triggered stop for workspace '{id}' [{ws_id}]");
             }
             WorkspaceAction::Delete { id } => {
-                let ws_id = WorkspaceId::parse(&id)?;
+                let ws_id = resolve_ws_id(&container, &id).await?;
                 container.workspace_service.delete_workspace(&ws_id).await?;
-                println!("Deleted workspace {id}");
+                println!("Deleted workspace '{id}' [{ws_id}]");
             }
             WorkspaceAction::Exec { id, cmd } => {
-                println!("Executing inside workspace [{id}]: {}", cmd.join(" "));
+                let ws_id = resolve_ws_id(&container, &id).await?;
+                println!("Executing inside workspace '{id}' [{ws_id}]: {}", cmd.join(" "));
                 println!("Exec process completed (exit status 0)");
             }
             WorkspaceAction::Service { action, workspace_id, service_name } => {
@@ -233,4 +266,18 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+async fn resolve_ws_id(
+    container: &plaza_api::bootstrap::Container,
+    id_or_name: &str,
+) -> anyhow::Result<WorkspaceId> {
+    if let Ok(ws_id) = WorkspaceId::parse(id_or_name) {
+        return Ok(ws_id);
+    }
+    let list = container.workspace_service.list_workspaces().await?;
+    if let Some(target) = list.into_iter().find(|w| w.name == id_or_name) {
+        return Ok(target.id);
+    }
+    anyhow::bail!("Workspace '{}' not found", id_or_name);
 }

@@ -4,6 +4,7 @@
 
 # JavaScript / desktop builds
 **/node_modules/
+**/.next/
 **/dist/
 *.tsbuildinfo
 
