@@ -1,0 +1,24 @@
+[package]
+name = "plaza-api"
+version.workspace = true
+edition.workspace = true
+description = "Application layer state and DTO contracts for Tauri IPC and API interfaces"
+
+[dependencies]
+plaza-core.workspace = true
+plaza-events.workspace = true
+plaza-config.workspace = true
+plaza-storage.workspace = true
+plaza-platform.workspace = true
+plaza-workspace.workspace = true
+plaza-resource.workspace = true
+plaza-decision.workspace = true
+plaza-controller.workspace = true
+plaza-plugin.workspace = true
+plaza-monitor.workspace = true
+plaza-registry.workspace = true
+plaza-ai.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true

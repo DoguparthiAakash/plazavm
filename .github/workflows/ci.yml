@@ -1,36 +1,55 @@
-name: CI
+name: PlazaVM v2 CI/CD Pipeline
 
 on:
-  pull_request:
-    branches:
-      - dev
-      - main
   push:
-    branches:
-      - dev
-      - main
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
-  lint_and_test:
+  check-and-test:
+    name: Build, Lint & Test (Rust & TypeScript)
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Install Node.js
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check Code Formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy Workspace Lint Audit
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: Run Workspace Test Suite
+        run: cargo test --workspace
+
+      - name: Build Cargo Workspace
+        run: cargo build --workspace --release
+
+      - name: Generate Rust Documentation
+        run: cargo doc --workspace --no-deps
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
-          
-      - name: Install dependencies
-        run: pnpm install
-        
-      - name: Run lint
-        run: pnpm run lint --recursive
-        
-      - name: Run tests
-        run: pnpm run test --recursive
+
+      - name: Install Frontend Dependencies
+        working-directory: ./plaza-desktop
+        run: npm ci
+
+      - name: Typecheck Desktop Frontend
+        working-directory: ./plaza-desktop
+        run: npx tsc --noEmit

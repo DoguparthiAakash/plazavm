@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0-phase1.5",
+  "timestamp": "2026-07-24T10:06:08Z",
+  "metrics": {
+    "bootstrap_latency_ms": 2.4,
+    "decision_latency_ms": 0.4,
+    "event_throughput_per_sec": 2375296,
+    "workspace_creation_ops_per_sec": 237000,
+    "peak_memory_mb": 24.5
+  }
+}

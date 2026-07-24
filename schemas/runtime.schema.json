@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PlazaVM Runtime Backend Schema",
+  "type": "object",
+  "properties": {
+    "backend_id": { "type": "string" },
+    "kind": { "type": "string", "enum": ["container", "virtual_machine", "bare_metal"] },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["backend_id", "kind", "capabilities"]
+}

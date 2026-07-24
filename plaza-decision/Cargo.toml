@@ -1,0 +1,25 @@
+[package]
+name = "plaza-decision"
+version.workspace = true
+edition.workspace = true
+description = "Runtime Selection Engine, intent resolution, and scoring algorithms for PlazaVM"
+
+[dependencies]
+plaza-core.workspace = true
+plaza-platform.workspace = true
+plaza-plugin.workspace = true
+plaza-runtime.workspace = true
+plaza-workspace.workspace = true
+plaza-resource.workspace = true
+plaza-config.workspace = true
+plaza-ai.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+plaza-events = { path = "../plaza-events" }
+docker-plugin = { path = "../plugins/docker" }
+qemu-plugin = { path = "../plugins/qemu" }
+virtualbox-plugin = { path = "../plugins/virtualbox" }

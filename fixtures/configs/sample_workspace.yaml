@@ -1,0 +1,10 @@
+version: "1"
+workspace:
+  name: "sample-dev-environment"
+  description: "Test environment fixture for PlazaVM integration tests"
+runtime:
+  kind: "container"
+  image: "alpine:latest"
+resources:
+  cpu_cores: 2
+  memory_mb: 2048

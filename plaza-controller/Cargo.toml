@@ -1,0 +1,24 @@
+[package]
+name = "plaza-controller"
+version.workspace = true
+edition.workspace = true
+description = "Kubernetes-inspired reconciliation engine, auto-recovery, and scheduling controller"
+
+[dependencies]
+plaza-core.workspace = true
+plaza-workspace.workspace = true
+plaza-decision.workspace = true
+plaza-resource.workspace = true
+plaza-runtime.workspace = true
+plaza-plugin.workspace = true
+plaza-events.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+plaza-api = { path = "../plaza-api" }
+plaza-events = { path = "../plaza-events" }
+docker-plugin = { path = "../plugins/docker" }

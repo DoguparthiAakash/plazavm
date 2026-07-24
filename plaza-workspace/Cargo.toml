@@ -1,0 +1,17 @@
+[package]
+name = "plaza-workspace"
+version.workspace = true
+edition.workspace = true
+description = "Workspace domain aggregate root, graph model, and domain service for PlazaVM"
+
+[dependencies]
+plaza-core.workspace = true
+plaza-events.workspace = true
+plaza-config.workspace = true
+plaza-storage.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+chrono.workspace = true

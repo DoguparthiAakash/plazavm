@@ -1,0 +1,19 @@
+{
+  "name": "PlazaVM v2 Development Container",
+  "image": "mcr.microsoft.com/devcontainers/rust:1-1-bullseye",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "serde.serde-explicit",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint"
+      ],
+      "settings": {
+        "rust-analyzer.check.command": "clippy"
+      }
+    }
+  },
+  "postCreateCommand": "cargo check --workspace"
+}

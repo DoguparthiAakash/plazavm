@@ -1,0 +1,13 @@
+[package]
+name = "plaza-events"
+version.workspace = true
+edition.workspace = true
+description = "Async event bus for PlazaVM inter-crate communication"
+
+[dependencies]
+plaza-core.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+chrono.workspace = true

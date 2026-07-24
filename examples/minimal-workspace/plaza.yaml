@@ -1,0 +1,5 @@
+version: "1"
+workspace:
+  name: "minimal-dev"
+runtime:
+  kind: "container"

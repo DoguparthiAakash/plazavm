@@ -1,0 +1,27 @@
+[package]
+name = "plaza-cli"
+version.workspace = true
+edition.workspace = true
+description = "Command-line interface binary for PlazaVM"
+
+[dependencies]
+plaza-core.workspace = true
+plaza-api.workspace = true
+plaza-workspace.workspace = true
+plaza-platform.workspace = true
+plaza-events.workspace = true
+plaza-plugin.workspace = true
+plaza-config.workspace = true
+docker-plugin = { path = "../plugins/docker" }
+virtualbox-plugin = { path = "../plugins/virtualbox" }
+qemu-plugin = { path = "../plugins/qemu" }
+podman-plugin = { path = "../plugins/podman" }
+hyperv-plugin = { path = "../plugins/hyperv" }
+anyhow.workspace = true
+clap.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true

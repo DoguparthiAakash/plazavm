@@ -1,0 +1,100 @@
+site_name: PlazaVM v2 Documentation
+site_description: Universal Workspace Virtualization Platform
+site_author: PlazaVM Team
+site_url: https://plazavm.io
+
+repo_name: plazavm/plazavm
+repo_url: https://github.com/plazavm/plazavm
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: cyan
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: cyan
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.indexes
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+
+nav:
+  - Home: README.md
+  - Getting Started:
+      - Quickstart: getting-started/quickstart.md
+      - First Workspace: getting-started/first-workspace.md
+  - Installation:
+      - Windows: installation/windows.md
+      - Linux: installation/linux.md
+      - macOS: installation/macos.md
+  - Concepts:
+      - Workspace Graph: concepts/workspace-graph.md
+      - Intent Model: concepts/intent-model.md
+      - Reconciliation Loop: concepts/reconciliation.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Layer Breakdown: architecture/layers.md
+      - Diagrams: architecture/diagrams/README.md
+  - Configuration:
+      - plaza.yaml: configuration/plaza-yaml.md
+      - Settings TOML: configuration/settings-toml.md
+  - Core Subsystems:
+      - Workspace Manager: workspace/README.md
+      - Runtime Layer: runtime/README.md
+      - Plugin Host: plugins/README.md
+      - Platform Manager: platform/README.md
+      - Controller & Reconciler: controller/README.md
+      - Decision Engine: decision-engine/README.md
+      - Resource Manager: resource-manager/README.md
+      - AI Engine: ai/README.md
+      - Desktop GUI: desktop/README.md
+      - CLI Tool: cli/README.md
+      - Core API: api/README.md
+  - Development & Contributing:
+      - Development Guide: development/guide.md
+      - Plugin Development: plugins/development.md
+  - Security & Compliance:
+      - Security Audit: security/audit.md
+  - Testing & Validation:
+      - Testing Suite: testing/guide.md
+      - Validation Framework: validation/framework.md
+      - Benchmarks: benchmark/performance.md
+  - Reference:
+      - Troubleshooting: troubleshooting/guide.md
+      - FAQ: faq/README.md
+      - Architecture Decision Records (ADRs): adr/README.md

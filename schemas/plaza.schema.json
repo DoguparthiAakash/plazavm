@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PlazaVM Workspace Configuration Schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "enum": ["1"]
+    },
+    "workspace": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "kind": { "type": "string", "enum": ["container", "virtual_machine", "bare_metal"] },
+        "os": { "type": "string", "enum": ["linux", "windows", "macos"] },
+        "image": { "type": "string" }
+      },
+      "required": ["kind"]
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "cpu_cores": { "type": "integer", "minimum": 1 },
+        "memory_mb": { "type": "integer", "minimum": 512 }
+      }
+    }
+  },
+  "required": ["version", "workspace", "runtime"]
+}

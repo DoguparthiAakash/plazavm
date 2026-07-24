@@ -1,0 +1,28 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# JavaScript / desktop builds
+**/node_modules/
+**/dist/
+*.tsbuildinfo
+
+# Generated binaries and runtime output
+*.exe
+*.dll
+*.pdb
+*.so
+*.dylib
+*.log
+
+# Local PlazaVM state
+.plazavm/
+
+# Editors / operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Tauri generated
+plaza-desktop/src-tauri/gen/

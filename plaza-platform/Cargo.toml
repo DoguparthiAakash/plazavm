@@ -1,0 +1,13 @@
+[package]
+name = "plaza-platform"
+version.workspace = true
+edition.workspace = true
+description = "Host platform detection, capabilities, and profile classification for PlazaVM"
+
+[dependencies]
+plaza-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+sysinfo.workspace = true

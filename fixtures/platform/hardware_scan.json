@@ -1,0 +1,22 @@
+{
+  "os": {
+    "name": "Windows 11 Professional",
+    "arch": "x86_64"
+  },
+  "cpu": {
+    "cores_logical": 16,
+    "cores_physical": 8,
+    "model": "AMD Ryzen 7 7800X3D"
+  },
+  "memory": {
+    "total_mb": 32768,
+    "available_mb": 24500
+  },
+  "gpu": [
+    {
+      "name": "NVIDIA GeForce RTX 4080",
+      "vram_mb": 16384,
+      "backend": "cuda"
+    }
+  ]
+}

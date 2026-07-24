@@ -1,0 +1,108 @@
+[workspace]
+members = [
+    # ── Infrastructure Layer ──
+    "plaza-core",
+    "plaza-events",
+    "plaza-config",
+    "plaza-storage",
+    "plaza-monitor",
+    "plaza-registry",
+
+    # ── Platform Layer ──
+    "plaza-platform",
+
+    # ── Domain Layer ──
+    "plaza-workspace",
+
+    # ── Controller Layer ──
+    "plaza-controller",
+
+    # ── Decision Layer ──
+    "plaza-decision",
+    "plaza-resource",
+    "plaza-ai",
+
+    # ── Execution Layer ──
+    "plaza-runtime",
+
+    # ── Plugin Layer ──
+    "plaza-plugin",
+
+    # ── Application Layer ──
+    "plaza-api",
+    "plaza-cli",
+    "plaza-desktop/src-tauri",
+
+    # ── Runtime Plugins ──
+    "plugins/docker",
+    "plugins/virtualbox",
+    "plugins/qemu",
+    "plugins/podman",
+    "plugins/hyperv",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["PlazaVM Contributors"]
+license = "MIT"
+repository = "https://github.com/plazavm/plazavm"
+
+[workspace.dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+toml = "0.8"
+
+# Async runtime
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "io-util", "process", "net", "signal"] }
+async-trait = "0.1"
+tokio-util = { version = "0.7", features = ["rt"] }
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# IDs and time
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Database
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# Logging / tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# System info and directories
+sysinfo = "0.33"
+dirs = "6"
+
+# Semver
+semver = { version = "1", features = ["serde"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Tauri
+tauri = { version = "2", features = [] }
+tauri-build = "2"
+
+# Cross-crate references
+plaza-core = { path = "plaza-core" }
+plaza-events = { path = "plaza-events" }
+plaza-config = { path = "plaza-config" }
+plaza-storage = { path = "plaza-storage" }
+plaza-monitor = { path = "plaza-monitor" }
+plaza-registry = { path = "plaza-registry" }
+plaza-platform = { path = "plaza-platform" }
+plaza-workspace = { path = "plaza-workspace" }
+plaza-controller = { path = "plaza-controller" }
+plaza-decision = { path = "plaza-decision" }
+plaza-resource = { path = "plaza-resource" }
+plaza-ai = { path = "plaza-ai" }
+plaza-runtime = { path = "plaza-runtime" }
+plaza-plugin = { path = "plaza-plugin" }
+plaza-api = { path = "plaza-api" }
