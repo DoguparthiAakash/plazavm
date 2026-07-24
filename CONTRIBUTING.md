@@ -10,7 +10,11 @@ Thank you for your interest in contributing to PlazaVM!
    ```bash
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
    ```
-2. Clone repository & check workspace:
+2. Install Linux system libraries (if on Debian/Ubuntu):
+   ```bash
+   sudo apt update && sudo apt install -y libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev pkg-config build-essential libssl-dev
+   ```
+3. Clone repository & check workspace:
    ```bash
    git clone https://github.com/plazavm/plazavm.git
    cd plazavm

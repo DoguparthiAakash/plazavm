@@ -76,6 +76,7 @@ Required for all builds:
 
 - Rust stable and Cargo
 - Node.js 20+ and npm for the desktop frontend
+- Linux system libraries (Debian/Ubuntu): `sudo apt install libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev pkg-config build-essential libssl-dev`
 
 Install at least one execution backend:
 
