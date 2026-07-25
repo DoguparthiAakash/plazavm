@@ -18,7 +18,10 @@ pub mod types;
 // ── Convenience re-exports ──────────────────────────────────────────────────
 
 pub use error::{CanonicalError, ErrorSeverity, PlazaError, PlazaResult};
-pub use id::{PluginId, RuntimeId, WorkspaceId};
+pub use id::{
+    BackendId, DriverId, ExecutionTarget, ExecutionTargetId, ImageId, MountId, PackageName,
+    PluginId, RuntimeBackendKind, RuntimeId, ServiceId, SessionId, WorkspaceId,
+};
 pub use object_model::PlazaObjectHeader;
 pub use puri::PlazaUri;
 pub use types::{Architecture, HealthStatus, OperatingSystem, Timestamp};

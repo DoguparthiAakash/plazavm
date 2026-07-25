@@ -19,7 +19,10 @@ pub enum PfeError {
     SchedulerError(String),
 
     #[error("[PZE-4001] Coordinator Delegation Error ({coordinator}): {message}")]
-    CoordinatorError { coordinator: String, message: String },
+    CoordinatorError {
+        coordinator: String,
+        message: String,
+    },
 
     #[error("[PZE-5001] Diagnostics Engine Failed: {0}")]
     DiagnosticsFailed(String),

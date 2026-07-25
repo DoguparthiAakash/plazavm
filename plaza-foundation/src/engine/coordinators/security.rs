@@ -12,7 +12,9 @@ impl SecurityCoordinator {
         }
     }
 
-    pub async fn check_capabilities(&self) -> plaza_core::PlazaResult<plaza_platform::kal::KernelCapabilities> {
+    pub async fn check_capabilities(
+        &self,
+    ) -> plaza_core::PlazaResult<plaza_platform::kal::KernelCapabilities> {
         self.adapter.detect_capabilities().await
     }
 }

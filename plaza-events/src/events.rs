@@ -17,6 +17,24 @@ pub enum PlazaEvent {
         id: WorkspaceId,
         name: String,
     },
+    WorkspaceOpened {
+        id: WorkspaceId,
+        path: String,
+    },
+    ExecutionPlanReady {
+        workspace_id: WorkspaceId,
+        target: String,
+        driver_id: String,
+    },
+    ImageBuilt {
+        workspace_id: WorkspaceId,
+        image_id: String,
+        layer_count: usize,
+    },
+    PackageInstalled {
+        workspace_id: WorkspaceId,
+        package_name: String,
+    },
     WorkspaceDesiredStateChanged {
         id: WorkspaceId,
         desired: String,
@@ -133,6 +151,10 @@ impl PlazaEvent {
     pub fn event_type(&self) -> &'static str {
         match self {
             Self::WorkspaceCreated { .. } => "workspace.created",
+            Self::WorkspaceOpened { .. } => "workspace.opened",
+            Self::ExecutionPlanReady { .. } => "workspace.execution_plan_ready",
+            Self::ImageBuilt { .. } => "workspace.image_built",
+            Self::PackageInstalled { .. } => "workspace.package_installed",
             Self::WorkspaceDesiredStateChanged { .. } => "workspace.desired_state_changed",
             Self::WorkspaceStarting { .. } => "workspace.starting",
             Self::WorkspaceStarted { .. } => "workspace.started",

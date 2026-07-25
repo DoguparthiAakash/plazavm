@@ -20,14 +20,16 @@ pub struct EngineCore {
 
 impl EngineCore {
     pub async fn boot() -> PfeResult<Self> {
-        let lifecycle = Arc::new(EngineLifecycle::new());
+        let container = BootstrapSequence::build_container().await?;
+
+        let lifecycle: Arc<EngineLifecycle> = container.resolve()?;
         lifecycle.transition_to(EngineLifecycleState::Initializing)?;
 
-        let registry = Arc::new(ServiceRegistry::new());
-        let scheduler = Arc::new(ExecutionScheduler::new());
-        let health_monitor = Arc::new(EngineHealthMonitor::new());
-        let diagnostics = Arc::new(PfeDiagnosticsEngine::new());
-        let recovery = Arc::new(RecoveryEngine::new());
+        let registry: Arc<ServiceRegistry> = container.resolve()?;
+        let scheduler: Arc<ExecutionScheduler> = container.resolve()?;
+        let health_monitor: Arc<EngineHealthMonitor> = container.resolve()?;
+        let diagnostics: Arc<PfeDiagnosticsEngine> = container.resolve()?;
+        let recovery: Arc<RecoveryEngine> = container.resolve()?;
 
         BootstrapSequence::run_checks().await?;
         lifecycle.transition_to(EngineLifecycleState::Discovering)?;
@@ -51,8 +53,10 @@ impl EngineCore {
     }
 
     pub async fn shutdown(&self) -> PfeResult<()> {
-        self.lifecycle.transition_to(EngineLifecycleState::Stopping)?;
-        self.lifecycle.transition_to(EngineLifecycleState::Stopped)?;
+        self.lifecycle
+            .transition_to(EngineLifecycleState::Stopping)?;
+        self.lifecycle
+            .transition_to(EngineLifecycleState::Stopped)?;
         tracing::info!("Plaza Foundation Engine (PFE) Shutdown Complete");
         Ok(())
     }

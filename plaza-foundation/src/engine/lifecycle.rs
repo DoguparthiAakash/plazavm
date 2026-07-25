@@ -68,24 +68,52 @@ impl EngineLifecycle {
         let current_state = self.state();
         let valid = matches!(
             (current_state, next),
-            (EngineLifecycleState::Booting, EngineLifecycleState::Initializing)
-                | (EngineLifecycleState::Initializing, EngineLifecycleState::Discovering)
-                | (EngineLifecycleState::Discovering, EngineLifecycleState::Ready)
-                | (EngineLifecycleState::Ready, EngineLifecycleState::Running)
+            (
+                EngineLifecycleState::Booting,
+                EngineLifecycleState::Initializing
+            ) | (
+                EngineLifecycleState::Initializing,
+                EngineLifecycleState::Discovering
+            ) | (
+                EngineLifecycleState::Discovering,
+                EngineLifecycleState::Ready
+            ) | (EngineLifecycleState::Ready, EngineLifecycleState::Running)
                 | (EngineLifecycleState::Running, EngineLifecycleState::Paused)
                 | (EngineLifecycleState::Paused, EngineLifecycleState::Running)
-                | (EngineLifecycleState::Running, EngineLifecycleState::Maintenance)
-                | (EngineLifecycleState::Maintenance, EngineLifecycleState::Running)
-                | (EngineLifecycleState::Running, EngineLifecycleState::Recovering)
-                | (EngineLifecycleState::Recovering, EngineLifecycleState::Ready)
-                | (EngineLifecycleState::Running, EngineLifecycleState::Stopping)
-                | (EngineLifecycleState::Stopping, EngineLifecycleState::Stopped)
+                | (
+                    EngineLifecycleState::Running,
+                    EngineLifecycleState::Maintenance
+                )
+                | (
+                    EngineLifecycleState::Maintenance,
+                    EngineLifecycleState::Running
+                )
+                | (
+                    EngineLifecycleState::Running,
+                    EngineLifecycleState::Recovering
+                )
+                | (
+                    EngineLifecycleState::Recovering,
+                    EngineLifecycleState::Ready
+                )
+                | (
+                    EngineLifecycleState::Running,
+                    EngineLifecycleState::Stopping
+                )
+                | (
+                    EngineLifecycleState::Stopping,
+                    EngineLifecycleState::Stopped
+                )
                 | (_, EngineLifecycleState::Failed)
         );
 
         if valid {
             self.current.store(next as u8, Ordering::SeqCst);
-            tracing::info!(from = current_state.as_str(), to = next.as_str(), "PFE Lifecycle State Changed");
+            tracing::info!(
+                from = current_state.as_str(),
+                to = next.as_str(),
+                "PFE Lifecycle State Changed"
+            );
             Ok(())
         } else {
             Err(PfeError::InvalidLifecycleTransition {
@@ -111,14 +139,22 @@ mod tests {
         let lifecycle = EngineLifecycle::new();
         assert_eq!(lifecycle.state(), EngineLifecycleState::Booting);
 
-        assert!(lifecycle.transition_to(EngineLifecycleState::Initializing).is_ok());
+        assert!(lifecycle
+            .transition_to(EngineLifecycleState::Initializing)
+            .is_ok());
         assert_eq!(lifecycle.state(), EngineLifecycleState::Initializing);
 
-        assert!(lifecycle.transition_to(EngineLifecycleState::Discovering).is_ok());
+        assert!(lifecycle
+            .transition_to(EngineLifecycleState::Discovering)
+            .is_ok());
         assert!(lifecycle.transition_to(EngineLifecycleState::Ready).is_ok());
-        assert!(lifecycle.transition_to(EngineLifecycleState::Running).is_ok());
+        assert!(lifecycle
+            .transition_to(EngineLifecycleState::Running)
+            .is_ok());
 
         // Invalid transition
-        assert!(lifecycle.transition_to(EngineLifecycleState::Booting).is_err());
+        assert!(lifecycle
+            .transition_to(EngineLifecycleState::Booting)
+            .is_err());
     }
 }

@@ -35,3 +35,27 @@ impl Default for ServiceContainer {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct DummyService(u32);
+
+    #[test]
+    fn register_and_resolve_service() {
+        let mut container = ServiceContainer::new();
+        let service = Arc::new(DummyService(42));
+        container.register(service);
+
+        let resolved: Arc<DummyService> = container.resolve().unwrap();
+        assert_eq!(resolved.0, 42);
+    }
+
+    #[test]
+    fn resolve_unregistered_service_fails() {
+        let container = ServiceContainer::new();
+        let res: PfeResult<Arc<DummyService>> = container.resolve();
+        assert!(res.is_err());
+    }
+}

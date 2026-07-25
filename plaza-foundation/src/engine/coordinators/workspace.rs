@@ -11,7 +11,11 @@ impl WorkspaceCoordinator {
         Self
     }
 
-    pub fn build_workspace(&self, name: impl Into<String>, spec: WorkspaceSpec) -> PlazaResult<(Workspace, PathBuf)> {
+    pub fn build_workspace(
+        &self,
+        name: impl Into<String>,
+        spec: WorkspaceSpec,
+    ) -> PlazaResult<(Workspace, PathBuf)> {
         WorkspaceBuilder::build(name, spec)
     }
 }

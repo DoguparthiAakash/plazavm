@@ -7,11 +7,13 @@ description = "Command-line interface binary for PlazaVM"
 [dependencies]
 plaza-core.workspace = true
 plaza-api.workspace = true
+plaza-foundation.workspace = true
 plaza-workspace.workspace = true
 plaza-platform.workspace = true
 plaza-events.workspace = true
 plaza-plugin.workspace = true
 plaza-config.workspace = true
+plaza-registry.workspace = true
 docker-plugin = { path = "../plugins/docker" }
 virtualbox-plugin = { path = "../plugins/virtualbox" }
 qemu-plugin = { path = "../plugins/qemu" }

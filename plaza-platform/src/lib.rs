@@ -11,6 +11,7 @@ pub mod capabilities;
 pub mod detector;
 pub mod gpu;
 pub mod kal;
+pub mod pal;
 pub mod profile;
 pub mod runtime_detection;
 
@@ -20,4 +21,7 @@ pub use capabilities::{
 };
 pub use detector::PlatformDetector;
 pub use kal::{KernelAdapter, KernelCapabilities, LinuxKernelAdapter};
+pub use pal::{
+    PalFilesystem, PalNetwork, PalProcessManager, PalSecurity, PlatformAbstractionLayer,
+};
 pub use profile::PlatformProfile;

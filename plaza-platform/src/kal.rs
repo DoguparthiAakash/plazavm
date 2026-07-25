@@ -17,7 +17,12 @@ pub struct KernelCapabilities {
 #[async_trait]
 pub trait KernelAdapter: Send + Sync {
     async fn detect_capabilities(&self) -> PlazaResult<KernelCapabilities>;
-    async fn apply_cgroup_limits(&self, cgroup_path: &str, cpu_shares: u32, memory_bytes: u64) -> PlazaResult<()>;
+    async fn apply_cgroup_limits(
+        &self,
+        cgroup_path: &str,
+        cpu_shares: u32,
+        memory_bytes: u64,
+    ) -> PlazaResult<()>;
 }
 
 pub struct LinuxKernelAdapter;
@@ -35,7 +40,12 @@ impl KernelAdapter for LinuxKernelAdapter {
         })
     }
 
-    async fn apply_cgroup_limits(&self, _cgroup_path: &str, _cpu_shares: u32, _memory_bytes: u64) -> PlazaResult<()> {
+    async fn apply_cgroup_limits(
+        &self,
+        _cgroup_path: &str,
+        _cpu_shares: u32,
+        _memory_bytes: u64,
+    ) -> PlazaResult<()> {
         Ok(())
     }
 }

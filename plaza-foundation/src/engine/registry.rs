@@ -61,7 +61,9 @@ impl ServiceRegistry {
 
             if let Some(service) = nodes.get(node) {
                 for dep in &service.dependencies {
-                    if (!visited.contains(dep) && self.detect_cycle(dep, nodes, visited, rec_stack)) || rec_stack.contains(dep) {
+                    if (!visited.contains(dep) && self.detect_cycle(dep, nodes, visited, rec_stack))
+                        || rec_stack.contains(dep)
+                    {
                         return true;
                     }
                 }
@@ -86,15 +88,21 @@ mod tests {
     fn test_valid_service_registry() {
         let registry = ServiceRegistry::new();
         registry.register("storage", vec![]).unwrap();
-        registry.register("workspace", vec!["storage".into()]).unwrap();
+        registry
+            .register("workspace", vec!["storage".into()])
+            .unwrap();
         assert!(registry.validate_cycles().is_ok());
     }
 
     #[test]
     fn test_cyclic_service_registry() {
         let registry = ServiceRegistry::new();
-        registry.register("service_a", vec!["service_b".into()]).unwrap();
-        registry.register("service_b", vec!["service_a".into()]).unwrap();
+        registry
+            .register("service_a", vec!["service_b".into()])
+            .unwrap();
+        registry
+            .register("service_b", vec!["service_a".into()])
+            .unwrap();
         assert!(registry.validate_cycles().is_err());
     }
 }

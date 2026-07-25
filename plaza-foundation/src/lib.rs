@@ -24,9 +24,11 @@ pub struct FoundationCore {
 
 impl FoundationCore {
     pub async fn initialize() -> plaza_core::PlazaResult<Self> {
-        let engine = Arc::new(EngineCore::boot().await.map_err(|e| {
-            plaza_core::PlazaError::Config(e.to_string())
-        })?);
+        let engine = Arc::new(
+            EngineCore::boot()
+                .await
+                .map_err(|e| plaza_core::PlazaError::Config(e.to_string()))?,
+        );
 
         let event_bus = Arc::new(EventBus::new());
         let platform = Arc::new(PlatformDetector::new());

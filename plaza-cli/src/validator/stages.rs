@@ -52,7 +52,7 @@ impl StageExecutor {
             "build",
             "cargo build --workspace",
             "cargo",
-            &["build", "--workspace"],
+            &["build", "--workspace", "--exclude", "plaza-cli"],
             Some(&root_path),
         );
         collector.log_stage_event(
@@ -843,10 +843,11 @@ impl StageExecutor {
         let desktop_path = std::env::current_dir()
             .unwrap_or_default()
             .join("plaza-desktop");
+        let npx_binary = if cfg!(windows) { "npx.cmd" } else { "npx" };
         let cmd = collector.execute_and_capture(
             "screenshots",
             "npx tsc --noEmit",
-            "npx",
+            npx_binary,
             &["tsc", "--noEmit"],
             Some(&desktop_path),
         );
@@ -908,26 +909,29 @@ impl StageExecutor {
         collector.log_stage_event(12, "Executing Stage 12: CLI Snapshot Audit...");
 
         let root_path = std::env::current_dir().unwrap_or_default();
+        let current_exe =
+            std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("plaza-cli"));
+        let exe_str = current_exe.to_string_lossy();
 
         let cmd1 = collector.execute_and_capture(
             "cli",
             "plaza-cli --help",
-            "cargo",
-            &["run", "-p", "plaza-cli", "--", "--help"],
+            &exe_str,
+            &["--help"],
             Some(&root_path),
         );
         let cmd2 = collector.execute_and_capture(
             "cli",
             "plaza-cli platform",
-            "cargo",
-            &["run", "-p", "plaza-cli", "--", "platform"],
+            &exe_str,
+            &["platform"],
             Some(&root_path),
         );
         let cmd3 = collector.execute_and_capture(
             "cli",
             "plaza-cli system",
-            "cargo",
-            &["run", "-p", "plaza-cli", "--", "system"],
+            &exe_str,
+            &["system"],
             Some(&root_path),
         );
 
