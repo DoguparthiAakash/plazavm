@@ -4,7 +4,7 @@
 //! into a dedicated `plaza-security` crate when the module grows to
 //! require its own dependency set (e.g., keyring integration, RBAC).
 
-use crate::PlazaResult;
+use crate::{PlazaError, PlazaResult};
 use serde::{Deserialize, Serialize};
 
 /// Isolation level for a workspace.
@@ -76,23 +76,36 @@ pub struct InMemorySecretStore {
 
 impl SecretStore for InMemorySecretStore {
     fn get(&self, key: &str) -> PlazaResult<Option<String>> {
-        Ok(self.secrets.read().unwrap().get(key).cloned())
+        let guard = self
+            .secrets
+            .read()
+            .map_err(|e| PlazaError::storage(format!("secret store lock poisoned: {e}")))?;
+        Ok(guard.get(key).cloned())
     }
 
     fn set(&self, key: &str, value: &str) -> PlazaResult<()> {
-        self.secrets
+        let mut guard = self
+            .secrets
             .write()
-            .unwrap()
-            .insert(key.to_string(), value.to_string());
+            .map_err(|e| PlazaError::storage(format!("secret store lock poisoned: {e}")))?;
+        guard.insert(key.to_string(), value.to_string());
         Ok(())
     }
 
     fn delete(&self, key: &str) -> PlazaResult<()> {
-        self.secrets.write().unwrap().remove(key);
+        let mut guard = self
+            .secrets
+            .write()
+            .map_err(|e| PlazaError::storage(format!("secret store lock poisoned: {e}")))?;
+        guard.remove(key);
         Ok(())
     }
 
     fn list_keys(&self) -> PlazaResult<Vec<String>> {
-        Ok(self.secrets.read().unwrap().keys().cloned().collect())
+        let guard = self
+            .secrets
+            .read()
+            .map_err(|e| PlazaError::storage(format!("secret store lock poisoned: {e}")))?;
+        Ok(guard.keys().cloned().collect())
     }
 }

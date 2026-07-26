@@ -41,7 +41,7 @@ members = [
     "plugins/virtualbox",
     "plugins/qemu",
     "plugins/podman",
-    "plugins/hyperv",
+    "plugins/hyperv", "plaza-command",
 ]
 resolver = "2"
 
@@ -113,3 +113,4 @@ plaza-runtime = { path = "plaza-runtime" }
 plaza-plugin = { path = "plaza-plugin" }
 plaza-api = { path = "plaza-api" }
 plaza-foundation = { path = "plaza-foundation" }
+plaza-command = { path = "plaza-command" }

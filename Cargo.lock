@@ -2695,6 +2695,7 @@ dependencies = [
  "docker-plugin",
  "hyperv-plugin",
  "plaza-api",
+ "plaza-command",
  "plaza-config",
  "plaza-core",
  "plaza-events",
@@ -2711,6 +2712,22 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "virtualbox-plugin",
+]
+
+[[package]]
+name = "plaza-command"
+version = "0.1.0-dp1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "plaza-core",
+ "plaza-events",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -2807,10 +2824,8 @@ dependencies = [
 name = "plaza-events"
 version = "0.1.0-dp1"
 dependencies = [
- "chrono",
  "plaza-core",
  "serde",
- "serde_json",
  "tokio",
  "tracing",
 ]
@@ -2822,6 +2837,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
+ "plaza-command",
  "plaza-config",
  "plaza-core",
  "plaza-events",
@@ -2831,7 +2847,6 @@ dependencies = [
  "plaza-resource",
  "plaza-runtime",
  "plaza-storage",
- "plaza-workspace",
  "semver",
  "serde",
  "serde_json",
@@ -2938,10 +2953,14 @@ dependencies = [
 name = "plaza-workspace"
 version = "0.1.0-dp1"
 dependencies = [
+ "anyhow",
+ "async-trait",
  "chrono",
+ "plaza-command",
  "plaza-config",
  "plaza-core",
  "plaza-events",
+ "plaza-foundation",
  "plaza-storage",
  "semver",
  "serde",

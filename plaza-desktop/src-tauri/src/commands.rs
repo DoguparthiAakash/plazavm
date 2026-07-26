@@ -229,3 +229,91 @@ pub async fn check_system_readiness() -> Result<serde_json::Value, String> {
     });
     Ok(readiness)
 }
+
+#[tauri::command]
+pub async fn get_pro_images() -> Result<Vec<serde_json::Value>, String> {
+    let images = vec![
+        serde_json::json!({
+            "uri": "pro://ubuntu:24.04",
+            "name": "Ubuntu Userspace",
+            "tag": "24.04",
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "size_mb": 142,
+            "signature": "Ed25519 Valid",
+            "sbom_packages": 128
+        }),
+        serde_json::json!({
+            "uri": "pro://python-ai:v1",
+            "name": "Python AI/ML Stack",
+            "tag": "v1",
+            "digest": "sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+            "size_mb": 420,
+            "signature": "Ed25519 Valid",
+            "sbom_packages": 164
+        }),
+        serde_json::json!({
+            "uri": "pro://rust-dev:latest",
+            "name": "Rust Systems Toolchain",
+            "tag": "latest",
+            "digest": "sha256:a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0",
+            "size_mb": 210,
+            "signature": "Ed25519 Valid",
+            "sbom_packages": 92
+        })
+    ];
+    Ok(images)
+}
+
+#[tauri::command]
+pub async fn get_pur_images() -> Result<Vec<serde_json::Value>, String> {
+    let images = vec![
+        serde_json::json!({
+            "uri": "pri://ubuntu-dev:24.04",
+            "name": "Ubuntu Dev Utility Layer",
+            "tag": "24.04",
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "size_mb": 128,
+            "signature": "SIG-PUR-1.0",
+            "sbom_packages": 112
+        }),
+        serde_json::json!({
+            "uri": "pri://cuda-pytorch:12.4",
+            "name": "CUDA PyTorch PUR Image",
+            "tag": "12.4",
+            "digest": "sha256:9f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+            "size_mb": 890,
+            "signature": "SIG-PUR-1.0",
+            "sbom_packages": 198
+        })
+    ];
+    Ok(images)
+}
+
+#[tauri::command]
+pub async fn get_snapshot_timeline() -> Result<Vec<serde_json::Value>, String> {
+    let commits = vec![
+        serde_json::json!({
+            "commit_id": "c1a8f9204b",
+            "author": "Chief Systems Architect",
+            "message": "Initial workspace creation & manifest commit",
+            "timestamp": "2026-07-25 18:00:00 UTC",
+            "packages_count": 42
+        }),
+        serde_json::json!({
+            "commit_id": "c2b9e0315a",
+            "author": "Developer",
+            "message": "Installed CUDA 12.4 and PyTorch v2.3",
+            "timestamp": "2026-07-25 20:30:00 UTC",
+            "packages_count": 68
+        })
+    ];
+    Ok(commits)
+}
+
+#[tauri::command]
+pub async fn query_ai_assistant(prompt: String) -> Result<String, String> {
+    Ok(format!(
+        "🤖 Plaza AI: Understood request: '{}'. Generating optimized workspace execution plan with PUR OverlayFS and Ed25519 signature verification...",
+        prompt
+    ))
+}

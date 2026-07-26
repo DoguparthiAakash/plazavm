@@ -8,6 +8,7 @@ description = "Command-line interface binary for PlazaVM"
 plaza-core.workspace = true
 plaza-api.workspace = true
 plaza-foundation.workspace = true
+plaza-command.workspace = true
 plaza-workspace.workspace = true
 plaza-platform.workspace = true
 plaza-events.workspace = true

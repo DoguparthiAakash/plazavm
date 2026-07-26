@@ -3,7 +3,7 @@
 use crate::paths;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::Write;
+use std::io::{BufRead, Write};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use uuid::Uuid;
@@ -29,8 +29,11 @@ impl Logger {
         CURRENT_SESSION_ID.clone()
     }
 
+    /// Returns the log directory, creating it if needed.
+    ///
+    /// Delegates to [`paths::log_dir()`] for the canonical path.
     pub fn log_dir() -> PathBuf {
-        let dir = paths::data_dir().join("logs");
+        let dir = paths::log_dir();
         fs::create_dir_all(&dir).ok();
         dir
     }
@@ -44,7 +47,11 @@ impl Logger {
     }
 
     pub fn log(level: &str, message: &str, correlation_id: Option<&str>) {
-        let _guard = LOG_MUTEX.lock().unwrap();
+        // A logging system must never crash the process.
+        let _guard = match LOG_MUTEX.lock() {
+            Ok(g) => g,
+            Err(poisoned) => poisoned.into_inner(),
+        };
 
         let timestamp = chrono::Local::now().to_rfc3339();
         let entry = LogEntry {
@@ -88,17 +95,32 @@ impl Logger {
         Self::log("DEBUG", message, None);
     }
 
+    /// Read the most recent log lines without loading the entire file.
+    ///
+    /// Uses a bounded line-by-line read from the end to avoid OOM on large logs.
     pub fn read_recent_logs(max_lines: usize) -> Vec<String> {
         let path = Self::main_log_file();
-        if let Ok(content) = fs::read_to_string(path) {
-            content
-                .lines()
-                .rev()
-                .take(max_lines)
-                .map(|s| s.to_string())
-                .collect()
-        } else {
-            vec!["No log file found.".into()]
+        let file = match fs::File::open(&path) {
+            Ok(f) => f,
+            Err(_) => return vec!["No log file found.".into()],
+        };
+
+        let reader = std::io::BufReader::new(file);
+        // Collect into a VecDeque-style ring: keep only the last `max_lines`.
+        let mut ring: Vec<String> = Vec::with_capacity(max_lines);
+        for line in reader.lines() {
+            let line = match line {
+                Ok(l) => l,
+                Err(_) => continue,
+            };
+            if ring.len() == max_lines {
+                ring.remove(0);
+            }
+            ring.push(line);
         }
+
+        // Return in reverse-chronological order (newest first).
+        ring.reverse();
+        ring
     }
 }

@@ -4,6 +4,8 @@
 
 pub mod builder;
 pub mod capability;
+pub mod commands;
+pub mod engine;
 pub mod graph;
 pub mod memory;
 pub mod model;

@@ -138,6 +138,39 @@ pub enum PlazaEvent {
         recommendation: String,
     },
 
+    // ── Command events ──────────────────────────────────────────────────────
+    CommandReceived {
+        command: String,
+    },
+    CommandExecutionStarted {
+        command: String,
+        target: String,
+    },
+    CommandExecutionCompleted {
+        command: String,
+        target: String,
+        duration_ms: u64,
+    },
+    CommandExecutionFailed {
+        command: String,
+        target: String,
+        error: String,
+    },
+
+    // ── Engine events ───────────────────────────────────────────────────────
+    EngineStarting {
+        name: String,
+    },
+    EngineStarted {
+        name: String,
+    },
+    EngineStopping {
+        name: String,
+    },
+    EngineStopped {
+        name: String,
+    },
+
     // ── System events ───────────────────────────────────────────────────────
     SystemMetricsUpdated {
         cpu_usage_pct: f64,
@@ -180,6 +213,14 @@ impl PlazaEvent {
             Self::PluginUnloaded { .. } => "plugin.unloaded",
             Self::PluginError { .. } => "plugin.error",
             Self::AiRecommendation { .. } => "ai.recommendation",
+            Self::CommandReceived { .. } => "command.received",
+            Self::CommandExecutionStarted { .. } => "command.started",
+            Self::CommandExecutionCompleted { .. } => "command.completed",
+            Self::CommandExecutionFailed { .. } => "command.failed",
+            Self::EngineStarting { .. } => "engine.starting",
+            Self::EngineStarted { .. } => "engine.started",
+            Self::EngineStopping { .. } => "engine.stopping",
+            Self::EngineStopped { .. } => "engine.stopped",
             Self::SystemMetricsUpdated { .. } => "system.metrics_updated",
         }
     }

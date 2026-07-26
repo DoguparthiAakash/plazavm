@@ -12,7 +12,9 @@ pub mod detector;
 pub mod gpu;
 pub mod kal;
 pub mod pal;
+pub mod pro_adapter;
 pub mod profile;
+pub mod pur_adapter;
 pub mod runtime_detection;
 
 pub use capabilities::{
@@ -24,4 +26,6 @@ pub use kal::{KernelAdapter, KernelCapabilities, LinuxKernelAdapter};
 pub use pal::{
     PalFilesystem, PalNetwork, PalProcessManager, PalSecurity, PlatformAbstractionLayer,
 };
+pub use pro_adapter::{ProClient, ProSandboxHandle, ProSandboxSpec};
 pub use profile::PlatformProfile;
+pub use pur_adapter::{PurClient, PurWorkspaceHandle, PurWorkspaceSpec};

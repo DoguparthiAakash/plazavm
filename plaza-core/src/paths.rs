@@ -48,6 +48,36 @@ pub fn registry_dir() -> PathBuf {
     data_dir().join("registry")
 }
 
+/// Returns the downloads directory: `~/.plazavm/downloads/`
+pub fn downloads_dir() -> PathBuf {
+    data_dir().join("downloads")
+}
+
+/// Returns the locks directory: `~/.plazavm/locks/`
+pub fn locks_dir() -> PathBuf {
+    data_dir().join("locks")
+}
+
+/// Returns the snapshots directory: `~/.plazavm/snapshots/`
+pub fn snapshots_dir() -> PathBuf {
+    data_dir().join("snapshots")
+}
+
+/// Returns the profiles directory: `~/.plazavm/profiles/`
+pub fn profiles_dir() -> PathBuf {
+    data_dir().join("profiles")
+}
+
+/// Returns the images directory: `~/.plazavm/images/`
+pub fn images_dir() -> PathBuf {
+    data_dir().join("images")
+}
+
+/// Returns the metadata directory: `~/.plazavm/metadata/`
+pub fn metadata_dir() -> PathBuf {
+    data_dir().join("metadata")
+}
+
 /// Returns the path to the main SQLite database.
 pub fn database_path() -> PathBuf {
     db_dir().join("plazavm.db")
@@ -69,6 +99,12 @@ pub fn ensure_directories() -> std::io::Result<()> {
         log_dir(),
         cache_dir(),
         registry_dir(),
+        downloads_dir(),
+        locks_dir(),
+        snapshots_dir(),
+        profiles_dir(),
+        images_dir(),
+        metadata_dir(),
     ] {
         std::fs::create_dir_all(&dir)?;
     }
@@ -90,5 +126,11 @@ mod tests {
         assert!(plugin_dir().starts_with(&base));
         assert!(db_dir().starts_with(&base));
         assert!(database_path().starts_with(&base));
+        assert!(downloads_dir().starts_with(&base));
+        assert!(locks_dir().starts_with(&base));
+        assert!(snapshots_dir().starts_with(&base));
+        assert!(profiles_dir().starts_with(&base));
+        assert!(images_dir().starts_with(&base));
+        assert!(metadata_dir().starts_with(&base));
     }
 }

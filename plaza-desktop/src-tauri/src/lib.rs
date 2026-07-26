@@ -38,6 +38,10 @@ pub fn run() {
             commands::import_config,
             commands::reset_config,
             commands::check_system_readiness,
+            commands::get_pro_images,
+            commands::get_pur_images,
+            commands::get_snapshot_timeline,
+            commands::query_ai_assistant,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

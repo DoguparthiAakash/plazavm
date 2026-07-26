@@ -1,0 +1,15 @@
+ls
+help
+vol
+time
+date
+exit
+plaza --help
+help
+call
+ls
+whoami
+whoami
+goto
+ls
+dir

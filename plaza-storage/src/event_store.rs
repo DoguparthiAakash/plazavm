@@ -19,7 +19,9 @@ impl SqliteEventStore {
 
     /// Store a domain event into the database.
     pub fn append(&self, event: &PlazaEvent) -> PlazaResult<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().map_err(|e| {
+            plaza_core::PlazaError::Storage(format!("event store connection lock poisoned: {e}"))
+        })?;
         let event_type = event.event_type();
         let payload = serde_json::to_string(event).unwrap_or_default();
         let now = chrono::Utc::now().to_rfc3339();
@@ -49,7 +51,9 @@ impl SqliteEventStore {
 
     /// Query historical events for a specific workspace.
     pub fn get_workspace_events(&self, id: &WorkspaceId) -> PlazaResult<Vec<PlazaEvent>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().map_err(|e| {
+            plaza_core::PlazaError::Storage(format!("event store connection lock poisoned: {e}"))
+        })?;
         let mut stmt = conn
             .prepare("SELECT payload_json FROM events WHERE workspace_id = ?1 ORDER BY id ASC")
             .map_err(|e| plaza_core::PlazaError::Storage(e.to_string()))?;
@@ -66,6 +70,41 @@ impl SqliteEventStore {
             let json_str = r.map_err(|e| plaza_core::PlazaError::Storage(e.to_string()))?;
             if let Ok(ev) = serde_json::from_str::<PlazaEvent>(&json_str) {
                 events.push(ev);
+            }
+        }
+        Ok(events)
+    }
+
+    /// Retrieve all events globally, optionally starting after a specific event ID.
+    /// This is required for system-wide event replay and recovery at boot.
+    pub fn get_all_events(&self, since_id: Option<i64>) -> PlazaResult<Vec<(i64, PlazaEvent)>> {
+        let conn = self.conn.lock().map_err(|e| {
+            plaza_core::PlazaError::Storage(format!("event store connection lock poisoned: {e}"))
+        })?;
+
+        let (query, params_list) = if let Some(id) = since_id {
+            ("SELECT id, payload_json FROM events WHERE id > ?1 ORDER BY id ASC", vec![rusqlite::types::Value::Integer(id)])
+        } else {
+            ("SELECT id, payload_json FROM events ORDER BY id ASC", vec![])
+        };
+
+        let mut stmt = conn
+            .prepare(query)
+            .map_err(|e| plaza_core::PlazaError::Storage(e.to_string()))?;
+
+        let rows = stmt
+            .query_map(rusqlite::params_from_iter(params_list), |row| {
+                let id: i64 = row.get(0)?;
+                let payload: String = row.get(1)?;
+                Ok((id, payload))
+            })
+            .map_err(|e| plaza_core::PlazaError::Storage(e.to_string()))?;
+
+        let mut events = Vec::new();
+        for r in rows {
+            let (id, json_str) = r.map_err(|e| plaza_core::PlazaError::Storage(e.to_string()))?;
+            if let Ok(ev) = serde_json::from_str::<PlazaEvent>(&json_str) {
+                events.push((id, ev));
             }
         }
         Ok(events)

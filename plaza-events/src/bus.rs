@@ -4,7 +4,7 @@ use crate::PlazaEvent;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
-use tracing::{debug, warn};
+use tracing::debug;
 
 /// Default channel capacity — how many events can be buffered before
 /// slow subscribers start missing events.
@@ -43,18 +43,17 @@ impl EventBus {
     pub async fn publish(&self, event: PlazaEvent) {
         debug!(event_type = event.event_type(), "publishing event");
 
-        // Append to history
-        {
-            let mut history = self.history.write().await;
-            if history.len() >= MAX_HISTORY {
-                history.pop_front();
-            }
-            history.push_back(event.clone());
+        // Hold the lock while sending to ensure events are broadcast
+        // in the exact same order they are appended to history.
+        let mut history = self.history.write().await;
+        if history.len() >= MAX_HISTORY {
+            history.pop_front();
         }
+        history.push_back(event.clone());
 
         // Broadcast — if nobody is listening that's fine
         if self.sender.send(event).is_err() {
-            warn!("event published but no active subscribers");
+            debug!("event published but no active subscribers");
         }
     }
 
