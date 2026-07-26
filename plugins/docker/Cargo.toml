@@ -5,7 +5,7 @@ edition.workspace = true
 description = "Docker execution backend plugin for PlazaVM"
 
 [dependencies]
-plaza-core.workspace = true
+plaza-foundation.workspace = true
 plaza-plugin.workspace = true
 plaza-runtime.workspace = true
 async-trait.workspace = true
@@ -15,3 +15,4 @@ tokio.workspace = true
 uuid.workspace = true
 semver.workspace = true
 bollard.workspace = true
+

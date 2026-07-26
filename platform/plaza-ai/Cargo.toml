@@ -1,0 +1,14 @@
+[package]
+name = "plaza-ai"
+version.workspace = true
+edition.workspace = true
+description = "AI Advisor System for PlazaVM — runtime recommendations, health diagnostics, and project analysis"
+
+[dependencies]
+plaza-foundation = { version = "0.1.0-dp1", path = "../../shared/plaza-foundation" }
+async-trait.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+

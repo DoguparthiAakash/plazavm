@@ -1,0 +1,13 @@
+[package]
+name = "plaza-runtime"
+version.workspace = true
+edition.workspace = true
+description = "Runtime backend abstraction traits for PlazaVM — zero implementation"
+
+[dependencies]
+plaza-foundation.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+

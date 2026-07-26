@@ -1,0 +1,7 @@
+name: formatting
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Placeholder for formatting'

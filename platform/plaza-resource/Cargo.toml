@@ -1,0 +1,13 @@
+[package]
+name = "plaza-resource"
+version.workspace = true
+edition.workspace = true
+description = "Resource scheduling, allocation, policies, and dynamic balancing for PlazaVM"
+
+[dependencies]
+plaza-foundation.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+

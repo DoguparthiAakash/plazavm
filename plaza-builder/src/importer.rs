@@ -3,7 +3,7 @@
 //! Imports Linux userspaces into immutable Plaza Runtime Images (`pri://`).
 //! Strips kernel images, kernel modules, and bootloaders to enforce pure userspace operation.
 
-use plaza_core::PlazaResult;
+use plaza_foundation::core::PlazaResult;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -101,3 +101,4 @@ mod md5 {
         bytes
     }
 }
+

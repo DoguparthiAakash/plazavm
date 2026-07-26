@@ -1,0 +1,7 @@
+name: cross-platform-build
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Placeholder for cross-platform-build'

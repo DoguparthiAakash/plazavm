@@ -35,3 +35,4 @@ async fn test_e2e_workspace_full_lifecycle() {
 
     assert_eq!(updated.status.state, WorkspaceState::Scheduling);
 }
+

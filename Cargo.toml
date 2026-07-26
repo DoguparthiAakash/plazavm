@@ -1,47 +1,58 @@
 [workspace]
 members = [
-    # ── Infrastructure Layer ──
-    "plaza-core",
-    "plaza-events",
-    "plaza-config",
-    "plaza-storage",
-    "plaza-monitor",
-    "plaza-registry",
+    # ── Legacy / Uncategorized ──
+    
+    
+    
 
-    # ── Foundation Layer ──
-    "plaza-foundation",
+    # ── Shared ──
+    "shared/plaza-foundation",
+    "shared/plaza-command",
+    "shared/plaza-sdk",
 
-    # ── Platform Layer ──
-    "plaza-platform",
+    # ── Engines ──
+    "engines/plaza-workspace",
+    "engines/plaza-runtime",
+    "engines/plaza-storage",
+    "engines/plaza-registry",
+    "engines/plaza-plugin",
+    "engines/plaza-image",
+    "engines/plaza-package",
+    "engines/plaza-snapshot",
 
-    # ── Domain Layer ──
-    "plaza-workspace",
+    # ── Platform ──
+    "platform/plaza-security",
+    "platform/plaza-network",
+    "platform/plaza-resource",
+    "platform/plaza-ai",
+    "platform/plaza-api",
+    "platform/plaza-cloud",
 
-    # ── Controller Layer ──
-    "plaza-controller",
+    # ── Apps ──
+    "apps/plaza-cli",
+    "apps/plaza-desktop/src-tauri",
 
-    # ── Decision Layer ──
-    "plaza-decision",
-    "plaza-resource",
-    "plaza-ai",
+    # ── OS ──
+    "os/plaza-os",
+    "os/plaza-init",
+    "os/plaza-agent",
+    "os/plaza-kernel",
+    "os/plaza-installer",
 
-    # ── Execution Layer ──
-    "plaza-runtime",
-
-    # ── Plugin Layer ──
-    "plaza-plugin",
-
-    # ── Application Layer ──
-    "plaza-api",
-    "plaza-cli",
-    "plaza-desktop/src-tauri",
+    # ── Specs & Docs ──
+    "specifications/plaza-specifications",
+    "docs/plaza-docs",
+    "examples/plaza-examples",
+    "tools/plaza-build",
+    "integration/plaza-manifest",
+    "tools/publication-manager",
 
     # ── Runtime Plugins ──
     "plugins/docker",
     "plugins/virtualbox",
     "plugins/qemu",
     "plugins/podman",
-    "plugins/hyperv", "plaza-command",
+    "plugins/hyperv",
 ]
 resolver = "2"
 
@@ -100,17 +111,19 @@ tauri-build = "2"
 plaza-core = { path = "plaza-core" }
 plaza-events = { path = "plaza-events" }
 plaza-config = { path = "plaza-config" }
-plaza-storage = { path = "plaza-storage" }
+plaza-storage = { path = "engines/plaza-storage" }
 plaza-monitor = { path = "plaza-monitor" }
-plaza-registry = { path = "plaza-registry" }
+plaza-registry = { path = "engines/plaza-registry" }
 plaza-platform = { path = "plaza-platform" }
-plaza-workspace = { path = "plaza-workspace" }
+plaza-workspace = { path = "engines/plaza-workspace" }
 plaza-controller = { path = "plaza-controller" }
 plaza-decision = { path = "plaza-decision" }
-plaza-resource = { path = "plaza-resource" }
-plaza-ai = { path = "plaza-ai" }
-plaza-runtime = { path = "plaza-runtime" }
-plaza-plugin = { path = "plaza-plugin" }
-plaza-api = { path = "plaza-api" }
-plaza-foundation = { path = "plaza-foundation" }
-plaza-command = { path = "plaza-command" }
+plaza-resource = { path = "platform/plaza-resource" }
+plaza-ai = { path = "platform/plaza-ai" }
+plaza-runtime = { path = "engines/plaza-runtime" }
+plaza-plugin = { path = "engines/plaza-plugin" }
+plaza-api = { path = "platform/plaza-api" }
+plaza-foundation = { path = "shared/plaza-foundation" }
+plaza-command = { path = "shared/plaza-command" }
+
+

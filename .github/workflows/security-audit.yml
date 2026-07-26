@@ -1,0 +1,7 @@
+name: security-audit
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Placeholder for security-audit'

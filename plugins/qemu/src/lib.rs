@@ -1,8 +1,8 @@
 //! QEMU runtime execution plugin for PlazaVM.
 
 use async_trait::async_trait;
-use plaza_core::types::{Architecture, HealthStatus, OperatingSystem, Timestamp};
-use plaza_core::PlazaResult;
+use plaza_foundation::core::types::{Architecture, HealthStatus, OperatingSystem, Timestamp};
+use plaza_foundation::core::PlazaResult;
 use plaza_plugin::{Plugin, PluginManifest, PluginType};
 use plaza_runtime::{
     RuntimeBackend, RuntimeCapabilities, RuntimeInstance, RuntimeMetrics, RuntimeStatus,
@@ -145,3 +145,4 @@ impl RuntimeBackend for QemuPlugin {
         Ok(RuntimeMetrics::default())
     }
 }
+

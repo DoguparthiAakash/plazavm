@@ -1,0 +1,65 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Node & JavaScript
+**/node_modules/
+**/.next/
+**/dist/
+**/build/
+*.tsbuildinfo
+.npm
+.yarn
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.pfx
+
+# Generated binaries and runtime output
+*.exe
+*.dll
+*.pdb
+*.so
+*.dylib
+*.log
+*.sqlite
+*.db
+
+# Local PlazaVM state
+.plazavm/
+
+# IDEs / Operating Systems
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Archives & Media
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.pdf
+*.mp4
+
+# Tauri specific
+src-tauri/gen/
+src-tauri/target/

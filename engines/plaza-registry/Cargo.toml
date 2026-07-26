@@ -1,0 +1,12 @@
+[package]
+name = "plaza-registry"
+version.workspace = true
+edition.workspace = true
+description = "Runtime images registry and workspace templates management for PlazaVM"
+
+[dependencies]
+plaza-foundation.workspace = true
+plaza-workspace.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+

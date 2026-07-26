@@ -1,0 +1,23 @@
+[package]
+name = "plaza-foundation"
+version.workspace = true
+edition.workspace = true
+description = "Plaza Foundation Core, Service Registry, Provider Registry, and Internal Protocol"
+
+[dependencies]
+
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+semver.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
+lazy_static.workspace = true
+sysinfo.workspace = true
+toml.workspace = true
+serde_yaml.workspace = true
+dirs.workspace = true
