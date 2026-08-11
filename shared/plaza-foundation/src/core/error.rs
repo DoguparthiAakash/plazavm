@@ -106,6 +106,17 @@ pub enum PlazaError {
     #[error("console error: {0}")]
     ConsoleError(String),
 
+    // ── Network errors ──────────────────────────────────────────────────────
+    #[error("network error: {0}")]
+    Network(String),
+
+    // ── Generic lookup errors ───────────────────────────────────────────────
+    #[error("not found: {0}")]
+    NotFound(String),
+
+    #[error("internal error: {0}")]
+    Internal(String),
+
     // ── Infrastructure errors ───────────────────────────────────────────────
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
