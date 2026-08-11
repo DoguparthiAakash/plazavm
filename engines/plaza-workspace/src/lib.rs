@@ -15,6 +15,7 @@ pub mod import_export;
 pub mod migration;
 pub mod pipeline;
 pub mod process;
+pub mod reconciler;
 pub mod recovery;
 pub mod service;
 pub mod service_manager;
@@ -34,6 +35,7 @@ pub use model::{
 };
 pub use pipeline::{BuilderStage, TransactionalPipelineBuilder};
 pub use process::{ProcessSpec, ProcessState, WorkspaceProcessManager};
+pub use reconciler::{ReconcileAction, Reconciler};
 pub use service::WorkspaceService;
 pub use service_manager::{ServiceSpec, ServiceStatus, WorkspaceServiceManager};
 pub use session::{SessionManager, SessionStatus, StructuredCommandEntry, WorkspaceSession};

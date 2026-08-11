@@ -3,7 +3,7 @@
 use super::graph::WorkspaceGraph;
 use plaza_foundation::config::IntentConfig;
 use plaza_foundation::core::id::WorkspaceId;
-use plaza_foundation::core::security::SecurityPolicy;
+use plaza_foundation::core::capability_policy::CapabilityPolicy;
 use plaza_foundation::core::types::{Architecture, HealthStatus, OperatingSystem, Timestamp};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -55,7 +55,7 @@ pub struct WorkspaceSpec {
     pub storage: Vec<VolumeSpec>,
     pub devices: Vec<DeviceSpec>,
     pub environment: HashMap<String, String>,
-    pub security: SecurityPolicy,
+    pub capabilities: CapabilityPolicy,
     pub intent: Option<IntentConfig>,
     pub extensions: Vec<String>,
 }
@@ -70,7 +70,7 @@ impl Default for WorkspaceSpec {
             storage: Vec::new(),
             devices: Vec::new(),
             environment: HashMap::new(),
-            security: SecurityPolicy::default(),
+            capabilities: CapabilityPolicy::default(),
             intent: None,
             extensions: Vec::new(),
         }

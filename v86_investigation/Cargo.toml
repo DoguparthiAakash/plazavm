@@ -1,0 +1,11 @@
+[package]
+name = "v86_investigation"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+reqwest = { version = "0.13.4", features = ["blocking"] }
+wasmparser = "0.80.0"

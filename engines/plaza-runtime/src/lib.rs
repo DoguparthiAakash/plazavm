@@ -12,10 +12,15 @@
 mod backend;
 mod capabilities;
 mod instance;
+mod machine;
+pub mod resolver;
+pub mod storage;
 mod manager;
 
 pub use backend::RuntimeBackend;
 pub use capabilities::RuntimeCapabilities;
 pub use instance::{ConsoleStream, RuntimeInstance, RuntimeMetrics, RuntimeStatus, SnapshotInfo};
+pub use machine::MachineConfig;
 pub use manager::RuntimeManager;
+pub use storage::RuntimeStorage;
 

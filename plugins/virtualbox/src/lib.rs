@@ -99,7 +99,7 @@ impl RuntimeBackend for VirtualBoxPlugin {
         Ok("7.0.0".into())
     }
 
-    async fn create(&self, _spec_json: &str) -> PlazaResult<RuntimeInstance> {
+    async fn create(&self, _machine: &plaza_runtime::MachineConfig, _storage: plaza_runtime::RuntimeStorage) -> PlazaResult<RuntimeInstance> {
         Ok(RuntimeInstance {
             id: format!("vbox-{}", uuid::Uuid::new_v4()),
             name: "virtualbox-vm".into(),

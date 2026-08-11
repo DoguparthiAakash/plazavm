@@ -113,6 +113,7 @@ mod tests {
                 output_format: "text".to_string(),
                 metadata: std::collections::HashMap::new(),
             },
+            state: std::collections::HashMap::new(),
         };
 
         // Run before

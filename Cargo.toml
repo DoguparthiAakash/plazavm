@@ -53,6 +53,7 @@ members = [
     "plugins/qemu",
     "plugins/podman",
     "plugins/hyperv",
+    "plugins/v86", "v86_investigation",
 ]
 resolver = "2"
 

@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "lowercase")]
 pub enum Architecture {
     X86_64,
+    X86_32,
     Aarch64,
     Riscv64,
     Arm32,
@@ -16,6 +17,7 @@ impl std::fmt::Display for Architecture {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::X86_64 => write!(f, "x86_64"),
+            Self::X86_32 => write!(f, "x86_32"),
             Self::Aarch64 => write!(f, "aarch64"),
             Self::Riscv64 => write!(f, "riscv64"),
             Self::Arm32 => write!(f, "arm32"),
@@ -130,10 +132,16 @@ impl ByteSize {
         self.0 / (1024 * 1024 * 1024)
     }
 
-    /// Parse human-readable sizes like "4Gi", "512Mi", "100G".
+    /// Parse human-readable sizes like "4GiB", "512MiB", "4Gi", "512Mi", "100G".
     pub fn parse(s: &str) -> Result<Self, String> {
         let s = s.trim();
-        if let Some(n) = s.strip_suffix("Gi") {
+        if let Some(n) = s.strip_suffix("GiB") {
+            let v: u64 = n.trim().parse().map_err(|e| format!("invalid size: {e}"))?;
+            Ok(Self::from_gb(v))
+        } else if let Some(n) = s.strip_suffix("MiB") {
+            let v: u64 = n.trim().parse().map_err(|e| format!("invalid size: {e}"))?;
+            Ok(Self::from_mb(v))
+        } else if let Some(n) = s.strip_suffix("Gi") {
             let v: u64 = n.trim().parse().map_err(|e| format!("invalid size: {e}"))?;
             Ok(Self::from_gb(v))
         } else if let Some(n) = s.strip_suffix("Mi") {

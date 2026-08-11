@@ -94,7 +94,7 @@ impl RuntimeBackend for PodmanPlugin {
         Ok("4.9.0".into())
     }
 
-    async fn create(&self, _spec_json: &str) -> PlazaResult<RuntimeInstance> {
+    async fn create(&self, _machine: &plaza_runtime::MachineConfig, _storage: plaza_runtime::RuntimeStorage) -> PlazaResult<RuntimeInstance> {
         Ok(RuntimeInstance {
             id: format!("podman-{}", uuid::Uuid::new_v4()),
             name: "podman-container".into(),

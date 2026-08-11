@@ -56,6 +56,56 @@ pub enum PlazaError {
     #[error("AI error: {0}")]
     Ai(String),
 
+    // ── Capability errors ───────────────────────────────────────────────────
+    #[error("capability denied: {capability}")]
+    CapabilityDenied { capability: String },
+
+    #[error("invalid capability grant: {field} — {reason}")]
+    InvalidCapabilityGrant { field: String, reason: String },
+
+    // ── Resource validation errors ──────────────────────────────────────────
+    #[error("insufficient resources: requested {requested}, available {available}")]
+    InsufficientResources { requested: String, available: String },
+
+    // ── Image errors ────────────────────────────────────────────────────────
+    #[error("image not found: {name}")]
+    ImageNotFound { name: String },
+
+    #[error("image corrupted: {id} — {reason}")]
+    ImageCorrupted { id: String, reason: String },
+
+    #[error("image incomplete: {id} — missing layer {layer}")]
+    ImageIncomplete { id: String, layer: String },
+
+    #[error("blob not found: {digest}")]
+    BlobNotFound { digest: String },
+
+    #[error("blob integrity error: expected {expected}, got {actual}")]
+    BlobIntegrityError { expected: String, actual: String },
+
+    #[error("invalid image reference: {0}")]
+    InvalidImageReference(String),
+
+    #[error("ambiguous image reference: {0}")]
+    AmbiguousImageReference(String),
+
+    #[error("invalid layer: {0}")]
+    InvalidLayer(String),
+
+    #[error("virtual block device error: {0}")]
+    VirtualBlockDeviceError(String),
+
+    #[error("out of bounds access: offset {offset}, length {length}, size {size}")]
+    OutOfBounds { offset: u64, length: u64, size: u64 },
+
+    // ── Process errors ──────────────────────────────────────────────────────
+    #[error("process error: {0}")]
+    ProcessError(String),
+
+    // ── Console errors ──────────────────────────────────────────────────────
+    #[error("console error: {0}")]
+    ConsoleError(String),
+
     // ── Infrastructure errors ───────────────────────────────────────────────
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
@@ -84,6 +134,11 @@ impl PlazaError {
     /// Create a serialization error from any displayable value.
     pub fn serialization(msg: impl std::fmt::Display) -> Self {
         Self::Serialization(msg.to_string())
+    }
+
+    /// Construct a process error.
+    pub fn process(msg: impl std::fmt::Display) -> Self {
+        Self::ProcessError(msg.to_string())
     }
 
     /// Returns the canonical error details (code, category, severity, resolution).

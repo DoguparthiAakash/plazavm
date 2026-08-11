@@ -1,0 +1,17 @@
+version: "1"
+
+workspace:
+  name: my_workspace
+
+image:
+  name: alpine-dev
+
+machine:
+  architecture: x86_64
+  cpu:
+    cores: 2
+  memory:
+    size: 2048MiB
+
+runtime:
+  backend: auto

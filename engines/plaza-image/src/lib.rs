@@ -1,9 +1,13 @@
 pub mod model;
+pub mod block;
+pub mod composer;
+pub mod store;
+pub mod resolver;
+pub mod gc;
 pub mod manager;
-pub mod manifest;
-pub mod fetch;
-pub mod cache;
-pub mod layer;
-pub mod validator;
 
 pub use manager::ImageManager;
+pub use block::{VirtualBlockDevice, ImmutableLayer, FileBackedImmutableLayer, CowWritableLayer, BLOCK_SIZE};
+pub use composer::LayeredBlockDevice;
+pub use store::{BlobStore, ManifestStore, LocalBlobStore, LocalManifestStore};
+pub use gc::{GarbageCollector, LocalGarbageCollector, GcReport};

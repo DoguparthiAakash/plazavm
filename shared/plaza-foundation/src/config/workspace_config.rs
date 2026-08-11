@@ -1,14 +1,51 @@
-//! Workspace configuration schema parser for `plaza.yaml`.
+//! Root `plaza.yaml` configuration document.
+//!
+//! This module defines `PlazaYaml` — the top-level struct that represents
+//! a complete, parsed `plaza.yaml` workspace configuration file.
+//!
+//! # Schema
+//!
+//! ```yaml
+//! version: "1"
+//!
+//! workspace:
+//!   name: my-project
+//!
+//! image:
+//!   name: alpine-dev
+//!   version: "1.0"
+//!
+//! machine:
+//!   architecture: x86_64
+//!   cpu:
+//!     cores: 4
+//!   memory:
+//!     size: 4096MiB
+//!
+//! runtime:
+//!   backend: auto
+//!   acceleration:
+//!     enabled: false
+//!
+//! capabilities:
+//!   filesystem:
+//!     - path: "./project"
+//!       mode: read-write
+//!   network:
+//!     enabled: true
+//!     mode: nat
+//! ```
 
-use crate::core::security::SecurityPolicy;
-use crate::core::types::{Architecture, OperatingSystem};
+use crate::config::capabilities::CapabilityGrants;
+use crate::config::image_section::ImageSection;
+use crate::config::machine_section::MachineSection;
+use crate::config::runtime_section::RuntimeSection;
 use crate::core::{PlazaError, PlazaResult};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
-/// Version string for `plaza.yaml`.
+/// Schema version for `plaza.yaml`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub enum WorkspaceConfigVersion {
+pub enum PlazaYamlVersion {
     #[default]
     #[serde(rename = "1")]
     V1,
@@ -16,148 +53,106 @@ pub enum WorkspaceConfigVersion {
 
 /// Parsed `plaza.yaml` workspace configuration document.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WorkspaceConfig {
+pub struct PlazaYaml {
+    /// Schema version (currently `"1"`).
     #[serde(default)]
-    pub version: WorkspaceConfigVersion,
-    pub workspace: WorkspaceMetadataConfig,
-    pub runtime: RuntimeConfigSection,
+    pub version: PlazaYamlVersion,
+
+    /// Workspace identity.
+    pub workspace: WorkspaceSection,
+
+    /// Image reference (name + optional version).
     #[serde(default)]
-    pub resources: ResourceConfigSection,
+    pub image: Option<ImageSection>,
+
+    /// Virtual machine hardware configuration.
     #[serde(default)]
-    pub networking: NetworkConfigSection,
+    pub machine: Option<MachineSection>,
+
+    /// Runtime backend selection and acceleration policy.
     #[serde(default)]
-    pub storage: StorageConfigSection,
+    pub runtime: Option<RuntimeSection>,
+
+    /// Explicit capability grants. Default-deny: missing = DENIED.
     #[serde(default)]
-    pub environment: HashMap<String, String>,
-    #[serde(default)]
-    pub security: SecurityPolicy,
-    #[serde(default)]
-    pub intent: Option<IntentConfig>,
-    #[serde(default)]
-    pub extensions: Vec<String>,
+    pub capabilities: Option<CapabilityGrants>,
 }
 
+/// The `workspace:` section of `plaza.yaml`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WorkspaceMetadataConfig {
+pub struct WorkspaceSection {
+    /// Workspace name.
     pub name: String,
+
+    /// Optional description.
+    #[serde(default)]
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RuntimeConfigSection {
-    pub kind: String, // container, microvm, vm, remote, cloud
-    pub image: Option<String>,
-    #[serde(default = "default_backend_auto")]
-    pub backend: String, // auto, preferred:docker, pinned:qemu
-    #[serde(default = "default_os_linux")]
-    pub os: OperatingSystem,
-    #[serde(default = "default_arch_x86")]
-    pub arch: Architecture,
-}
-
-fn default_backend_auto() -> String {
-    "auto".into()
-}
-fn default_os_linux() -> OperatingSystem {
-    OperatingSystem::Linux
-}
-fn default_arch_x86() -> Architecture {
-    Architecture::X86_64
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ResourceConfigSection {
-    pub cpu: Option<CpuResourceConfig>,
-    pub memory: Option<MemoryResourceConfig>,
-    pub gpu: Option<GpuResourceConfig>,
-    #[serde(default = "default_priority")]
-    pub priority: String,
-}
-
-fn default_priority() -> String {
-    "normal".into()
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CpuResourceConfig {
-    pub cores: u32,
-    pub limit: Option<u32>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MemoryResourceConfig {
-    pub size: String,
-    pub limit: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GpuResourceConfig {
-    pub enabled: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct NetworkConfigSection {
-    #[serde(default = "default_net_mode")]
-    pub mode: String,
-    #[serde(default)]
-    pub ports: Vec<PortMappingConfig>,
-    #[serde(default)]
-    pub dns: Vec<String>,
-}
-
-fn default_net_mode() -> String {
-    "nat".into()
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PortMappingConfig {
-    pub host: u16,
-    pub guest: u16,
-    #[serde(default = "default_protocol_tcp")]
-    pub protocol: String,
-}
-
-fn default_protocol_tcp() -> String {
-    "tcp".into()
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct StorageConfigSection {
-    #[serde(default)]
-    pub volumes: Vec<VolumeConfig>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VolumeConfig {
-    pub name: String,
-    pub host_path: Option<String>,
-    pub mount_path: String,
-    pub size: Option<String>,
-}
-
-/// Intent-based high-level configuration.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IntentConfig {
-    pub purpose: Option<String>,
-    pub performance: Option<String>, // low, medium, high, maximum
-    pub startup: Option<String>,     // fast, normal, thorough
-    pub gpu: Option<String>,         // required, preferred, none
-    pub security: Option<String>,    // minimal, standard, strict
-}
-
-impl WorkspaceConfig {
-    /// Parse `plaza.yaml` string.
+impl PlazaYaml {
+    /// Parse a `plaza.yaml` string into a `PlazaYaml` struct.
     pub fn parse_yaml(content: &str) -> PlazaResult<Self> {
         serde_yaml::from_str(content).map_err(|e| PlazaError::Config(e.to_string()))
     }
 
-    /// Validate the workspace configuration.
+    /// Validate the configuration using the full validation pipeline.
     pub fn validate(&self) -> PlazaResult<()> {
-        if self.workspace.name.trim().is_empty() {
-            return Err(PlazaError::Config("workspace.name cannot be empty".into()));
-        }
-        Ok(())
+        crate::config::validation::validate_plaza_yaml(self)
     }
+
+    /// Generate a minimal secure `plaza.yaml` for `plaza init`.
+    ///
+    /// The generated configuration follows the default-deny model:
+    /// no capabilities are granted.
+    pub fn generate_minimal(name: &str) -> String {
+        format!(
+            r#"version: "1"
+
+workspace:
+  name: {}
+
+image:
+  name: alpine-dev
+
+machine:
+  architecture: x86_64
+  cpu:
+    cores: 2
+  memory:
+    size: 2048MiB
+
+runtime:
+  backend: auto
+"#,
+            name
+        )
+    }
+}
+
+// ── Backward compatibility re-exports ───────────────────────────────────────
+// The old `WorkspaceConfig` name is preserved as a type alias so that
+// downstream code that hasn't migrated yet continues to compile.
+
+/// Deprecated alias — use `PlazaYaml` directly.
+pub type WorkspaceConfig = PlazaYaml;
+
+/// Deprecated alias — use `PlazaYamlVersion` directly.
+pub type WorkspaceConfigVersion = PlazaYamlVersion;
+
+// ── Legacy IntentConfig ─────────────────────────────────────────────────────
+// Kept for backward compatibility with downstream crates that import it.
+
+/// Intent-based high-level configuration (legacy).
+///
+/// This is preserved for backward compatibility. New code should use
+/// the `machine` and `runtime` sections of `plaza.yaml` instead.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IntentConfig {
+    pub purpose: Option<String>,
+    pub performance: Option<String>,
+    pub startup: Option<String>,
+    pub gpu: Option<String>,
+    pub security: Option<String>,
 }
 
 #[cfg(test)]
@@ -165,31 +160,121 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_sample_plaza_yaml() {
+    fn parse_minimal_plaza_yaml() {
         let yaml = r#"
 version: "1"
 workspace:
-  name: "my-dev-env"
-  description: "Development workspace"
-runtime:
-  kind: container
-  image: "ubuntu:24.04"
-  backend: auto
-resources:
+  name: my-project
+"#;
+        let config = PlazaYaml::parse_yaml(yaml).unwrap();
+        assert_eq!(config.workspace.name, "my-project");
+        assert!(config.image.is_none());
+        assert!(config.machine.is_none());
+        assert!(config.runtime.is_none());
+        assert!(config.capabilities.is_none());
+        config.validate().unwrap();
+    }
+
+    #[test]
+    fn parse_full_plaza_yaml() {
+        let yaml = r#"
+version: "1"
+
+workspace:
+  name: alpine-dev
+  description: "Full development workspace"
+
+image:
+  name: alpine-dev
+  version: "1.0"
+
+machine:
+  architecture: x86_64
   cpu:
     cores: 4
   memory:
-    size: "4Gi"
-intent:
-  purpose: "AI Development"
-  performance: "high"
+    size: 4096MiB
+  display:
+    enabled: true
+  console:
+    serial: true
+
+runtime:
+  backend: auto
+  acceleration:
+    enabled: false
+
+capabilities:
+  filesystem:
+    - path: "./project"
+      mode: read-write
+  network:
+    enabled: true
+    mode: nat
+  clipboard:
+    read: true
+    write: true
 "#;
-        let config = WorkspaceConfig::parse_yaml(yaml).unwrap();
-        assert_eq!(config.workspace.name, "my-dev-env");
-        assert_eq!(config.runtime.kind, "container");
-        assert!(config.intent.is_some());
+        let config = PlazaYaml::parse_yaml(yaml).unwrap();
+        assert_eq!(config.workspace.name, "alpine-dev");
+
+        let image = config.image.as_ref().unwrap();
+        assert_eq!(image.name, "alpine-dev");
+        assert_eq!(image.version.as_deref(), Some("1.0"));
+
+        let machine = config.machine.as_ref().unwrap();
+        assert_eq!(machine.cpu.cores, 4);
+        assert_eq!(machine.memory.size, "4096MiB");
+
+        let runtime = config.runtime.as_ref().unwrap();
+        assert_eq!(runtime.backend, "auto");
+        assert!(!runtime.acceleration.enabled);
+
+        let caps = config.capabilities.as_ref().unwrap();
+        assert!(caps.has_filesystem());
+        assert!(caps.has_network());
+        assert!(caps.has_clipboard());
+
         config.validate().unwrap();
     }
+
+    #[test]
+    fn generate_minimal_follows_default_deny() {
+        let yaml = PlazaYaml::generate_minimal("test-project");
+        let config = PlazaYaml::parse_yaml(&yaml).unwrap();
+        assert_eq!(config.workspace.name, "test-project");
+        // No capabilities section → everything denied.
+        assert!(config.capabilities.is_none());
+        config.validate().unwrap();
+    }
+
+    #[test]
+    fn missing_capabilities_is_default_deny() {
+        let yaml = r#"
+version: "1"
+workspace:
+  name: test
+"#;
+        let config = PlazaYaml::parse_yaml(yaml).unwrap();
+        let caps = config
+            .capabilities
+            .as_ref()
+            .cloned()
+            .unwrap_or_default();
+        assert!(!caps.has_filesystem());
+        assert!(!caps.has_network());
+        assert!(!caps.has_clipboard());
+        assert!(!caps.has_any_device());
+    }
+
+    #[test]
+    fn unknown_schema_version_rejected() {
+        let yaml = r#"
+version: "999"
+workspace:
+  name: test
+"#;
+        let result = PlazaYaml::parse_yaml(yaml);
+        assert!(result.is_err());
+    }
 }
-
-

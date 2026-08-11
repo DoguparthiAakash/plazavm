@@ -5,6 +5,7 @@
 //! Provides shared types, error definitions, strongly-typed identifiers,
 //! and cross-cutting concerns used by every other crate in the workspace.
 
+pub mod capability_policy;
 pub mod error;
 pub mod id;
 pub mod logging;
@@ -17,6 +18,10 @@ pub mod types;
 
 // ── Convenience re-exports ──────────────────────────────────────────────────
 
+pub use capability_policy::{
+    CapabilityPolicy, ResolvedClipboardPolicy, ResolvedDevicePolicy, ResolvedEnvironmentPolicy,
+    ResolvedFilesystemGrant, ResolvedNetworkPolicy,
+};
 pub use error::{CanonicalError, ErrorSeverity, PlazaError, PlazaResult};
 pub use id::{
     BackendId, DriverId, ExecutionTarget, ExecutionTargetId, ImageId, MountId, PackageName,

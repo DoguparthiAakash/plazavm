@@ -100,7 +100,7 @@ impl RuntimeBackend for HyperVPlugin {
         Ok("10.0".into())
     }
 
-    async fn create(&self, _spec_json: &str) -> PlazaResult<RuntimeInstance> {
+    async fn create(&self, _machine: &plaza_runtime::MachineConfig, _storage: plaza_runtime::RuntimeStorage) -> PlazaResult<RuntimeInstance> {
         Ok(RuntimeInstance {
             id: format!("hyperv-{}", uuid::Uuid::new_v4()),
             name: "hyperv-vm".into(),

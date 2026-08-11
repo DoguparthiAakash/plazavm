@@ -33,25 +33,23 @@ impl RuntimeManager {
     }
 
     /// Negotiates capabilities to find the best backend for a workspace specification.
-    ///
-    /// In DP1, we simplify this to just returning the first available backend or
-    /// matching by a requested backend ID.
-    pub async fn negotiate_backend(&self, requested_id: Option<&str>) -> PlazaResult<Arc<dyn RuntimeBackend>> {
-        if let Some(id) = requested_id {
-            return self.get_backend(id);
+    pub async fn negotiate_backend(&self, config: &crate::machine::MachineConfig, requested_id: Option<&str>) -> PlazaResult<Arc<dyn RuntimeBackend>> {
+        // Find matching backend using the resolver
+        let candidates = self.backends.values();
+        let backend = crate::resolver::resolve_backend(candidates, config, requested_id)
+            .ok_or_else(|| PlazaError::NoSuitableRuntime {
+                reason: format!("No available backends support the given MachineConfig. Architecture: {}", config.machine.architecture),
+            })?;
+        
+        if !backend.is_available().await {
+            return Err(PlazaError::NoSuitableRuntime {
+                reason: format!("Resolved backend {} is not available on the host system", backend.id()),
+            });
         }
-
-        // Return first available (naive DP1 negotiation)
-        for backend in self.backends.values() {
-            if backend.is_available().await {
-                return Ok(backend.clone());
-            }
-        }
-
-        Err(PlazaError::NoSuitableRuntime {
-            reason: "No available backends found".into(),
-        })
+        
+        Ok(backend)
     }
+
 }
 
 impl Default for RuntimeManager {
