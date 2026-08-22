@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct DeltaTracker;
 
+impl Default for DeltaTracker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DeltaTracker {
     pub fn new() -> Self {
         Self

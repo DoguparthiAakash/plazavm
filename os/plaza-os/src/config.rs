@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct OsConfigManager;
 
+impl Default for OsConfigManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OsConfigManager {
     pub fn new() -> Self {
         Self

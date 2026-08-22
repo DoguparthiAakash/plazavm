@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct AbUpdater;
 
+impl Default for AbUpdater {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AbUpdater {
     pub fn new() -> Self {
         Self

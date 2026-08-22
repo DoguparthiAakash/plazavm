@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct WebSocketManager;
 
+impl Default for WebSocketManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WebSocketManager {
     pub fn new() -> Self {
         Self

@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct PackageSigner;
 
+impl Default for PackageSigner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PackageSigner {
     pub fn new() -> Self {
         Self

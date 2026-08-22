@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct CommandProxy;
 
+impl Default for CommandProxy {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CommandProxy {
     pub fn new() -> Self {
         Self

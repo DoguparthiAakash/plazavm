@@ -109,7 +109,7 @@ fn test_2b_default_deny_no_network() {
 
 #[tokio::test]
 async fn test_3_nbd_server_constructed() {
-    use plaza_image::block::{CowWritableLayer, VirtualBlockDevice};
+    use plaza_image::block::CowWritableLayer;
     use plaza_runtime::RuntimeStorage;
 
     let tmp = tempfile::tempdir().unwrap();
@@ -120,7 +120,7 @@ async fn test_3_nbd_server_constructed() {
     let cow = CowWritableLayer::create(cow_path, 1024 * 1024).await.unwrap();
     let storage = RuntimeStorage::new(cow);
 
-    let nbd = qemu_plugin::storage::nbd::NbdServer::new(socket_path.clone(), storage);
+    let _nbd = qemu_plugin::storage::nbd::NbdServer::new(socket_path.clone(), storage);
 
     // The server object was successfully constructed.
     // We don't call nbd.run() because that blocks forever on accept().
@@ -132,7 +132,7 @@ async fn test_3_nbd_server_constructed() {
 
 #[tokio::test]
 async fn test_4_nbd_protocol_handshake() {
-    use plaza_image::block::{CowWritableLayer, VirtualBlockDevice};
+    use plaza_image::block::CowWritableLayer;
     use plaza_runtime::RuntimeStorage;
     use qemu_plugin::storage::nbd::NbdServer;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -199,7 +199,7 @@ async fn test_4_nbd_protocol_handshake() {
 
 #[tokio::test]
 async fn test_5_nbd_protocol_io() {
-    use plaza_image::block::{CowWritableLayer, VirtualBlockDevice};
+    use plaza_image::block::CowWritableLayer;
     use plaza_runtime::RuntimeStorage;
     use qemu_plugin::storage::nbd::NbdServer;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -286,7 +286,7 @@ async fn test_5_nbd_protocol_io() {
 
 #[tokio::test]
 async fn test_6_qemu_execution_plugin() {
-    use plaza_image::block::{CowWritableLayer, VirtualBlockDevice};
+    use plaza_image::block::CowWritableLayer;
     use plaza_runtime::{RuntimeBackend, RuntimeStorage};
     use qemu_plugin::QemuPlugin;
 

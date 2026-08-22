@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct MetadataProxy;
 
+impl Default for MetadataProxy {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MetadataProxy {
     pub fn new() -> Self {
         Self

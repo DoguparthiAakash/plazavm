@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct LifecycleHooks;
 
+impl Default for LifecycleHooks {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LifecycleHooks {
     pub fn new() -> Self {
         Self

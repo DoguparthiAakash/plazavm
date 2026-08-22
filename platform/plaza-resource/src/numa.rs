@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct NumaScheduler;
 
+impl Default for NumaScheduler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NumaScheduler {
     pub fn new() -> Self {
         Self

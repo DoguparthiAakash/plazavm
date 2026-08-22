@@ -15,7 +15,10 @@ tokio.workspace = true
 uuid.workspace = true
 semver.workspace = true
 plaza-image = { path = "../../engines/plaza-image" }
+tokio-util = { workspace = true, features = ["codec"] }
+tracing.workspace = true
 
 [dev-dependencies]
 tempfile = "3"
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tracing-subscriber.workspace = true

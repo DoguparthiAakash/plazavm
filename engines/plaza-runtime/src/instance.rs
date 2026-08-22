@@ -62,6 +62,14 @@ pub struct RuntimeMetrics {
     pub network_rx_bytes: u64,
     /// Network transmitted bytes since start.
     pub network_tx_bytes: u64,
+    /// PID of the execution engine.
+    pub pid: Option<u32>,
+    /// Uptime in seconds.
+    pub uptime_secs: Option<u64>,
+    /// Execution mode (e.g. TCG, KVM, WASM).
+    pub execution_mode: Option<String>,
+    /// Storage backend details.
+    pub storage_backend: Option<String>,
 }
 
 /// Information about a stored snapshot.

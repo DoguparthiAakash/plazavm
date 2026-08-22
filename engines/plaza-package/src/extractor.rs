@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct PackageExtractor;
 
+impl Default for PackageExtractor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PackageExtractor {
     pub fn new() -> Self {
         Self

@@ -36,7 +36,7 @@ impl ManifestStore for LocalManifestStore {
     async fn put_manifest(&self, manifest: &ImageManifest) -> PlazaResult<()> {
         let path = self.manifest_path(&manifest.name, &manifest.image_version);
         let data = serde_json::to_string_pretty(manifest)
-            .map_err(|e| PlazaError::serialization(e))?;
+            .map_err(PlazaError::serialization)?;
         
         // Write to temp file and rename atomically
         let temp_id = uuid::Uuid::new_v4().to_string();
@@ -60,7 +60,7 @@ impl ManifestStore for LocalManifestStore {
         
         let data = fs::read_to_string(&path).await.map_err(PlazaError::Io)?;
         let manifest: ImageManifest = serde_json::from_str(&data)
-            .map_err(|e| PlazaError::serialization(e))?;
+            .map_err(PlazaError::serialization)?;
         Ok(Some(manifest))
     }
 

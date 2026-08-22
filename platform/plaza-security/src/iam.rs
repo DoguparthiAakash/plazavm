@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct IdentityManager;
 
+impl Default for IdentityManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IdentityManager {
     pub fn new() -> Self {
         Self

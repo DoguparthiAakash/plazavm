@@ -128,17 +128,11 @@ impl Default for DisplaySection {
 }
 
 /// Console configuration.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ConsoleSection {
     /// Enable serial console.
     #[serde(default)]
     pub serial: bool,
-}
-
-impl Default for ConsoleSection {
-    fn default() -> Self {
-        Self { serial: false }
-    }
 }
 
 /// Firmware configuration.

@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct OfflineSyncManager;
 
+impl Default for OfflineSyncManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OfflineSyncManager {
     pub fn new() -> Self {
         Self

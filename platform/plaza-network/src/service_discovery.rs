@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct ServiceDiscovery;
 
+impl Default for ServiceDiscovery {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ServiceDiscovery {
     pub fn new() -> Self {
         Self

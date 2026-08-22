@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct SnapshotCompression;
 
+impl Default for SnapshotCompression {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SnapshotCompression {
     pub fn new() -> Self {
         Self

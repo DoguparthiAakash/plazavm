@@ -53,7 +53,7 @@ members = [
     "plugins/qemu",
     "plugins/podman",
     "plugins/hyperv",
-    "plugins/v86", "v86_investigation",
+    "plugins/v86", "v86_investigation", "vendors/plaza-guest",
 ]
 resolver = "2"
 
@@ -107,18 +107,9 @@ clap = { version = "4", features = ["derive"] }
 # Tauri
 tauri = { version = "2", features = [] }
 tauri-build = "2"
-
-# Cross-crate references
-plaza-core = { path = "plaza-core" }
-plaza-events = { path = "plaza-events" }
-plaza-config = { path = "plaza-config" }
 plaza-storage = { path = "engines/plaza-storage" }
-plaza-monitor = { path = "plaza-monitor" }
 plaza-registry = { path = "engines/plaza-registry" }
-plaza-platform = { path = "plaza-platform" }
 plaza-workspace = { path = "engines/plaza-workspace" }
-plaza-controller = { path = "plaza-controller" }
-plaza-decision = { path = "plaza-decision" }
 plaza-resource = { path = "platform/plaza-resource" }
 plaza-ai = { path = "platform/plaza-ai" }
 plaza-runtime = { path = "engines/plaza-runtime" }

@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct TpmManager;
 
+impl Default for TpmManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TpmManager {
     pub fn new() -> Self {
         Self

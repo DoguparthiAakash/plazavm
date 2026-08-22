@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "name": "8329a3fdc10ddf472d392364a6d727d69b3fae7b61d81f3f2105938a1cf07642",
+  "image_version": "latest",
+  "architecture": "x86_64",
+  "layers": [
+    {
+      "digest": {
+        "algorithm": "sha256",
+        "digest": "23d1c551666c640328ce3d83ae76e02c7ed3a1cbc69a73af3389aa9d3f88bc82"
+      },
+      "size": 3301376,
+      "media_type": "rawBlock"
+    }
+  ],
+  "kernel": null,
+  "initrd": null,
+  "boot": {
+    "cmdline": null
+  },
+  "metadata": {
+    "created_at": "2026-08-15T05:13:12.079348200Z",
+    "author": null,
+    "labels": {}
+  }
+}

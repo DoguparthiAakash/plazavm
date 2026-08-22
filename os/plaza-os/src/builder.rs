@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct OsBuilder;
 
+impl Default for OsBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OsBuilder {
     pub fn new() -> Self {
         Self

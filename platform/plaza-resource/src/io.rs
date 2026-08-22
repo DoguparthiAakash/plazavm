@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct IoBandwidthThrottler;
 
+impl Default for IoBandwidthThrottler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IoBandwidthThrottler {
     pub fn new() -> Self {
         Self

@@ -14,3 +14,4 @@ async-trait = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 serde_json = { workspace = true }
+arcbox-ext4 = { path = "../../third_party/arcbox-ext4" }

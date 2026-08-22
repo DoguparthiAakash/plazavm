@@ -23,6 +23,12 @@ pub struct CommandPipeline {
     middlewares: Vec<Box<dyn Middleware>>,
 }
 
+impl Default for CommandPipeline {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CommandPipeline {
     pub fn new() -> Self {
         Self {

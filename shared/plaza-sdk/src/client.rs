@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct PlazaClient;
 
+impl Default for PlazaClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PlazaClient {
     pub fn new() -> Self {
         Self

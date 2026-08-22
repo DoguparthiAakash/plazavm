@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct DiskPartitioner;
 
+impl Default for DiskPartitioner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DiskPartitioner {
     pub fn new() -> Self {
         Self

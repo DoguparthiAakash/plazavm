@@ -44,18 +44,12 @@ impl Default for RuntimeSection {
 /// PlazaVM's foundational engine uses software emulation only.
 /// Hardware acceleration (KVM, WHPX, HVF) is NOT enabled by default
 /// and must be explicitly requested.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AccelerationSection {
     /// Whether hardware acceleration is enabled.
     /// Default: `false` — TCG/software emulation only.
     #[serde(default)]
     pub enabled: bool,
-}
-
-impl Default for AccelerationSection {
-    fn default() -> Self {
-        Self { enabled: false }
-    }
 }
 
 /// Parsed and validated backend preference.

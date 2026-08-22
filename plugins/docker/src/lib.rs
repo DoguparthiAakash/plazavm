@@ -149,14 +149,14 @@ impl RuntimeBackend for DockerPlugin {
 
     async fn metrics(&self, _instance_id: &str) -> PlazaResult<RuntimeMetrics> {
         Ok(RuntimeMetrics {
-            cpu_usage_pct: 5.2,
-            memory_used_bytes: 256 * 1024 * 1024,
-            memory_total_bytes: 2048 * 1024 * 1024,
-            disk_read_bytes: 1024,
-            disk_write_bytes: 2048,
-            network_rx_bytes: 4096,
-            network_tx_bytes: 8192,
+            cpu_usage_pct: 0.0,
+            memory_used_bytes: 0,
+            memory_total_bytes: 0,
+            disk_read_bytes: 0,
+            disk_write_bytes: 0,
+            network_rx_bytes: 0,
+            network_tx_bytes: 0,
+            ..Default::default()
         })
     }
 }
-

@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct EncryptionCoordinator;
 
+impl Default for EncryptionCoordinator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EncryptionCoordinator {
     pub fn new() -> Self {
         Self

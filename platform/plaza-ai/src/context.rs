@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct ContextAwarenessManager;
 
+impl Default for ContextAwarenessManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ContextAwarenessManager {
     pub fn new() -> Self {
         Self

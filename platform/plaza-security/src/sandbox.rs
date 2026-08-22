@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct CapabilitySandbox;
 
+impl Default for CapabilitySandbox {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CapabilitySandbox {
     pub fn new() -> Self {
         Self

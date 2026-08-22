@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct ClipboardSync;
 
+impl Default for ClipboardSync {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ClipboardSync {
     pub fn new() -> Self {
         Self

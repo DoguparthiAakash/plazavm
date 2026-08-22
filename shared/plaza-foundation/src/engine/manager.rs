@@ -37,6 +37,12 @@ pub struct EngineManager {
     engines: RwLock<HashMap<&'static str, Arc<dyn Engine>>>,
 }
 
+impl Default for EngineManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EngineManager {
     pub fn new() -> Self {
         Self {

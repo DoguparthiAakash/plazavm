@@ -13,6 +13,12 @@ pub struct WorkspaceDiagnostics {
 
 pub struct DiagnosticsManager;
 
+impl Default for DiagnosticsManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DiagnosticsManager {
     pub fn new() -> Self {
         Self

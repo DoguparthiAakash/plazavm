@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct ApiRouter;
 
+impl Default for ApiRouter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ApiRouter {
     pub fn new() -> Self {
         Self

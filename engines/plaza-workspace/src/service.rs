@@ -27,7 +27,7 @@ impl WorkspaceService {
     ) -> PlazaResult<Workspace> {
         let workspace = Workspace::new(name, spec);
         let _id_str = workspace.id.to_string();
-        let ws_dir = plaza_foundation::core::paths::workspaces_dir().join(&name);
+        let ws_dir = plaza_foundation::core::paths::workspaces_dir().join(name);
 
         // Provision Directory Tree
         let dirs_to_create = [
@@ -212,6 +212,19 @@ impl WorkspaceService {
                 .await;
         } else {
             return Err(PlazaError::WorkspaceNotFound(id.clone()));
+        }
+        Ok(())
+    }
+
+    /// Update the runtime status of a workspace.
+    pub async fn update_status(
+        &self,
+        id: &WorkspaceId,
+        status_updater: impl FnOnce(&mut WorkspaceStatus),
+    ) -> PlazaResult<()> {
+        if let Some(mut ws) = self.get_workspace(id).await? {
+            status_updater(&mut ws.status);
+            self.save_workspace(&ws).await?;
         }
         Ok(())
     }

@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct PluginDevelopmentKit;
 
+impl Default for PluginDevelopmentKit {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PluginDevelopmentKit {
     pub fn new() -> Self {
         Self

@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct NetworkConfigPayload;
 
+impl Default for NetworkConfigPayload {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NetworkConfigPayload {
     pub fn new() -> Self {
         Self

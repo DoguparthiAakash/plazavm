@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct AuthMiddleware;
 
+impl Default for AuthMiddleware {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AuthMiddleware {
     pub fn new() -> Self {
         Self

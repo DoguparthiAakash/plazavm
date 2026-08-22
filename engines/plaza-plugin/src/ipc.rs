@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct PluginIpcBroker;
 
+impl Default for PluginIpcBroker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PluginIpcBroker {
     pub fn new() -> Self {
         Self

@@ -7,7 +7,7 @@
 //! of the platform — every state change emits an event.
 
 mod bus;
-mod events;
+mod types;
 
 pub use bus::EventBus;
-pub use events::PlazaEvent;
+pub use types::PlazaEvent;

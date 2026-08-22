@@ -5,12 +5,14 @@
 pub mod builder;
 pub mod capability;
 pub mod commands;
+pub mod distribution;
 pub mod engine;
 pub mod graph;
 pub mod memory;
 pub mod model;
 pub mod cloning;
 pub mod diagnostics;
+pub mod image;
 pub mod import_export;
 pub mod migration;
 pub mod pipeline;
@@ -23,9 +25,11 @@ pub mod session;
 pub mod snapshot;
 pub mod transaction;
 pub mod wsc;
+pub mod blend;
 
 pub use builder::WorkspaceBuilder;
 pub use capability::{CapabilityDatabase, CapabilityDescriptor, CapabilityResolver};
+pub use distribution::{DistributionError, EngineDistribution, get_engine, WorkspaceImageBuildPlan};
 pub use graph::{NodeConnection, NodeRole, RuntimeNode, WorkspaceGraph};
 pub use memory::{WorkspaceMemory, WorkspaceMemoryManager};
 pub use model::{
@@ -40,4 +44,4 @@ pub use service::WorkspaceService;
 pub use service_manager::{ServiceSpec, ServiceStatus, WorkspaceServiceManager};
 pub use session::{SessionManager, SessionStatus, StructuredCommandEntry, WorkspaceSession};
 pub use wsc::{WorkspaceCommit, WorkspaceTimeline, WscEngine};
-
+pub use blend::{BlendLayer, BlendOrchestrator};

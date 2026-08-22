@@ -185,11 +185,35 @@ impl PshShell {
     }
 
     fn execute_system_command(&self, line: &str) -> anyhow::Result<()> {
+        let args: Vec<&str> = line.split_whitespace().collect();
+        if args.is_empty() {
+            return Ok(());
+        }
+
+        let cmd = args[0];
+        let supported_uutils = ["ls", "cat", "mkdir", "rm", "cp"];
+
+        if supported_uutils.contains(&cmd) {
+            // Route to natively compiled plaza-guest uutils
+            let exe_path = env::current_exe()?;
+            let guest_bin = exe_path.parent().unwrap().join("plaza-guest.exe");
+            
+            if guest_bin.exists() {
+                let mut child = Command::new(&guest_bin)
+                    .args(&args)
+                    .spawn()?;
+                let _ = child.wait()?;
+                return Ok(());
+            } else {
+                eprintln!("Error: plaza-guest native utilities not found at {:?}", guest_bin);
+                // Fallthrough to standard shell
+            }
+        }
+
         let shell_bin = if cfg!(windows) { "cmd" } else { "sh" };
         let flag = if cfg!(windows) { "/C" } else { "-c" };
 
         let mut child = Command::new(shell_bin).arg(flag).arg(line).spawn()?;
-
         let _ = child.wait()?;
         Ok(())
     }

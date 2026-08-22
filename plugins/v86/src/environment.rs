@@ -1,9 +1,11 @@
 use plaza_foundation::core::PlazaResult;
 use plaza_runtime::storage::RuntimeStorage;
-use wasmtime::{Caller, Engine, Extern, Func, Linker, Memory, MemoryType, Module, Ref, RefType, HeapType, Store, Table, TableType};
+use wasmtime::{Caller, Engine, Extern, Linker, Memory, MemoryType, Module, Ref, RefType, HeapType, Store, Table, TableType};
+
+use crate::storage::WasmMemoryBridge;
 
 pub struct V86State {
-    pub storage: Option<RuntimeStorage>,
+    pub storage_bridge: Option<WasmMemoryBridge>,
 }
 
 pub struct V86Environment {
@@ -14,7 +16,10 @@ pub struct V86Environment {
 
 impl V86Environment {
     pub fn new(wasm_path: &std::path::Path) -> PlazaResult<Self> {
-        let engine = Engine::default();
+        let mut config = wasmtime::Config::new();
+        let engine = Engine::new(&config).map_err(|e| {
+            plaza_foundation::core::PlazaError::process(format!("Failed to create wasmtime engine: {}", e))
+        })?;
         let module = Module::from_file(&engine, wasm_path).map_err(|e| {
             plaza_foundation::core::PlazaError::process(format!("Failed to load v86 WASM: {}", e))
         })?;
@@ -122,7 +127,7 @@ impl V86Environment {
         &self.engine
     }
 
-    pub fn instantiate(&self, store: &mut Store<V86State>) -> PlazaResult<wasmtime::Instance> {
+    pub async fn instantiate(&self, store: &mut Store<V86State>) -> PlazaResult<wasmtime::Instance> {
         let mut linker = self.linker.clone();
 
         // ── Extract expected types from module imports ───────────────────────
@@ -161,7 +166,7 @@ impl V86Environment {
             plaza_foundation::core::PlazaError::process(format!("Failed to define table: {}", e))
         })?;
 
-        linker.instantiate(&mut *store, &self.module).map_err(|e| {
+        linker.instantiate_async(&mut *store, &self.module).await.map_err(|e| {
             plaza_foundation::core::PlazaError::process(format!("Failed to instantiate v86: {}", e))
         })
     }

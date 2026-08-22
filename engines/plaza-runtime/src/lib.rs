@@ -20,7 +20,7 @@ mod manager;
 pub use backend::RuntimeBackend;
 pub use capabilities::RuntimeCapabilities;
 pub use instance::{ConsoleStream, RuntimeInstance, RuntimeMetrics, RuntimeStatus, SnapshotInfo};
-pub use machine::MachineConfig;
+pub use machine::{MachineConfig, OperatingSystemTarget};
 pub use manager::RuntimeManager;
 pub use storage::RuntimeStorage;
 

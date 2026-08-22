@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct CgroupsV2Manager;
 
+impl Default for CgroupsV2Manager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CgroupsV2Manager {
     pub fn new() -> Self {
         Self

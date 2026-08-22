@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct DependencyResolver;
 
+impl Default for DependencyResolver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DependencyResolver {
     pub fn new() -> Self {
         Self

@@ -9,6 +9,12 @@ pub struct CommandRegistry {
     commands: HashMap<String, Arc<dyn ExecutableCommand>>,
 }
 
+impl Default for CommandRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CommandRegistry {
     pub fn new() -> Self {
         Self {

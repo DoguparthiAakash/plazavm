@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct NetworkIsolation;
 
+impl Default for NetworkIsolation {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NetworkIsolation {
     pub fn new() -> Self {
         Self

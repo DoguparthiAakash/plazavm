@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct PackageResolver;
 
+impl Default for PackageResolver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PackageResolver {
     pub fn new() -> Self {
         Self

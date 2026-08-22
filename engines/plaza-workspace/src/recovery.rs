@@ -13,6 +13,12 @@ use tracing::{info, warn};
 /// Analyzes workspaces and orchestrates recovery procedures after crashes or corruption.
 pub struct RecoveryManager;
 
+impl Default for RecoveryManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RecoveryManager {
     pub fn new() -> Self {
         Self

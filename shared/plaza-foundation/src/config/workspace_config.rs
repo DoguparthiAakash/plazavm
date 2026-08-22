@@ -37,11 +37,14 @@
 //! ```
 
 use crate::config::capabilities::CapabilityGrants;
+use crate::config::engine_section::EngineSection;
 use crate::config::image_section::ImageSection;
 use crate::config::machine_section::MachineSection;
+use crate::config::project_section::ProjectSection;
 use crate::config::runtime_section::RuntimeSection;
 use crate::core::{PlazaError, PlazaResult};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Schema version for `plaza.yaml`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -61,9 +64,21 @@ pub struct PlazaYaml {
     /// Workspace identity.
     pub workspace: WorkspaceSection,
 
-    /// Image reference (name + optional version).
+    /// Engine distribution requirements.
+    #[serde(default)]
+    pub engine: Option<EngineSection>,
+
+    /// Image reference and environment packages.
     #[serde(default)]
     pub image: Option<ImageSection>,
+
+    /// Project runtime and dependency requirements.
+    #[serde(default)]
+    pub project: Option<ProjectSection>,
+
+    /// Environment variables for the workspace.
+    #[serde(default)]
+    pub environment: HashMap<String, String>,
 
     /// Virtual machine hardware configuration.
     #[serde(default)]
@@ -87,6 +102,14 @@ pub struct WorkspaceSection {
     /// Optional description.
     #[serde(default)]
     pub description: Option<String>,
+
+    /// Whether the workspace should have a writable overlay.
+    #[serde(default)]
+    pub writable: bool,
+
+    /// Size of the writable workspace layer if enabled.
+    #[serde(default)]
+    pub size: Option<String>,
 }
 
 impl PlazaYaml {
@@ -219,7 +242,7 @@ capabilities:
         assert_eq!(config.workspace.name, "alpine-dev");
 
         let image = config.image.as_ref().unwrap();
-        assert_eq!(image.name, "alpine-dev");
+        assert_eq!(image.name.as_deref(), Some("alpine-dev"));
         assert_eq!(image.version.as_deref(), Some("1.0"));
 
         let machine = config.machine.as_ref().unwrap();

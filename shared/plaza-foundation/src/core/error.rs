@@ -52,6 +52,9 @@ pub enum PlazaError {
     #[error("storage error: {0}")]
     Storage(String),
 
+    #[error("guest writable filesystem unavailable: {0}")]
+    GuestWritableFilesystemUnavailable(String),
+
     // ── AI errors ───────────────────────────────────────────────────────────
     #[error("AI error: {0}")]
     Ai(String),

@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Read;
 use wasmparser::{Parser, Payload};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

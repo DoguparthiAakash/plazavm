@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct CloudVolumeManager;
 
+impl Default for CloudVolumeManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CloudVolumeManager {
     pub fn new() -> Self {
         Self

@@ -126,5 +126,13 @@ pub trait RuntimeBackend: Send + Sync {
             backend: self.id().into(),
         })
     }
+
+    /// Execute a command inside a running instance.
+    async fn exec(&self, _instance_id: &str, _cmd: &str) -> PlazaResult<()> {
+        Err(plaza_foundation::core::PlazaError::CapabilityNotSupported {
+            capability: "exec".into(),
+            backend: self.id().into(),
+        })
+    }
 }
 

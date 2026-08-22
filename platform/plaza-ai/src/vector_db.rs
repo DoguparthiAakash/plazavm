@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct VectorEmbeddingSearch;
 
+impl Default for VectorEmbeddingSearch {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VectorEmbeddingSearch {
     pub fn new() -> Self {
         Self

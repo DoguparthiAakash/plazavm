@@ -89,23 +89,27 @@ async fn handle_connection(mut stream: LocalStream, storage: RuntimeStorage) -> 
         .await
         .map_err(PlazaError::process)?;
     stream
-        .write_u16(NBD_FLAG_FIXED_NEWSTYLE | NBD_FLAG_NO_ZEROES)
+        .write_u16(1) // NBD_FLAG_FIXED_NEWSTYLE
         .await
         .map_err(PlazaError::process)?;
 
     // 2. Client Flags
     let client_flags = stream.read_u32().await.map_err(PlazaError::process)?;
+    eprintln!("NBD client flags: {}", client_flags);
 
     // 3. Option Haggling
     loop {
         let magic = stream.read_u64().await.map_err(PlazaError::process)?;
         if magic != NBD_OPTS_MAGIC {
+            eprintln!("Invalid NBD option magic: {:x}", magic);
             return Err(PlazaError::process("Invalid NBD option magic"));
         }
         let opt = stream.read_u32().await.map_err(PlazaError::process)?;
         let len = stream.read_u32().await.map_err(PlazaError::process)?;
+        eprintln!("NBD Option: {}, len: {}", opt, len);
 
         if opt == NBD_OPT_EXPORT_NAME {
+            eprintln!("NBD_OPT_EXPORT_NAME");
             let mut name = vec![0u8; len as usize];
             stream.read_exact(&mut name).await.map_err(PlazaError::process)?;
 
@@ -127,8 +131,10 @@ async fn handle_connection(mut stream: LocalStream, storage: RuntimeStorage) -> 
             }
             break;
         } else if opt == NBD_OPT_ABORT {
+            eprintln!("NBD_OPT_ABORT");
             return Ok(());
         } else {
+            eprintln!("Rejecting unsupported option {}", opt);
             // Reject unsupported options
             let mut data = vec![0u8; len as usize];
             stream.read_exact(&mut data).await.map_err(PlazaError::process)?;
@@ -138,10 +144,11 @@ async fn handle_connection(mut stream: LocalStream, storage: RuntimeStorage) -> 
                 .await
                 .map_err(PlazaError::process)?;
             stream.write_u32(opt).await.map_err(PlazaError::process)?;
-            stream.write_u32(2).await.map_err(PlazaError::process)?; // NBD_REP_ERR_UNSUP
+            stream.write_u32(0x80000001).await.map_err(PlazaError::process)?; // NBD_REP_ERR_UNSUP
             stream.write_u32(0).await.map_err(PlazaError::process)?;
         }
     }
+    eprintln!("NBD Handshake completed");
 
     // 4. Transmission Phase
     loop {
@@ -159,20 +166,22 @@ async fn handle_connection(mut stream: LocalStream, storage: RuntimeStorage) -> 
 
         match type_ {
             NBD_CMD_READ => {
+                eprintln!("NBD_CMD_READ offset={} len={}", offset, length);
                 let mut buf = vec![0u8; length as usize];
-                let mut dev = storage.device.lock().await;
+                let dev = storage.device.lock().await;
                 dev.read_at(offset, &mut buf).await?;
                 drop(dev);
 
                 stream
-                    .write_u32(0x678affcc)
+                    .write_u32(0x67446698)
                     .await
-                    .map_err(PlazaError::process)?; // NBD_REPLY_MAGIC
+                    .map_err(PlazaError::process)?; // NBD_SIMPLE_REPLY_MAGIC
                 stream.write_u32(0).await.map_err(PlazaError::process)?; // error code 0
                 stream.write_u64(handle).await.map_err(PlazaError::process)?;
                 stream.write_all(&buf).await.map_err(PlazaError::process)?;
             }
             NBD_CMD_WRITE => {
+                eprintln!("NBD_CMD_WRITE offset={} len={}", offset, length);
                 let mut buf = vec![0u8; length as usize];
                 stream.read_exact(&mut buf).await.map_err(PlazaError::process)?;
 
@@ -181,7 +190,7 @@ async fn handle_connection(mut stream: LocalStream, storage: RuntimeStorage) -> 
                 drop(dev);
 
                 stream
-                    .write_u32(0x678affcc)
+                    .write_u32(0x67446698)
                     .await
                     .map_err(PlazaError::process)?;
                 stream.write_u32(0).await.map_err(PlazaError::process)?;
@@ -193,7 +202,7 @@ async fn handle_connection(mut stream: LocalStream, storage: RuntimeStorage) -> 
                 drop(dev);
 
                 stream
-                    .write_u32(0x678affcc)
+                    .write_u32(0x67446698)
                     .await
                     .map_err(PlazaError::process)?;
                 stream.write_u32(0).await.map_err(PlazaError::process)?;
@@ -203,9 +212,10 @@ async fn handle_connection(mut stream: LocalStream, storage: RuntimeStorage) -> 
                 break;
             }
             _ => {
+                eprintln!("Unknown NBD command: {}", type_);
                 // Return error for unsupported commands
                 stream
-                    .write_u32(0x678affcc)
+                    .write_u32(0x67446698)
                     .await
                     .map_err(PlazaError::Io)?;
                 stream.write_u32(22).await.map_err(PlazaError::Io)?; // EINVAL

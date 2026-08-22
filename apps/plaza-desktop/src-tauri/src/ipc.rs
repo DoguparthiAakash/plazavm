@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct IpcBridge;
 
+impl Default for IpcBridge {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IpcBridge {
     pub fn new() -> Self {
         Self

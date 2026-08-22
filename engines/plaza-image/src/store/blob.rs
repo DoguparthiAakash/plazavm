@@ -71,7 +71,7 @@ impl BlobStore for LocalBlobStore {
         drop(file);
 
         let digest = hex::encode(hasher.finalize());
-        let content_hash = ContentHash::new_sha256(&digest).map_err(|e| PlazaError::storage(e))?;
+        let content_hash = ContentHash::new_sha256(&digest).map_err(PlazaError::storage)?;
         let target_path = self.get_path(&content_hash)?;
 
         // If it already exists, we can discard the temp file.

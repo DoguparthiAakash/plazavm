@@ -14,8 +14,10 @@ impl WorkspaceBuilder {
     pub fn build(
         name: impl Into<String>,
         spec: WorkspaceSpec,
+        project_path: Option<String>,
     ) -> PlazaResult<(Workspace, PathBuf)> {
-        let workspace = Workspace::new(name, spec);
+        let mut workspace = Workspace::new(name, spec);
+        workspace.metadata.project_path = project_path;
         let root_dir = paths::workspaces_dir().join(workspace.id.to_string());
         let space_dir = root_dir.join(".space");
 

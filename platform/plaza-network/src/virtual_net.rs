@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct VirtualNetworkManager;
 
+impl Default for VirtualNetworkManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VirtualNetworkManager {
     pub fn new() -> Self {
         Self

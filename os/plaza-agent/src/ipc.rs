@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct VsockIpc;
 
+impl Default for VsockIpc {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VsockIpc {
     pub fn new() -> Self {
         Self

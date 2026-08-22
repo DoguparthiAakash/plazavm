@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct PluginHotReloader;
 
+impl Default for PluginHotReloader {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PluginHotReloader {
     pub fn new() -> Self {
         Self

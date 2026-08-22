@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct DesktopNotifications;
 
+impl Default for DesktopNotifications {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DesktopNotifications {
     pub fn new() -> Self {
         Self

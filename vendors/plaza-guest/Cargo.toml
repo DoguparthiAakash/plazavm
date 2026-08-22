@@ -1,0 +1,14 @@
+[package]
+name = "plaza-guest"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+uu_cat = "0.10.0"
+uu_cp = "0.10.0"
+uu_ls = "0.10.0"
+uu_mkdir = "0.10.0"
+uu_rm = "0.10.0"

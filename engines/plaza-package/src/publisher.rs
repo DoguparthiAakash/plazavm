@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct PackagePublisher;
 
+impl Default for PackagePublisher {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PackagePublisher {
     pub fn new() -> Self {
         Self

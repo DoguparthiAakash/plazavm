@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct RoleBasedAccessControl;
 
+impl Default for RoleBasedAccessControl {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RoleBasedAccessControl {
     pub fn new() -> Self {
         Self

@@ -8,6 +8,8 @@ description = "Workspace domain aggregate root, graph model, and domain service 
 plaza-storage.workspace = true
 plaza-foundation.workspace = true
 plaza-command.workspace = true
+plaza-runtime = { path = "../plaza-runtime" }
+plaza-image = { path = "../plaza-image" }
 async-trait.workspace = true
 anyhow.workspace = true
 serde.workspace = true
@@ -19,4 +21,11 @@ chrono.workspace = true
 serde_yaml.workspace = true
 semver.workspace = true
 toml.workspace = true
+sha2 = "0.11.0"
+thiserror.workspace = true
+tar = "0.4.46"
+flate2 = "1.1.9"
+futures-util = "0.3.34"
+reqwest = { version = "0.13.4", default-features = false, features = ["stream", "rustls", "json"] }
+backhand = { version = "0.25.1", default-features = false, features = ["gzip"] }
 

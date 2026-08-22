@@ -45,10 +45,12 @@ fn validate_schema(config: &PlazaYaml) -> PlazaResult<()> {
         ));
     }
 
-    // If an image is specified, its name must not be blank.
+    // If an image is specified, its name must not be blank if it exists.
     if let Some(ref image) = config.image {
-        if image.name.trim().is_empty() {
-            return Err(PlazaError::Config("image.name cannot be empty".into()));
+        if let Some(ref name) = image.name {
+            if name.trim().is_empty() {
+                return Err(PlazaError::Config("image.name cannot be empty".into()));
+            }
         }
     }
 
@@ -56,7 +58,7 @@ fn validate_schema(config: &PlazaYaml) -> PlazaResult<()> {
     if let Some(ref runtime) = config.runtime {
         runtime
             .parsed_backend()
-            .map_err(|e| PlazaError::Config(e))?;
+            .map_err(PlazaError::Config)?;
     }
 
     Ok(())

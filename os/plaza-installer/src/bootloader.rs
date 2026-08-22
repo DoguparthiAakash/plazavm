@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct BootloaderConfig;
 
+impl Default for BootloaderConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BootloaderConfig {
     pub fn new() -> Self {
         Self

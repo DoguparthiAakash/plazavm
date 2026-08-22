@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct MemoryLimitEnforcer;
 
+impl Default for MemoryLimitEnforcer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MemoryLimitEnforcer {
     pub fn new() -> Self {
         Self

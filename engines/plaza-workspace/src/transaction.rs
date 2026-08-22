@@ -4,6 +4,12 @@ use tracing::info;
 
 pub struct WorkspaceTransactionManager;
 
+impl Default for WorkspaceTransactionManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WorkspaceTransactionManager {
     pub fn new() -> Self {
         Self

@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct PackageManager;
 
+impl Default for PackageManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PackageManager {
     pub fn new() -> Self {
         Self

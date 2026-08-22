@@ -51,6 +51,11 @@ impl ImageManager {
         self.resolve_image(reference).await
     }
 
+    /// Get the physical path to a blob by its content hash.
+    pub fn get_blob_path(&self, hash: &crate::model::ContentHash) -> PlazaResult<std::path::PathBuf> {
+        self.blob_store.get_path(hash)
+    }
+
     /// Import a raw file as a single-layer RawBlock image.
     pub async fn import_raw(&self, name: &str, tag: &str, file_path: &std::path::Path) -> PlazaResult<()> {
         let mut file = tokio::fs::File::open(file_path).await.map_err(PlazaError::Io)?;

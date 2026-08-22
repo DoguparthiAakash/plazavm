@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct KernelPatcher;
 
+impl Default for KernelPatcher {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl KernelPatcher {
     pub fn new() -> Self {
         Self

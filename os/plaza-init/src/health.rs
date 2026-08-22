@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct HealthChecker;
 
+impl Default for HealthChecker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HealthChecker {
     pub fn new() -> Self {
         Self

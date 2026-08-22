@@ -12,19 +12,16 @@ pub struct QemuAdapter {
 }
 
 impl QemuAdapter {
-    /// Create a new adapter using the discovered QEMU binary.
     pub fn new(binary: PathBuf) -> Self {
-        let mut args = Vec::new();
+        let args = vec![
+            "-accel".into(),
+            "tcg,thread=multi".into(),
+            "-nodefaults".into(),
+            "-display".into(),
+            "none".into(),
+        ];
 
-        // Security Policy Amendment: Always force TCG (software emulation)
-        // No KVM, no HVF, no WHPX allowed in PlazaVM architecture.
-        args.push("-accel".into());
-        args.push("tcg,thread=multi".into());
 
-        // Default-deny implies no network by default, no unnecessary devices.
-        args.push("-nodefaults".into());
-        args.push("-display".into());
-        args.push("none".into()); // Headless by default
 
         Self { binary, args }
     }
@@ -43,10 +40,8 @@ impl QemuAdapter {
         self.args.push("-m".into());
         self.args.push(format!("{}M", mem_mb).into());
 
-        // Virtual Block Storage boot device
-        self.args.push("-drive".into());
-        self.args.push(format!("file={},format=raw,if=virtio", config.boot_device.display()).into());
-
+        // Virtual Block Storage boot device configuration is deferred to the plugin
+        // which dynamically maps it to the NBD Unix socket or TCP port.
         // Network capability check
         if config.capabilities.network.enabled {
             self.args.push("-netdev".into());
@@ -59,6 +54,18 @@ impl QemuAdapter {
         // The process.rs module will bind this and connect to it.
         // We defer QMP socket arguments to the process spawning logic.
 
+        if let Some(kernel) = &config.kernel_path {
+            self.args.push("-kernel".into());
+            self.args.push(kernel.into());
+        }
+        if let Some(initrd) = &config.initrd_path {
+            self.args.push("-initrd".into());
+            self.args.push(initrd.into());
+        }
+        if let Some(args) = &config.kernel_args {
+            self.args.push("-append".into());
+            self.args.push(args.into());
+        }
         Ok(self)
     }
 

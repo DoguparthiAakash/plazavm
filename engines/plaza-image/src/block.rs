@@ -27,6 +27,25 @@ pub trait VirtualBlockDevice: Send + Sync {
     fn size(&self) -> u64;
 }
 
+#[async_trait::async_trait]
+impl VirtualBlockDevice for Box<dyn VirtualBlockDevice> {
+    async fn read_at(&self, offset: u64, buffer: &mut [u8]) -> PlazaResult<usize> {
+        (**self).read_at(offset, buffer).await
+    }
+
+    async fn write_at(&mut self, offset: u64, buffer: &[u8]) -> PlazaResult<usize> {
+        (**self).write_at(offset, buffer).await
+    }
+
+    async fn flush(&mut self) -> PlazaResult<()> {
+        (**self).flush().await
+    }
+
+    fn size(&self) -> u64 {
+        (**self).size()
+    }
+}
+
 /// A block device layer that is strictly read-only (backed by an immutable blob file).
 #[async_trait::async_trait]
 pub trait ImmutableLayer: Send + Sync {
@@ -76,6 +95,36 @@ impl ImmutableLayer for FileBackedImmutableLayer {
     }
 }
 
+/// A VirtualBlockDevice that wraps an ImmutableLayer and rejects all writes.
+pub struct ReadOnlyBlockDevice {
+    layer: std::sync::Arc<dyn ImmutableLayer>,
+}
+
+impl ReadOnlyBlockDevice {
+    pub fn new(layer: std::sync::Arc<dyn ImmutableLayer>) -> Self {
+        Self { layer }
+    }
+}
+
+#[async_trait::async_trait]
+impl VirtualBlockDevice for ReadOnlyBlockDevice {
+    async fn read_at(&self, offset: u64, buffer: &mut [u8]) -> PlazaResult<usize> {
+        self.layer.read_at(offset, buffer).await
+    }
+
+    async fn write_at(&mut self, _offset: u64, _buffer: &[u8]) -> PlazaResult<usize> {
+        Err(PlazaError::process("Attempted to write to a read-only block device (SquashFS base image)"))
+    }
+
+    async fn flush(&mut self) -> PlazaResult<()> {
+        Ok(())
+    }
+
+    fn size(&self) -> u64 {
+        self.layer.size()
+    }
+}
+
 /// A copy-on-write writable layer backed by a sparse file.
 ///
 /// Tracks which blocks have been materialized (written) using a block bitmap.
@@ -86,11 +135,14 @@ pub struct CowWritableLayer {
     logical_size: u64,
     /// Tracks which block indices have been materialized in this writable layer.
     dirty_blocks: HashMap<u64, bool>,
+    meta_path: PathBuf,
 }
 
 impl CowWritableLayer {
-    /// Create or open a COW writable layer file with the given logical disk size.
     pub async fn create(path: PathBuf, logical_size: u64) -> PlazaResult<Self> {
+        let meta_path = path.with_extension("meta");
+        let mut dirty_blocks = HashMap::new();
+
         // Create the file if it doesn't exist, or open it
         if !path.exists() {
             let file = tokio::fs::File::create(&path)
@@ -98,11 +150,22 @@ impl CowWritableLayer {
                 .map_err(PlazaError::Io)?;
             // Set the file to the logical size (sparse file)
             file.set_len(logical_size).await.map_err(PlazaError::Io)?;
+        } else if meta_path.exists() {
+            // Load dirty blocks from meta file
+            if let Ok(meta_bytes) = tokio::fs::read(&meta_path).await {
+                if let Ok(loaded_blocks) = serde_json::from_slice::<Vec<u64>>(&meta_bytes) {
+                    for block in loaded_blocks {
+                        dirty_blocks.insert(block, true);
+                    }
+                }
+            }
         }
+        
         Ok(Self {
             path,
             logical_size,
-            dirty_blocks: HashMap::new(),
+            dirty_blocks,
+            meta_path,
         })
     }
 
@@ -187,10 +250,98 @@ impl VirtualBlockDevice for CowWritableLayer {
             .map_err(PlazaError::Io)?;
         file.flush().await.map_err(PlazaError::Io)?;
         file.sync_all().await.map_err(PlazaError::Io)?;
+        
+        // Write dirty blocks metadata atomically
+        let dirty_list = self.dirty_block_indices();
+        let meta_json = serde_json::to_string(&dirty_list)
+            .map_err(|e| PlazaError::process(format!("Failed to serialize cow metadata: {}", e)))?;
+            
+        let temp_meta_path = self.meta_path.with_extension("meta.tmp");
+        tokio::fs::write(&temp_meta_path, meta_json)
+            .await
+            .map_err(PlazaError::Io)?;
+        tokio::fs::rename(&temp_meta_path, &self.meta_path)
+            .await
+            .map_err(PlazaError::Io)?;
+            
         Ok(())
     }
 
     fn size(&self) -> u64 {
         self.logical_size
+    }
+}
+
+/// A provider that creates a writable filesystem (e.g. ext4) image to be exposed via VirtualBlockDevice.
+#[async_trait::async_trait]
+pub trait WritableFilesystemProvider: Send + Sync {
+    /// Create a writable filesystem image of the specified size.
+    async fn create(
+        &self,
+        size: u64,
+    ) -> Result<Box<dyn VirtualBlockDevice>, PlazaError>;
+}
+
+/// A placeholder implementation that always fails, used as a capability boundary.
+pub struct UnavailableWritableFilesystemProvider;
+
+#[async_trait::async_trait]
+impl WritableFilesystemProvider for UnavailableWritableFilesystemProvider {
+    async fn create(
+        &self,
+        _size: u64,
+    ) -> Result<Box<dyn VirtualBlockDevice>, PlazaError> {
+        Err(PlazaError::GuestWritableFilesystemUnavailable(
+            "No pure-Rust filesystem creation library is available. PlazaVM requires a host-independent implementation.".to_string(),
+        ))
+    }
+}
+
+pub struct Ext4WritableFilesystemProvider {
+    path: PathBuf,
+    block_size: u64,
+}
+
+impl Ext4WritableFilesystemProvider {
+    pub fn new(path: PathBuf, block_size: u64) -> Self {
+        Self { path, block_size }
+    }
+}
+
+#[async_trait::async_trait]
+impl WritableFilesystemProvider for Ext4WritableFilesystemProvider {
+    async fn create(
+        &self,
+        size: u64,
+    ) -> Result<Box<dyn VirtualBlockDevice>, PlazaError> {
+        let base_path = self.path.with_extension("ext4.base");
+        
+        // 1. Format the baseline cleanly if it doesn't exist
+        if !base_path.exists() {
+            // Using standard arcbox_ext4 API.
+            let mut fmt = arcbox_ext4::Formatter::new(&base_path, self.block_size as u32, size)
+                .map_err(|e| PlazaError::process(format!("Formatter err: {:?}", e)))?;
+            fmt.create("/workspace", 0o755 | 0x4000, None, None, None, None, None, None)
+                .map_err(|e| PlazaError::process(format!("Workspace create err: {:?}", e)))?;
+            fmt.create("/upper", 0o755 | 0x4000, None, None, None, None, None, None)
+                .map_err(|e| PlazaError::process(format!("Upper create err: {:?}", e)))?;
+            fmt.create("/work", 0o755 | 0x4000, None, None, None, None, None, None)
+                .map_err(|e| PlazaError::process(format!("Work create err: {:?}", e)))?;
+            fmt.close().map_err(|e| PlazaError::process(format!("Close err: {:?}", e)))?;
+        }
+
+        let actual_size = std::fs::metadata(&base_path).map_err(PlazaError::Io)?.len();
+
+        // 2. Wrap it as a strictly read-only ImmutableLayer
+        let base_layer = std::sync::Arc::new(FileBackedImmutableLayer::open(base_path).await?) as std::sync::Arc<dyn ImmutableLayer>;
+
+        // 3. Create the CowWritableLayer (starts with completely clean metadata)
+        let cow_layer = CowWritableLayer::create(self.path.clone(), actual_size).await?;
+
+        // 4. Return the composition
+        Ok(Box::new(crate::composer::LayeredBlockDevice::new(
+            vec![base_layer],
+            cow_layer,
+        )))
     }
 }

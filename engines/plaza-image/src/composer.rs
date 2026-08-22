@@ -65,24 +65,43 @@ impl LayeredBlockDevice {
 impl VirtualBlockDevice for LayeredBlockDevice {
     async fn read_at(&self, offset: u64, buffer: &mut [u8]) -> PlazaResult<usize> {
         if offset >= self.logical_size {
-            return Err(PlazaError::OutOfBounds {
-                offset,
-                length: buffer.len() as u64,
-                size: self.logical_size,
-            });
+            return Ok(0);
         }
-
         let length = std::cmp::min(buffer.len() as u64, self.logical_size - offset) as usize;
-        let buf = &mut buffer[..length];
-
-        // 1. Try writable layer first (returns 0 if the block isn't dirty)
-        let n = self.writable_layer.read_at(offset, buf).await?;
-        if n == length {
-            return Ok(n);
+        let mut bytes_read = 0;
+        
+        while bytes_read < length {
+            let current_offset = offset + bytes_read as u64;
+            let current_block = current_offset / crate::block::BLOCK_SIZE;
+            let offset_in_block = current_offset % crate::block::BLOCK_SIZE;
+            let bytes_to_read = std::cmp::min(
+                (length - bytes_read) as u64,
+                crate::block::BLOCK_SIZE - offset_in_block,
+            ) as usize;
+            
+            let buf_slice = &mut buffer[bytes_read..bytes_read + bytes_to_read];
+            
+            if self.writable_layer.has_block(current_block) {
+                let n = self.writable_layer.read_at(current_offset, buf_slice).await?;
+                if n != bytes_to_read {
+                    return Err(plaza_foundation::core::PlazaError::Io(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "writable layer read short",
+                    )));
+                }
+            } else {
+                let n = self.read_from_immutable(current_offset, buf_slice).await?;
+                if n != bytes_to_read {
+                    return Err(plaza_foundation::core::PlazaError::Io(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "immutable layer read short",
+                    )));
+                }
+            }
+            bytes_read += bytes_to_read;
         }
-
-        // 2. Fall through to immutable layers
-        self.read_from_immutable(offset, buf).await
+        
+        Ok(bytes_read)
     }
 
     async fn write_at(&mut self, offset: u64, buffer: &[u8]) -> PlazaResult<usize> {

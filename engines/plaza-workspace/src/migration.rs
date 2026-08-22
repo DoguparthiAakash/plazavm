@@ -4,6 +4,12 @@ use tracing::info;
 
 pub struct MigrationManager;
 
+impl Default for MigrationManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MigrationManager {
     pub fn new() -> Self {
         Self

@@ -1,32 +1,41 @@
-$ErrorActionPreference = "Stop"
+param (
+    [string]$CommitMessage = "Updates"
+)
 
-# Commit the main repository
-Write-Host "Committing main repository..."
-git add .
-git commit -m "Updates"
-
-# Commit all embedded repositories in the staging directory
-$stagingDir = ".\staging"
-if (Test-Path $stagingDir) {
-    $repos = Get-ChildItem -Path $stagingDir -Directory
-    foreach ($repo in $repos) {
-        $repoPath = $repo.FullName
-        # Check if it's a git repository
-        if (Test-Path "$repoPath\.git") {
-            Write-Host "Committing repository: $($repo.Name)..."
-            Set-Location $repoPath
+# Function to commit in a specific directory
+function Commit-Directory {
+    param (
+        [string]$Path
+    )
+    
+    if (Test-Path "$Path\.git") {
+        Write-Host "Committing in repository: $Path" -ForegroundColor Cyan
+        Push-Location $Path
+        
+        # Check if there are changes
+        $status = git status --porcelain
+        if ([string]::IsNullOrWhiteSpace($status)) {
+            Write-Host "No changes to commit in $Path." -ForegroundColor Yellow
+        } else {
             git add .
-            # We use try/catch or ignore errors in case there are no changes to commit
-            try {
-                git commit -m "Updates" *>&1 | Out-Null
-                Write-Host " -> Committed."
-            } catch {
-                Write-Host " -> No changes or failed to commit."
-            }
+            git commit -m $CommitMessage
+            Write-Host "Successfully committed changes in $Path." -ForegroundColor Green
         }
+        
+        Pop-Location
     }
 }
 
-# Return to root
-Set-Location $PSScriptRoot
-Write-Host "Done."
+# 1. Commit in all sub-repositories in staging/
+$stagingPath = Join-Path $PSScriptRoot "staging"
+if (Test-Path $stagingPath) {
+    $subRepos = Get-ChildItem -Path $stagingPath -Directory
+    foreach ($repo in $subRepos) {
+        Commit-Directory -Path $repo.FullName
+    }
+}
+
+# 2. Commit in the main/common repository (root)
+Commit-Directory -Path $PSScriptRoot
+
+Write-Host "All commit operations completed." -ForegroundColor Green

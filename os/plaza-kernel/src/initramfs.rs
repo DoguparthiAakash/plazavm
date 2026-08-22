@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct InitramfsGenerator;
 
+impl Default for InitramfsGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InitramfsGenerator {
     pub fn new() -> Self {
         Self

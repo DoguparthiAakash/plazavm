@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct RegistryMirror;
 
+impl Default for RegistryMirror {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RegistryMirror {
     pub fn new() -> Self {
         Self

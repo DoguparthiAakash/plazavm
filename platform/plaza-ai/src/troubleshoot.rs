@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct AutomatedTroubleshooter;
 
+impl Default for AutomatedTroubleshooter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AutomatedTroubleshooter {
     pub fn new() -> Self {
         Self

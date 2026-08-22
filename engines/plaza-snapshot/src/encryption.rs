@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct SnapshotEncryption;
 
+impl Default for SnapshotEncryption {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SnapshotEncryption {
     pub fn new() -> Self {
         Self

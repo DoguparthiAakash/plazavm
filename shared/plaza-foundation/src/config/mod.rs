@@ -7,9 +7,11 @@
 
 pub mod app_config;
 pub mod capabilities;
+pub mod engine_section;
 pub mod image_section;
 pub mod machine_section;
 pub mod manager;
+pub mod project_section;
 pub mod runtime_section;
 pub mod validation;
 pub mod workspace_config;

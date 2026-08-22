@@ -2,6 +2,12 @@ use plaza_foundation::core::PlazaResult;
 
 pub struct RegistryAuthenticator;
 
+impl Default for RegistryAuthenticator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RegistryAuthenticator {
     pub fn new() -> Self {
         Self
