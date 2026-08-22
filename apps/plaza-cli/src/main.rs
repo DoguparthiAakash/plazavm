@@ -391,7 +391,8 @@ async fn main() -> anyhow::Result<()> {
     let image_manager = std::sync::Arc::new(plaza_image::ImageManager::new(blob_store, manifest_store, gc));
     
     let mut runtime_manager = plaza_runtime::RuntimeManager::new();
-    runtime_manager.register_backend(std::sync::Arc::new(qemu_plugin::QemuPlugin::new()));
+    runtime_manager.register_backend(std::sync::Arc::new(plaza_runtime::backends::qemu::QemuPlugin::new()));
+    runtime_manager.register_backend(std::sync::Arc::new(plaza_runtime::backends::v86::V86Plugin::default()));
     let runtime_manager = std::sync::Arc::new(runtime_manager);
     
     // Create & Register Engines
@@ -419,37 +420,27 @@ async fn main() -> anyhow::Result<()> {
 
     match active_command {
         Commands::Engine { action } => {
-            let command_id = match action {
-                EngineAction::Start => "engine.start",
-                EngineAction::Stop => "engine.stop",
-            };
-            
-            let mut ctx = plaza_command::models::CommandContext {
-                request: plaza_command::models::CommandRequest {
-                    command_id: command_id.to_string(),
-                    command_name: command_id.to_string(),
-                    arguments: std::collections::HashMap::new(),
-                    workspace_id: None,
-                    runtime_id: None,
-                    user: "cli_user".to_string(),
-                    permissions: vec!["system.admin".to_string()],
-                    execution_mode: plaza_command::models::ExecutionMode::Normal,
-                    output_format: "text".to_string(),
-                    metadata: std::collections::HashMap::new(),
-                },
-                state: std::collections::HashMap::new(),
-            };
-            
-            println!("Executing command via CommandDispatcher: {}", command_id);
-            match dispatcher.dispatch(&mut ctx).await {
-                Ok(response) => {
-                    println!("Command Status: {:?}", response.status);
-                    for diag in response.diagnostics {
-                        println!("  - {}", diag);
+            match action {
+                EngineAction::Start => {
+                    println!("🚀 Starting all core engines...");
+                    if let Err(e) = engine_manager.start_all().await {
+                        eprintln!("❌ Failed to start engines: {}", e);
+                        return Ok(());
                     }
+                    println!("✓ Engines started successfully. Running in background. Press Ctrl+C to stop.");
+                    
+                    if let Err(e) = tokio::signal::ctrl_c().await {
+                        eprintln!("Failed to listen for Ctrl+C: {}", e);
+                    }
+                    
+                    println!("\nStopping all engines...");
+                    if let Err(e) = engine_manager.stop_all().await {
+                        eprintln!("❌ Failed to stop engines: {}", e);
+                    }
+                    println!("✓ Engines stopped.");
                 }
-                Err(e) => {
-                    eprintln!("Command execution failed: {}", e);
+                EngineAction::Stop => {
+                    println!("To stop engines, send Ctrl+C to the running 'engine start' process.");
                 }
             }
         }
@@ -679,6 +670,9 @@ async fn main() -> anyhow::Result<()> {
                 let spec = WorkspaceSpec::default();
                 let project_path = target_dir.to_string_lossy().to_string();
                 let (ws, _root) = plaza_workspace::WorkspaceBuilder::build(&config.workspace.name, spec, Some(project_path))?;
+                if let Err(e) = container.workspace_service.save_workspace(&ws).await {
+                    eprintln!("❌ Failed to register workspace to central registry: {}", e);
+                }
 
                 println!("✓ Created workspace '{}' [{}]", ws.name, ws.id);
                 println!("✓ Initialized operational directory tree at '.space/'");
@@ -1185,7 +1179,7 @@ engine:
 
                         // Step 4. Start QEMU-TCG
                         use plaza_runtime::RuntimeBackend;
-                        let qemu = qemu_plugin::QemuPlugin::new();
+                        let qemu = plaza_runtime::backends::qemu::QemuPlugin::new();
                         let instance = qemu.create(&config, runtime_storage).await.unwrap();
                         qemu.start(&instance.id).await.unwrap();
 

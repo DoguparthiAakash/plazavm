@@ -1,0 +1,18 @@
+{
+  "session_id": "137b6764-6203-4a3f-ba06-b9a8dbbcc5fc",
+  "workspace_id": "334d8f10-3551-4a92-888c-26b9a46c6c13",
+  "name": "plazavm",
+  "created_at": "2026-08-22T19:44:03.010110600Z",
+  "last_active_at": "2026-08-22T19:46:16.115511100Z",
+  "backend_kind": "docker",
+  "driver_id": "docker",
+  "current_dir": "E:\\plazavm",
+  "environment": {},
+  "active_services": [],
+  "command_history": [
+    "help",
+    "ls",
+    "exit"
+  ],
+  "status": "active"
+}

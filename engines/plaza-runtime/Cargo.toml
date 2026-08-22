@@ -11,5 +11,15 @@ serde.workspace = true
 serde_json.workspace = true
 tracing.workspace = true
 plaza-image = { version = "0.1.0", path = "../plaza-image" }
-tokio = { workspace = true, features = ["sync"] }
+plaza-machine = { version = "0.1.0-dp1", path = "../plaza-machine" }
+tokio = { workspace = true, features = ["sync", "process", "io-util", "rt", "time"] }
+tokio-util = { workspace = true, features = ["codec"] }
+bollard.workspace = true
+wasmtime = "47.0.3"
+uuid.workspace = true
+semver.workspace = true
 
+[dev-dependencies]
+tempfile = "3"
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tracing-subscriber.workspace = true

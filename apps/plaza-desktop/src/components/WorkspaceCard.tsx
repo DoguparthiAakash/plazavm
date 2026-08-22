@@ -3,10 +3,9 @@ import {
   Play,
   Square,
   Terminal,
-  ExternalLink,
+  Maximize2,
   Cpu,
   HardDrive,
-  Maximize2,
 } from "lucide-react";
 import { WorkspaceDto } from "../api";
 
@@ -39,41 +38,38 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
   return (
     <div
       onClick={() => onSelect(workspace)}
-      className="glass-card rounded-3xl p-5 select-none cursor-pointer flex flex-col justify-between space-y-4 hover:border-cyan-500/50 transition-all duration-200 relative group overflow-hidden"
+      className="glass-card rounded-lg p-5 select-none cursor-pointer flex flex-col justify-between space-y-4 hover:border-zinc-500 transition-colors duration-200"
     >
-      {/* Background Subtle Accent Glow */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-2xl rounded-full pointer-events-none group-hover:bg-cyan-500/10 transition" />
-
       {/* Top Header */}
-      <div className="flex items-start justify-between z-10">
+      <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-cyan-500/20 via-teal-500/20 to-emerald-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-black shadow-lg shadow-cyan-500/10">
-            <Terminal className="w-5 h-5" />
+          <div className="w-10 h-10 rounded border border-zinc-700 bg-zinc-800 flex items-center justify-center text-zinc-300">
+            <Terminal className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-extrabold text-sm text-slate-100 group-hover:text-cyan-300 transition">
+              <h3 className="font-semibold text-sm text-zinc-100">
                 {workspace.name}
               </h3>
-              <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-bold">
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700 font-medium">
                 {envBadge}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{workspace.description}</p>
+            <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">{workspace.description}</p>
           </div>
         </div>
 
         {/* Status Pill */}
         <span
-          className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold flex items-center gap-1.5 border transition ${
+          className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium flex items-center gap-1.5 border transition-colors ${
             isRunning
-              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-sm shadow-emerald-500/20"
-              : "bg-slate-900 text-slate-400 border-slate-800"
+              ? "bg-zinc-800 text-green-400 border-zinc-700"
+              : "bg-zinc-800 text-zinc-400 border-zinc-700"
           }`}
         >
           <span
             className={`w-1.5 h-1.5 rounded-full ${
-              isRunning ? "bg-emerald-400 animate-ping" : "bg-slate-500"
+              isRunning ? "bg-green-500" : "bg-zinc-500"
             }`}
           />
           {workspace.state.toUpperCase()}
@@ -81,26 +77,26 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
       </div>
 
       {/* Resource Allocation Bars */}
-      <div className="space-y-2 pt-2 border-t border-slate-800/80 text-xs z-10">
-        <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-          <span className="flex items-center gap-1">
-            <Cpu className="w-3.5 h-3.5 text-cyan-400" /> {workspace.cpu_cores} vCPUs
+      <div className="space-y-2 pt-3 border-t border-zinc-800 text-xs">
+        <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400">
+          <span className="flex items-center gap-1.5">
+            <Cpu className="w-3.5 h-3.5 text-zinc-500" /> {workspace.cpu_cores} vCPUs
           </span>
-          <span className="flex items-center gap-1">
-            <HardDrive className="w-3.5 h-3.5 text-teal-400" /> {workspace.memory_mb} MB RAM
+          <span className="flex items-center gap-1.5">
+            <HardDrive className="w-3.5 h-3.5 text-zinc-500" /> {workspace.memory_mb} MB RAM
           </span>
         </div>
 
-        <div className="w-full bg-slate-950/80 rounded-full h-1.5 overflow-hidden border border-slate-800/80">
+        <div className="w-full bg-zinc-900 rounded-sm h-1 overflow-hidden border border-zinc-800">
           <div
-            className="bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 h-full rounded-full transition-all duration-500"
+            className="bg-blue-500 h-full rounded-sm transition-all duration-500"
             style={{ width: isRunning ? "42%" : "0%" }}
           />
         </div>
       </div>
 
       {/* Footer Info & Actions */}
-      <div className="flex items-center justify-between pt-2 z-10">
+      <div className="flex items-center justify-between pt-2">
         {/* Quick Action Buttons */}
         <div className="flex items-center gap-1.5">
           {isRunning ? (
@@ -109,7 +105,7 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
                 e.stopPropagation();
                 onStop(workspace.id);
               }}
-              className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-bold transition active:scale-95 flex items-center gap-1.5"
+              className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-red-400 border border-zinc-700 rounded text-xs font-medium transition-colors flex items-center gap-1.5"
             >
               <Square className="w-3 h-3 fill-current" /> Stop
             </button>
@@ -119,9 +115,9 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
                 e.stopPropagation();
                 onStart(workspace.id);
               }}
-              className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition active:scale-95 flex items-center gap-1.5"
+              className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-green-400 border border-zinc-700 rounded text-xs font-medium transition-colors flex items-center gap-1.5"
             >
-              <Play className="w-3.5 h-3.5 fill-current" /> Start
+              <Play className="w-3 h-3 fill-current" /> Start
             </button>
           )}
 
@@ -130,15 +126,15 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
               e.stopPropagation();
               onSelect(workspace);
             }}
-            className="px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded-xl text-xs font-bold transition active:scale-95 flex items-center gap-1.5"
+            className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-blue-400 border border-zinc-700 rounded text-xs font-medium transition-colors flex items-center gap-1.5"
           >
             <Maximize2 className="w-3 h-3" /> Open
           </button>
         </div>
 
         {/* Backend Badge */}
-        <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wider bg-slate-900 px-2 py-1 rounded-md border border-slate-800">
-          {workspace.runtime_backend || "WSL2/PUR"}
+        <span className="font-mono text-[10px] text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
+          {workspace.runtime_backend || "Plaza v86"}
         </span>
       </div>
     </div>

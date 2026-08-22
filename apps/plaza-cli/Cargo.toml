@@ -9,10 +9,8 @@ plaza-api.workspace = true
 plaza-foundation.workspace = true
 plaza-command.workspace = true
 plaza-workspace.workspace = true
-plaza-plugin.workspace = true
 plaza-registry.workspace = true
 plaza-image = { path = "../../engines/plaza-image" }
-qemu-plugin = { path = "../../plugins/qemu" }
 plaza-runtime = { path = "../../engines/plaza-runtime" }
 
 anyhow.workspace = true

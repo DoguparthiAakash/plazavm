@@ -53,7 +53,7 @@ const MainAppContent: React.FC = () => {
             name: "ubuntu-cuda-dev",
             description: "NVIDIA CUDA 12.5 & PyTorch 2.3 Deep Learning Environment",
             state: "running",
-            runtime_backend: "WSL2 Subsystem",
+            runtime_backend: "Plaza v86",
             health: "HEALTHY",
             cpu_cores: 8,
             memory_mb: 16384,
@@ -75,7 +75,7 @@ const MainAppContent: React.FC = () => {
             name: "node-web-app",
             description: "Node.js 22 Next.js App Router workspace",
             state: "running",
-            runtime_backend: "WSL2 Subsystem",
+            runtime_backend: "Plaza v86",
             health: "HEALTHY",
             cpu_cores: 4,
             memory_mb: 4096,
@@ -152,7 +152,7 @@ const MainAppContent: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-screen bg-slate-950 text-slate-100 font-sans overflow-hidden select-none">
+    <div className="flex h-screen w-screen bg-zinc-950 text-zinc-100 font-sans overflow-hidden select-none">
       {/* Sidebar Navigation */}
       <Sidebar
         activeTab={selectedWorkspace ? "workspaces" : activeTab}
@@ -165,11 +165,11 @@ const MainAppContent: React.FC = () => {
       />
 
       {/* Main App Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 bg-slate-950/60">
+      <main className="flex-1 flex flex-col min-w-0 bg-zinc-950">
         <TopBar
           onOpenSearch={() => setShowSearchModal(true)}
           onOpenNotifications={() => setShowNotifications(true)}
-          activeBackend="WSL2 Subsystem"
+          activeBackend="Plaza v86"
         />
 
         <div className="flex-1 flex min-h-0 overflow-hidden">
@@ -199,10 +199,10 @@ const MainAppContent: React.FC = () => {
                   <div className="p-6 max-w-7xl mx-auto space-y-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h2 className="text-2xl font-black text-slate-100 tracking-tight">
+                        <h2 className="text-2xl font-semibold text-zinc-100 tracking-tight">
                           Universal Workspaces
                         </h2>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-zinc-400">
                           Manage virtualized developer environments across container and VM backends
                         </p>
                       </div>

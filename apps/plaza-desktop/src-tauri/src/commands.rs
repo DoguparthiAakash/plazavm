@@ -122,22 +122,8 @@ pub async fn get_platform_info(
 }
 
 #[tauri::command]
-pub async fn list_plugins(state: State<'_, AppState>) -> Result<Vec<serde_json::Value>, String> {
-    let plugins = state
-        .container
-        .plugin_host
-        .available_runtime_plugins()
-        .await;
-    let mut result = Vec::new();
-    for p in plugins {
-        result.push(serde_json::json!({
-            "id": p.id(),
-            "name": p.display_name(),
-            "available": p.is_available().await,
-            "manifest": p.manifest()
-        }));
-    }
-    Ok(result)
+pub async fn list_plugins(_state: State<'_, AppState>) -> Result<Vec<serde_json::Value>, String> {
+    Ok(vec![])
 }
 
 #[tauri::command]
@@ -201,11 +187,9 @@ pub async fn reset_config() -> Result<(), String> {
 #[tauri::command]
 pub async fn check_system_readiness() -> Result<serde_json::Value, String> {
     let readiness = serde_json::json!({
-        "docker_installed": false,
-        "virtualbox_installed": false,
-        "qemu_installed": false,
-        "podman_installed": false,
-        "hyperv_available": std::env::consts::OS == "windows",
+        "plaza_v86_engine": true,
+        "plaza_block_storage": true,
+        "plaza_pur_daemon": true,
         "rust_installed": true,
         "git_installed": true,
         "node_installed": true

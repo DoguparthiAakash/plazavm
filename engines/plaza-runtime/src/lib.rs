@@ -16,6 +16,7 @@ mod machine;
 pub mod resolver;
 pub mod storage;
 mod manager;
+pub mod backends;
 
 pub use backend::RuntimeBackend;
 pub use capabilities::RuntimeCapabilities;

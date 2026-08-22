@@ -68,18 +68,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <aside className="w-64 bg-slate-950/80 backdrop-blur-2xl border-r border-slate-800/80 flex flex-col justify-between p-4 select-none shrink-0 shadow-2xl z-20">
+    <aside className="w-64 bg-zinc-950 border-r border-zinc-800 flex flex-col justify-between p-4 select-none shrink-0 z-20">
       <div className="space-y-5 overflow-y-auto pr-1">
         {/* Brand Header */}
         <div className="flex items-center gap-3 px-2">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-cyan-500 via-teal-400 to-emerald-400 flex items-center justify-center font-black text-slate-950 shadow-lg shadow-cyan-500/25">
+          <div className="w-9 h-9 rounded bg-blue-600 flex items-center justify-center font-bold text-white">
             P
           </div>
           <div>
-            <h1 className="font-black text-slate-100 text-sm tracking-tight gradient-text-cyan">
+            <h1 className="font-bold text-zinc-100 text-sm tracking-tight">
               Plaza Desktop
             </h1>
-            <div className="text-[10px] text-cyan-400 font-mono font-semibold">
+            <div className="text-[10px] text-zinc-500 font-mono font-medium">
               Control Center v1.0
             </div>
           </div>
@@ -88,7 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* CTA Button */}
         <button
           onClick={onCreateWorkspace}
-          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-black rounded-xl text-xs shadow-lg shadow-cyan-500/20 transition-all duration-200 active:scale-95"
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-md text-xs transition-colors duration-200"
         >
           <Plus className="w-4 h-4 stroke-[3]" /> New Workspace
         </button>
@@ -97,7 +97,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="space-y-4">
           {navSections.map((section) => (
             <div key={section.title} className="space-y-1">
-              <div className="px-3 text-[9px] font-mono font-bold tracking-widest text-slate-500 uppercase">
+              <div className="px-3 text-[9px] font-mono font-semibold tracking-wider text-zinc-500 uppercase">
                 {section.title}
               </div>
               {section.items.map((item) => {
@@ -107,17 +107,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <button
                     key={item.id}
                     onClick={() => onTabChange(item.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-xs transition-colors duration-150 ${
                       active
-                        ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 shadow-md shadow-cyan-500/10 font-bold"
-                        : "text-slate-400 hover:text-slate-100 hover:bg-slate-900/60"
+                        ? "bg-zinc-800 text-zinc-100 font-medium"
+                        : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <Icon className={`w-4 h-4 ${active ? "text-cyan-400" : "text-slate-400"}`} />
+                      <Icon className={`w-4 h-4 ${active ? "text-blue-500" : "text-zinc-400"}`} />
                       <span>{item.label}</span>
                     </div>
-                    {active && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400" />}
                   </button>
                 );
               })}
@@ -127,15 +126,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="pt-3 border-t border-slate-900/80">
+      <div className="pt-3 border-t border-zinc-800">
         <button
           onClick={onOpenShortcuts}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-[11px] text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 transition"
+          className="w-full flex items-center justify-between px-3 py-2 rounded-md text-[11px] text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition-colors"
         >
           <span className="flex items-center gap-2 font-medium">
             <Keyboard className="w-3.5 h-3.5" /> Shortcuts
           </span>
-          <kbd className="font-mono text-[9px] bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-slate-300">
+          <kbd className="font-mono text-[9px] bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-300">
             Ctrl+K
           </kbd>
         </button>

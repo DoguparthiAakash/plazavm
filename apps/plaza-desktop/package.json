@@ -1,7 +1,7 @@
 {
   "name": "plaza-desktop",
   "private": true,
-  "version": "0.1.0-dp1",
+  "version": "0.1.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {

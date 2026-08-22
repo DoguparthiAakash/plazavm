@@ -7,7 +7,7 @@ use plaza_image::ImageManager;
 use plaza_runtime::{MachineConfig, RuntimeBackend, RuntimeStorage};
 use plaza_workspace::pipeline::TransactionalPipelineBuilder;
 use plaza_workspace::image::acquisition::AlpineAcquisitionSource;
-use qemu_plugin::QemuPlugin;
+use plaza_runtime::backends::qemu::QemuPlugin;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;

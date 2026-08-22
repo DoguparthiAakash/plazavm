@@ -57,15 +57,16 @@ impl Engine for WorkspaceEngine {
                         let backend_id = match &ws.spec.runtime.backend {
                             crate::model::RuntimeBackendPreference::Preferred(id) => id.clone(),
                             crate::model::RuntimeBackendPreference::Pinned(id) => id.clone(),
-                            crate::model::RuntimeBackendPreference::Auto => "qemu".to_string(),
+                            crate::model::RuntimeBackendPreference::Auto => "v86".to_string(),
                         };
                         
                         // Get runtime status and metrics
                         let mut is_running = false;
+                        let instance_id_to_check = ws.status.runtime_instance_id.clone().unwrap_or_else(|| id_str.clone());
                         if let Ok(backend) = rt_mgr.get_backend(&backend_id) {
-                            if let Ok(plaza_runtime::RuntimeStatus::Running) = backend.status(&id_str).await {
+                            if let Ok(plaza_runtime::RuntimeStatus::Running) = backend.status(&instance_id_to_check).await {
                                 is_running = true;
-                                if let Ok(metrics) = backend.metrics(&id_str).await {
+                                if let Ok(metrics) = backend.metrics(&instance_id_to_check).await {
                                     let _ = ws_svc.update_status(&ws.id, |status| {
                                         status.state = crate::model::WorkspaceState::Running;
                                         status.pid = metrics.pid;
@@ -73,7 +74,7 @@ impl Engine for WorkspaceEngine {
                                         status.execution_mode = metrics.execution_mode.clone();
                                         status.storage_backend = metrics.storage_backend.clone();
                                         status.runtime_backend = Some(backend_id.clone());
-                                        status.runtime_instance_id = Some(id_str.clone());
+                                        status.runtime_instance_id = Some(instance_id_to_check.clone());
                                     }).await;
                                 }
                             } else {
@@ -156,10 +157,15 @@ impl Engine for WorkspaceEngine {
                                     let acq = crate::image::acquisition::AlpineAcquisitionSource::new().unwrap();
                                     let (kernel_path, initrd_path, modloop_path) = acq.fetch_kernel_and_initrd("alpine:3.19.1").await.unwrap();
                                     
+                                    let mut machine_section = plaza_foundation::config::machine_section::MachineSection::default();
+                                    if backend_id == "v86" {
+                                        machine_section.architecture = plaza_foundation::core::types::Architecture::X86_32;
+                                    }
+
                                     let machine = plaza_runtime::MachineConfig {
                                         workspace_id: id_str.clone(),
                                         instance_id: id_str.clone(),
-                                        machine: plaza_foundation::config::machine_section::MachineSection::default(),
+                                        machine: machine_section,
                                         capabilities: plaza_foundation::core::CapabilityPolicy::default(),
                                         boot_device: std::path::PathBuf::from("dummy"),
                                         kernel_path: Some(kernel_path),
@@ -179,6 +185,9 @@ impl Engine for WorkspaceEngine {
                                                 tracing::error!("Failed to start runtime for {}: {}", rt_instance.id, e);
                                             } else {
                                                 tracing::info!("Started runtime for {}", rt_instance.id);
+                                                let _ = ws_svc.update_status(&ws.id, |status| {
+                                                    status.runtime_instance_id = Some(rt_instance.id.clone());
+                                                }).await;
                                             }
                                         }
                                         Err(e) => {
@@ -190,10 +199,10 @@ impl Engine for WorkspaceEngine {
                             (DesiredState::Stopped, true) => {
                                 // Stop the instance
                                 if let Ok(backend) = rt_mgr.get_backend(&backend_id) {
-                                    if let Err(e) = backend.stop(&id_str).await {
-                                        tracing::error!("Failed to stop runtime for {}: {}", id_str, e);
+                                    if let Err(e) = backend.stop(&instance_id_to_check).await {
+                                        tracing::error!("Failed to stop runtime for {}: {}", instance_id_to_check, e);
                                     } else {
-                                        tracing::info!("Stopped runtime for {}", id_str);
+                                        tracing::info!("Stopped runtime for {}", instance_id_to_check);
                                     }
                                 }
                             }

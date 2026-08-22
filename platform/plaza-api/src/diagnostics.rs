@@ -41,17 +41,7 @@ impl DiagnosticsBundle {
         zip.write_all(serde_json::to_string_pretty(&caps)?.as_bytes())?;
 
         // 3. Plugins Matrix
-        let plugins = container.plugin_host.available_runtime_plugins().await;
-        let plugin_list: Vec<_> = plugins
-            .iter()
-            .map(|p| {
-                serde_json::json!({
-                    "id": p.id(),
-                    "name": p.display_name(),
-                    "manifest": p.manifest()
-                })
-            })
-            .collect();
+        let plugin_list: Vec<serde_json::Value> = vec![];
         zip.start_file("plugin_matrix.json", options)?;
         zip.write_all(serde_json::to_string_pretty(&plugin_list)?.as_bytes())?;
 
@@ -77,4 +67,3 @@ impl DiagnosticsBundle {
         Ok(zip_path)
     }
 }
-

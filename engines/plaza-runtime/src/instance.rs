@@ -87,15 +87,47 @@ pub struct SnapshotInfo {
 
 /// A handle to an interactive console stream.
 ///
-/// Phase 1 stub — will be backed by tokio channels in Phase 2.
+/// Provides bidirectional communication between the host and a guest VM
+/// via two tokio mpsc channels — one for sending data *to* the guest,
+/// and one for receiving data *from* the guest.
 pub struct ConsoleStream {
-    _private: (),
+    /// Send data (commands) to the guest.
+    pub tx: tokio::sync::mpsc::Sender<String>,
+    /// Receive data (output) from the guest.
+    pub rx: tokio::sync::Mutex<tokio::sync::mpsc::Receiver<String>>,
 }
 
 impl ConsoleStream {
-    /// Create a placeholder console stream.
+    /// Create a new console stream from pre-existing channel halves.
+    pub fn new(
+        tx: tokio::sync::mpsc::Sender<String>,
+        rx: tokio::sync::mpsc::Receiver<String>,
+    ) -> Self {
+        Self {
+            tx,
+            rx: tokio::sync::Mutex::new(rx),
+        }
+    }
+
+    /// Create a placeholder console stream (returns None for both channels).
+    /// Kept for backward compatibility with backends that don't support console.
     pub fn placeholder() -> Self {
-        Self { _private: () }
+        let (tx, rx) = tokio::sync::mpsc::channel(1);
+        Self {
+            tx,
+            rx: tokio::sync::Mutex::new(rx),
+        }
+    }
+
+    /// Send a command string to the guest.
+    pub async fn send(&self, data: String) -> Result<(), tokio::sync::mpsc::error::SendError<String>> {
+        self.tx.send(data).await
+    }
+
+    /// Receive the next line of output from the guest.
+    /// Returns `None` if the guest has disconnected.
+    pub async fn recv(&self) -> Option<String> {
+        self.rx.lock().await.recv().await
     }
 }
 

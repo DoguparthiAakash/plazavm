@@ -15,7 +15,6 @@ members = [
     "engines/plaza-runtime",
     "engines/plaza-storage",
     "engines/plaza-registry",
-    "engines/plaza-plugin",
     "engines/plaza-image",
     "engines/plaza-package",
     "engines/plaza-snapshot",
@@ -48,12 +47,7 @@ members = [
     "tools/publication-manager",
 
     # ── Runtime Plugins ──
-    "plugins/docker",
-    "plugins/virtualbox",
-    "plugins/qemu",
-    "plugins/podman",
-    "plugins/hyperv",
-    "plugins/v86", "v86_investigation", "vendors/plaza-guest",
+    "v86_investigation", "vendors/plaza-guest", "engines/plaza-machine",
 ]
 resolver = "2"
 
@@ -113,7 +107,6 @@ plaza-workspace = { path = "engines/plaza-workspace" }
 plaza-resource = { path = "platform/plaza-resource" }
 plaza-ai = { path = "platform/plaza-ai" }
 plaza-runtime = { path = "engines/plaza-runtime" }
-plaza-plugin = { path = "engines/plaza-plugin" }
 plaza-api = { path = "platform/plaza-api" }
 plaza-foundation = { path = "shared/plaza-foundation" }
 plaza-command = { path = "shared/plaza-command" }
