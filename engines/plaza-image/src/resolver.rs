@@ -12,6 +12,12 @@ pub fn parse_image_ref(reference: &str) -> PlazaResult<ImageRef> {
         return Err(PlazaError::InvalidImageReference("Reference is empty".into()));
     }
 
+    // Handle Plaza-native schema prefixes
+    let reference = reference
+        .strip_prefix("plaza://")
+        .or_else(|| reference.strip_prefix("pro://"))
+        .unwrap_or(reference);
+
     let mut name = reference;
     let mut tag = None;
     let mut digest = None;
