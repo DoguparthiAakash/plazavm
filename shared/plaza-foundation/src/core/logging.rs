@@ -124,5 +124,3 @@ impl Logger {
         ring
     }
 }
-
-

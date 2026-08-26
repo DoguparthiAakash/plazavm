@@ -86,7 +86,10 @@ impl ImmutableLayer for FileBackedImmutableLayer {
             .await
             .map_err(PlazaError::Io)?;
         let max_read = std::cmp::min(buffer.len() as u64, self.file_size - offset) as usize;
-        let n = file.read(&mut buffer[..max_read]).await.map_err(PlazaError::Io)?;
+        let n = file
+            .read(&mut buffer[..max_read])
+            .await
+            .map_err(PlazaError::Io)?;
         Ok(n)
     }
 
@@ -113,7 +116,9 @@ impl VirtualBlockDevice for ReadOnlyBlockDevice {
     }
 
     async fn write_at(&mut self, _offset: u64, _buffer: &[u8]) -> PlazaResult<usize> {
-        Err(PlazaError::process("Attempted to write to a read-only block device (SquashFS base image)"))
+        Err(PlazaError::process(
+            "Attempted to write to a read-only block device (SquashFS base image)",
+        ))
     }
 
     async fn flush(&mut self) -> PlazaResult<()> {
@@ -160,7 +165,7 @@ impl CowWritableLayer {
                 }
             }
         }
-        
+
         Ok(Self {
             path,
             logical_size,
@@ -171,7 +176,10 @@ impl CowWritableLayer {
 
     /// Returns true if the given block index has been written to in this layer.
     pub fn has_block(&self, block_index: u64) -> bool {
-        self.dirty_blocks.get(&block_index).copied().unwrap_or(false)
+        self.dirty_blocks
+            .get(&block_index)
+            .copied()
+            .unwrap_or(false)
     }
 
     /// Returns the set of dirty block indices (for testing / inspection).
@@ -205,7 +213,10 @@ impl VirtualBlockDevice for CowWritableLayer {
             .await
             .map_err(PlazaError::Io)?;
         let max_read = std::cmp::min(buffer.len() as u64, self.logical_size - offset) as usize;
-        let n = file.read(&mut buffer[..max_read]).await.map_err(PlazaError::Io)?;
+        let n = file
+            .read(&mut buffer[..max_read])
+            .await
+            .map_err(PlazaError::Io)?;
         Ok(n)
     }
 
@@ -250,12 +261,12 @@ impl VirtualBlockDevice for CowWritableLayer {
             .map_err(PlazaError::Io)?;
         file.flush().await.map_err(PlazaError::Io)?;
         file.sync_all().await.map_err(PlazaError::Io)?;
-        
+
         // Write dirty blocks metadata atomically
         let dirty_list = self.dirty_block_indices();
         let meta_json = serde_json::to_string(&dirty_list)
             .map_err(|e| PlazaError::process(format!("Failed to serialize cow metadata: {}", e)))?;
-            
+
         let temp_meta_path = self.meta_path.with_extension("meta.tmp");
         tokio::fs::write(&temp_meta_path, meta_json)
             .await
@@ -263,7 +274,7 @@ impl VirtualBlockDevice for CowWritableLayer {
         tokio::fs::rename(&temp_meta_path, &self.meta_path)
             .await
             .map_err(PlazaError::Io)?;
-            
+
         Ok(())
     }
 
@@ -276,10 +287,7 @@ impl VirtualBlockDevice for CowWritableLayer {
 #[async_trait::async_trait]
 pub trait WritableFilesystemProvider: Send + Sync {
     /// Create a writable filesystem image of the specified size.
-    async fn create(
-        &self,
-        size: u64,
-    ) -> Result<Box<dyn VirtualBlockDevice>, PlazaError>;
+    async fn create(&self, size: u64) -> Result<Box<dyn VirtualBlockDevice>, PlazaError>;
 }
 
 /// A placeholder implementation that always fails, used as a capability boundary.
@@ -287,10 +295,7 @@ pub struct UnavailableWritableFilesystemProvider;
 
 #[async_trait::async_trait]
 impl WritableFilesystemProvider for UnavailableWritableFilesystemProvider {
-    async fn create(
-        &self,
-        _size: u64,
-    ) -> Result<Box<dyn VirtualBlockDevice>, PlazaError> {
+    async fn create(&self, _size: u64) -> Result<Box<dyn VirtualBlockDevice>, PlazaError> {
         Err(PlazaError::GuestWritableFilesystemUnavailable(
             "No pure-Rust filesystem creation library is available. PlazaVM requires a host-independent implementation.".to_string(),
         ))
@@ -310,30 +315,38 @@ impl Ext4WritableFilesystemProvider {
 
 #[async_trait::async_trait]
 impl WritableFilesystemProvider for Ext4WritableFilesystemProvider {
-    async fn create(
-        &self,
-        size: u64,
-    ) -> Result<Box<dyn VirtualBlockDevice>, PlazaError> {
+    async fn create(&self, size: u64) -> Result<Box<dyn VirtualBlockDevice>, PlazaError> {
         let base_path = self.path.with_extension("ext4.base");
-        
+
         // 1. Format the baseline cleanly if it doesn't exist
         if !base_path.exists() {
             // Using standard arcbox_ext4 API.
             let mut fmt = arcbox_ext4::Formatter::new(&base_path, self.block_size as u32, size)
                 .map_err(|e| PlazaError::process(format!("Formatter err: {:?}", e)))?;
-            fmt.create("/workspace", 0o755 | 0x4000, None, None, None, None, None, None)
-                .map_err(|e| PlazaError::process(format!("Workspace create err: {:?}", e)))?;
+            fmt.create(
+                "/workspace",
+                0o755 | 0x4000,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .map_err(|e| PlazaError::process(format!("Workspace create err: {:?}", e)))?;
             fmt.create("/upper", 0o755 | 0x4000, None, None, None, None, None, None)
                 .map_err(|e| PlazaError::process(format!("Upper create err: {:?}", e)))?;
             fmt.create("/work", 0o755 | 0x4000, None, None, None, None, None, None)
                 .map_err(|e| PlazaError::process(format!("Work create err: {:?}", e)))?;
-            fmt.close().map_err(|e| PlazaError::process(format!("Close err: {:?}", e)))?;
+            fmt.close()
+                .map_err(|e| PlazaError::process(format!("Close err: {:?}", e)))?;
         }
 
         let actual_size = std::fs::metadata(&base_path).map_err(PlazaError::Io)?.len();
 
         // 2. Wrap it as a strictly read-only ImmutableLayer
-        let base_layer = std::sync::Arc::new(FileBackedImmutableLayer::open(base_path).await?) as std::sync::Arc<dyn ImmutableLayer>;
+        let base_layer = std::sync::Arc::new(FileBackedImmutableLayer::open(base_path).await?)
+            as std::sync::Arc<dyn ImmutableLayer>;
 
         // 3. Create the CowWritableLayer (starts with completely clean metadata)
         let cow_layer = CowWritableLayer::create(self.path.clone(), actual_size).await?;

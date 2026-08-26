@@ -1,13 +1,36 @@
-use std::process::Command;
 use colored::*;
+use std::process::Command;
 
 pub async fn run() -> anyhow::Result<()> {
-    println!("{}", "Running PlazaVM Workspace Validation...".bold().blue());
+    println!(
+        "{}",
+        "Running PlazaVM Workspace Validation...".bold().blue()
+    );
 
     let steps = vec![
-        ("Format Check", "cargo", vec!["fmt", "--all", "--", "--check"]),
-        ("Clippy (Lints)", "cargo", vec!["clippy", "--workspace", "--all-targets", "--all-features", "--", "-D", "warnings"]),
-        ("Tests", "cargo", vec!["test", "--workspace", "--all-features"]),
+        (
+            "Format Check",
+            "cargo",
+            vec!["fmt", "--all", "--", "--check"],
+        ),
+        (
+            "Clippy (Lints)",
+            "cargo",
+            vec![
+                "clippy",
+                "--workspace",
+                "--all-targets",
+                "--all-features",
+                "--",
+                "-D",
+                "warnings",
+            ],
+        ),
+        (
+            "Tests",
+            "cargo",
+            vec!["test", "--workspace", "--all-features"],
+        ),
     ];
 
     let mut all_passed = true;
@@ -15,7 +38,7 @@ pub async fn run() -> anyhow::Result<()> {
     for (desc, cmd, args) in steps {
         println!("\n{} Running {}...", "→".cyan(), desc);
         let status = Command::new(cmd).args(&args).status()?;
-        
+
         if status.success() {
             println!("  {}", "✓ Passed".green());
         } else {
@@ -29,7 +52,12 @@ pub async fn run() -> anyhow::Result<()> {
     if all_passed {
         println!("{}", "All validations passed successfully!".bold().green());
     } else {
-        println!("{}", "Validation failed. Please fix the errors above.".bold().red());
+        println!(
+            "{}",
+            "Validation failed. Please fix the errors above."
+                .bold()
+                .red()
+        );
         anyhow::bail!("Validation failed.");
     }
 

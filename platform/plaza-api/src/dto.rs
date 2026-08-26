@@ -26,4 +26,3 @@ pub struct WorkspaceDto {
     pub memory_mb: u64,
     pub created_at: String,
 }
-

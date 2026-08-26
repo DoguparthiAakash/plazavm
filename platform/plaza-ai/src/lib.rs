@@ -6,14 +6,13 @@
 //! providing runtime recommendations, resource optimization advice, error explanations,
 //! and project structure analysis.
 
-pub mod inference;
-pub mod context;
+pub mod advisor;
 pub mod codegen;
+pub mod context;
+pub mod inference;
+pub mod provider;
 pub mod troubleshoot;
 pub mod vector_db;
-pub mod advisor;
-pub mod provider;
 
 pub use advisor::AiAdvisorSystem;
 pub use provider::{AiProvider, OllamaProvider, OpenAIProvider};
-

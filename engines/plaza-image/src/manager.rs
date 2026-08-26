@@ -1,7 +1,7 @@
+use crate::gc::{GarbageCollector, GcReport};
 use crate::model::ImageManifest;
 use crate::resolver::parse_image_ref;
 use crate::store::{BlobStore, ManifestStore};
-use crate::gc::{GarbageCollector, GcReport};
 use plaza_foundation::core::{PlazaError, PlazaResult};
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -28,13 +28,15 @@ impl ImageManager {
     /// Resolve an image reference to a specific ImageManifest.
     pub async fn resolve_image(&self, reference: &str) -> PlazaResult<ImageManifest> {
         let img_ref = parse_image_ref(reference)?;
-        
+
         let manifest = if let Some(ref tag) = img_ref.tag {
             self.manifest_store.get_manifest(&img_ref.name, tag).await?
         } else {
             // Default to 'latest' if no tag is provided but digest isn't handled directly via manifest store name matching right now.
             // A more complex resolution would look up by digest directly.
-            self.manifest_store.get_manifest(&img_ref.name, "latest").await?
+            self.manifest_store
+                .get_manifest(&img_ref.name, "latest")
+                .await?
         };
 
         let manifest = manifest.ok_or_else(|| PlazaError::ImageNotFound {
@@ -52,16 +54,28 @@ impl ImageManager {
     }
 
     /// Get the physical path to a blob by its content hash.
-    pub fn get_blob_path(&self, hash: &crate::model::ContentHash) -> PlazaResult<std::path::PathBuf> {
+    pub fn get_blob_path(
+        &self,
+        hash: &crate::model::ContentHash,
+    ) -> PlazaResult<std::path::PathBuf> {
         self.blob_store.get_path(hash)
     }
 
     /// Import a raw file as a single-layer RawBlock image.
-    pub async fn import_raw(&self, name: &str, tag: &str, file_path: &std::path::Path) -> PlazaResult<()> {
-        let mut file = tokio::fs::File::open(file_path).await.map_err(PlazaError::Io)?;
+    pub async fn import_raw(
+        &self,
+        name: &str,
+        tag: &str,
+        file_path: &std::path::Path,
+    ) -> PlazaResult<()> {
+        let mut file = tokio::fs::File::open(file_path)
+            .await
+            .map_err(PlazaError::Io)?;
         let digest = self.blob_store.put_stream(&mut file).await?;
-        
-        let meta = tokio::fs::metadata(file_path).await.map_err(PlazaError::Io)?;
+
+        let meta = tokio::fs::metadata(file_path)
+            .await
+            .map_err(PlazaError::Io)?;
         let size = meta.len();
 
         let manifest = ImageManifest {
@@ -92,7 +106,9 @@ impl ImageManager {
     pub async fn remove_image(&self, reference: &str) -> PlazaResult<()> {
         let img_ref = parse_image_ref(reference)?;
         let tag = img_ref.tag.unwrap_or_else(|| "latest".to_string());
-        self.manifest_store.remove_manifest(&img_ref.name, &tag).await?;
+        self.manifest_store
+            .remove_manifest(&img_ref.name, &tag)
+            .await?;
         Ok(())
     }
 

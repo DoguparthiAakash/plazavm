@@ -59,4 +59,3 @@ pub struct AiRecommendation {
     pub recommendation: String,
     pub confidence: f32,
 }
-

@@ -68,9 +68,15 @@ impl TransactionManager {
                     // Depending on policy, we might rollback here. For now we rollback.
                     if cmd.metadata().supports_rollback {
                         if let Err(rollback_err) = cmd.rollback(ctx).await {
-                            error!("CRITICAL: Rollback after failed commit failed for {}: {}", cmd_name, rollback_err);
+                            error!(
+                                "CRITICAL: Rollback after failed commit failed for {}: {}",
+                                cmd_name, rollback_err
+                            );
                         } else {
-                            warn!("Rollback completed successfully after failed commit for {}", cmd_name);
+                            warn!(
+                                "Rollback completed successfully after failed commit for {}",
+                                cmd_name
+                            );
                         }
                     }
                     let _ = cmd.cleanup(ctx).await;
@@ -82,18 +88,31 @@ impl TransactionManager {
                 Ok(response)
             }
             Err(execution_err) => {
-                error!("Command {} failed during execution: {}. Initiating rollback...", cmd_name, execution_err);
+                error!(
+                    "Command {} failed during execution: {}. Initiating rollback...",
+                    cmd_name, execution_err
+                );
 
                 // 7. Rollback
                 if cmd.metadata().supports_rollback {
                     if let Err(rollback_err) = cmd.rollback(ctx).await {
-                        error!("CRITICAL: Rollback failed for command {}: {}", cmd_name, rollback_err);
+                        error!(
+                            "CRITICAL: Rollback failed for command {}: {}",
+                            cmd_name, rollback_err
+                        );
                         let _ = cmd.cleanup(ctx).await;
-                        return Err(anyhow!("Command execution failed ({}), AND rollback failed ({})", execution_err, rollback_err));
+                        return Err(anyhow!(
+                            "Command execution failed ({}), AND rollback failed ({})",
+                            execution_err,
+                            rollback_err
+                        ));
                     }
                     warn!("Rollback completed successfully for command {}", cmd_name);
                 } else {
-                    warn!("Command {} does not support rollback. State may be inconsistent.", cmd_name);
+                    warn!(
+                        "Command {} does not support rollback. State may be inconsistent.",
+                        cmd_name
+                    );
                 }
 
                 // 8. Cleanup
@@ -105,4 +124,3 @@ impl TransactionManager {
         }
     }
 }
-

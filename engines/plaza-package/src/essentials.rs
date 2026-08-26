@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 
 /// Represents a parsed `plazaessentials.toml` file.
 /// This file declaratively defines all external tools and dependencies
@@ -26,8 +26,7 @@ impl PlazaEssentials {
     pub fn parse<P: AsRef<Path>>(path: P) -> Result<Self, String> {
         let content = fs::read_to_string(path)
             .map_err(|e| format!("Failed to read plazaessentials.toml: {}", e))?;
-        toml::from_str(&content)
-            .map_err(|e| format!("Invalid plazaessentials.toml syntax: {}", e))
+        toml::from_str(&content).map_err(|e| format!("Invalid plazaessentials.toml syntax: {}", e))
     }
 
     /// Generate a minimal template for `plazaessentials.toml`.
@@ -45,6 +44,7 @@ impl PlazaEssentials {
 
 [windows]
 # win_features = ["visual-studio-build-tools"]
-"#.to_string()
+"#
+        .to_string()
     }
 }

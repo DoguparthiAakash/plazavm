@@ -81,7 +81,10 @@ impl WscEngine {
         // Write commit JSON to .space/state/commits/<commit_id>.json
         let file_path = commits_dir.join(format!("{}.json", commit_id));
         let content = serde_json::to_string_pretty(&commit).map_err(|e| {
-            plaza_foundation::core::PlazaError::serialization(format!("Failed to serialize commit: {}", e))
+            plaza_foundation::core::PlazaError::serialization(format!(
+                "Failed to serialize commit: {}",
+                e
+            ))
         })?;
         fs::write(file_path, content)?;
 
@@ -103,7 +106,10 @@ impl WscEngine {
 
         let content = fs::read_to_string(timeline_file)?;
         let timeline: WorkspaceTimeline = serde_json::from_str(&content).map_err(|e| {
-            plaza_foundation::core::PlazaError::serialization(format!("Failed to deserialize timeline: {}", e))
+            plaza_foundation::core::PlazaError::serialization(format!(
+                "Failed to deserialize timeline: {}",
+                e
+            ))
         })?;
         Ok(timeline)
     }
@@ -113,7 +119,10 @@ impl WscEngine {
         fs::create_dir_all(&state_dir)?;
         let timeline_file = state_dir.join("timeline.json");
         let content = serde_json::to_string_pretty(timeline).map_err(|e| {
-            plaza_foundation::core::PlazaError::serialization(format!("Failed to serialize timeline: {}", e))
+            plaza_foundation::core::PlazaError::serialization(format!(
+                "Failed to serialize timeline: {}",
+                e
+            ))
         })?;
         fs::write(timeline_file, content)?;
         Ok(())
@@ -134,4 +143,3 @@ mod md5 {
         bytes
     }
 }
-

@@ -59,4 +59,3 @@ impl WorkspaceProcessManager {
         map.clone()
     }
 }
-

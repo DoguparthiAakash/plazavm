@@ -32,10 +32,7 @@ impl Formatter {
             let path_str = preprocess_path(&raw_path);
             let path = Path::new(&path_str);
 
-            let basename = path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("");
+            let basename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
             // ── OCI whiteouts ──
             if basename.starts_with(".wh.") {
@@ -64,10 +61,7 @@ impl Formatter {
             if entry.header().entry_type() == tar::EntryType::Link {
                 if let Some(link_target) = entry.link_name().map_err(io_to_format)? {
                     let target_str = preprocess_path(&link_target.into_owned());
-                    hardlinks.insert(
-                        PathBuf::from(&path_str),
-                        PathBuf::from(target_str),
-                    );
+                    hardlinks.insert(PathBuf::from(&path_str), PathBuf::from(target_str));
                     continue;
                 }
             }
@@ -215,10 +209,7 @@ fn check_acyclic(links: &HashMap<PathBuf, PathBuf>) -> bool {
 }
 
 /// Resolve a hard-link chain to its final target path.
-fn resolve_hardlink(
-    key: &Path,
-    links: &HashMap<PathBuf, PathBuf>,
-) -> Option<PathBuf> {
+fn resolve_hardlink(key: &Path, links: &HashMap<PathBuf, PathBuf>) -> Option<PathBuf> {
     let target = links.get(key)?;
     let mut next = target.clone();
     let mut visited = std::collections::HashSet::new();

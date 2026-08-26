@@ -24,7 +24,10 @@ impl DiagnosticsManager {
         Self
     }
 
-    pub async fn run_diagnostics(&self, workspace: &Workspace) -> PlazaResult<WorkspaceDiagnostics> {
+    pub async fn run_diagnostics(
+        &self,
+        workspace: &Workspace,
+    ) -> PlazaResult<WorkspaceDiagnostics> {
         // Collect metrics and health indicators
         Ok(WorkspaceDiagnostics {
             health_status: format!("{:?}", workspace.status.health),

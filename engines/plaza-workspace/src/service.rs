@@ -52,7 +52,11 @@ impl WorkspaceService {
 
         for dir in &dirs_to_create {
             std::fs::create_dir_all(dir).map_err(|e| {
-                PlazaError::storage(format!("Failed to create workspace directory {}: {}", dir.display(), e))
+                PlazaError::storage(format!(
+                    "Failed to create workspace directory {}: {}",
+                    dir.display(),
+                    e
+                ))
             })?;
         }
 
@@ -64,7 +68,7 @@ impl WorkspaceService {
 
         // Use SqliteWorkspaceRepository to init and run migrations on workspace.db
         let _workspace_repo = SqliteWorkspaceRepository::open(workspace_db_path.clone())?;
-        
+
         // Touch metrics and events DB files
         std::fs::File::create(&metrics_db_path).map_err(|e| PlazaError::storage(e.to_string()))?;
         std::fs::File::create(&events_db_path).map_err(|e| PlazaError::storage(e.to_string()))?;
@@ -78,8 +82,11 @@ impl WorkspaceService {
         // Generate Metadata JSON
         let metadata_content = serde_json::to_string_pretty(&workspace.metadata)
             .map_err(|e| PlazaError::serialization(e.to_string()))?;
-        std::fs::write(ws_dir.join("metadata").join("initial.json"), metadata_content)
-            .map_err(|e| PlazaError::storage(e.to_string()))?;
+        std::fs::write(
+            ws_dir.join("metadata").join("initial.json"),
+            metadata_content,
+        )
+        .map_err(|e| PlazaError::storage(e.to_string()))?;
 
         // State files
         std::fs::write(plaza_dir.join("workspace.version"), "1.0.0")
@@ -88,11 +95,18 @@ impl WorkspaceService {
             .map_err(|e| PlazaError::storage(e.to_string()))?;
 
         // Config placeholders
-        for config_file in &["engine.toml", "runtime.toml", "registry.toml", "packages.toml", "plugins.toml", "security.toml"] {
+        for config_file in &[
+            "engine.toml",
+            "runtime.toml",
+            "registry.toml",
+            "packages.toml",
+            "plugins.toml",
+            "security.toml",
+        ] {
             std::fs::write(plaza_dir.join(config_file), "")
                 .map_err(|e| PlazaError::storage(e.to_string()))?;
         }
-        
+
         // Save to central repository
         self.save_workspace(&workspace).await?;
 
@@ -234,12 +248,17 @@ impl WorkspaceService {
         if let Some(ws) = self.get_workspace(id).await? {
             // Delete from repository
             self.repo.delete(id)?;
-            
+
             // Delete from filesystem
             let ws_dir = plaza_foundation::core::paths::workspaces_dir().join(&ws.name);
             if ws_dir.exists() {
-                std::fs::remove_dir_all(&ws_dir)
-                    .map_err(|e| PlazaError::storage(format!("Failed to delete workspace directory {}: {}", ws_dir.display(), e)))?;
+                std::fs::remove_dir_all(&ws_dir).map_err(|e| {
+                    PlazaError::storage(format!(
+                        "Failed to delete workspace directory {}: {}",
+                        ws_dir.display(),
+                        e
+                    ))
+                })?;
             }
 
             self.event_bus
@@ -252,4 +271,3 @@ impl WorkspaceService {
         }
     }
 }
-

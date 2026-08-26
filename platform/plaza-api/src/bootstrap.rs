@@ -22,7 +22,6 @@ pub struct Container {
     pub workspace_service: Arc<WorkspaceService>,
     pub resource_manager: Arc<ResourceManager>,
 
-
     pub image_registry: Arc<RuntimeImageRegistry>,
     pub template_registry: Arc<WorkspaceTemplateRegistry>,
 }
@@ -35,7 +34,6 @@ pub struct BootstrapBuilder {
     in_memory_db: bool,
     event_bus: Option<Arc<EventBus>>,
     platform: Option<Arc<PlatformDetector>>,
-
 }
 
 impl BootstrapBuilder {
@@ -45,7 +43,6 @@ impl BootstrapBuilder {
             in_memory_db: false,
             event_bus: None,
             platform: None,
-
         }
     }
 
@@ -72,8 +69,6 @@ impl BootstrapBuilder {
         self.platform = Some(platform);
         self
     }
-
-
 
     /// Build and wire up the complete application dependency container.
     pub async fn build(self) -> plaza_foundation::core::PlazaResult<Container> {
@@ -104,8 +99,6 @@ impl BootstrapBuilder {
         let workspace_service = Arc::new(WorkspaceService::new(repo.clone(), event_bus.clone()));
         let resource_manager = Arc::new(ResourceManager::new(platform.clone(), event_bus.clone()));
 
-
-
         // 5. Registries
         let image_registry = Arc::new(RuntimeImageRegistry::new());
         let template_registry = Arc::new(WorkspaceTemplateRegistry::new());
@@ -116,7 +109,6 @@ impl BootstrapBuilder {
             repo,
             workspace_service,
             resource_manager,
-
 
             image_registry,
             template_registry,
@@ -129,4 +121,3 @@ impl Default for BootstrapBuilder {
         Self::new()
     }
 }
-

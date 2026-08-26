@@ -10,7 +10,12 @@ mod tests {
         let module = Module::from_file(&engine, wasm_path).unwrap();
 
         for import in module.imports() {
-            println!("Import: module={}, name={}, type={:?}", import.module(), import.name(), import.ty());
+            println!(
+                "Import: module={}, name={}, type={:?}",
+                import.module(),
+                import.name(),
+                import.ty()
+            );
         }
     }
 }

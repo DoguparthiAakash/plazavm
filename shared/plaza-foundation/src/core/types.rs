@@ -194,4 +194,3 @@ mod tests {
         assert_eq!(HealthStatus::default(), HealthStatus::Unknown);
     }
 }
-

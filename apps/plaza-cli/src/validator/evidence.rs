@@ -172,4 +172,3 @@ impl EvidenceCollector {
         Ok(path.to_string_lossy().to_string())
     }
 }
-

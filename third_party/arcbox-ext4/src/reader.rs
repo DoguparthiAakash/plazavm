@@ -46,7 +46,11 @@ impl Reader {
         file.seek(SeekFrom::Start(SUPERBLOCK_OFFSET))?;
         let mut sb_buf = [0u8; SUPERBLOCK_SIZE];
         file.read_exact(&mut sb_buf).map_err(|_| {
-            ReadError::CouldNotReadSuperBlock(path.to_path_buf(), SUPERBLOCK_OFFSET, SUPERBLOCK_SIZE)
+            ReadError::CouldNotReadSuperBlock(
+                path.to_path_buf(),
+                SUPERBLOCK_OFFSET,
+                SUPERBLOCK_SIZE,
+            )
         })?;
         let superblock = SuperBlock::read_from(&sb_buf);
 
@@ -223,7 +227,10 @@ impl Reader {
     /// Reads the extent tree to find the directory's data blocks, then parses
     /// each block with [`dir::parse_dir_entries`].  Results are sorted
     /// alphabetically by name for deterministic traversal.
-    fn get_dir_entries(&mut self, inode_number: InodeNumber) -> ReadResult<Vec<(String, InodeNumber)>> {
+    fn get_dir_entries(
+        &mut self,
+        inode_number: InodeNumber,
+    ) -> ReadResult<Vec<(String, InodeNumber)>> {
         let inode = self.get_inode(inode_number)?;
         let extents = extent::parse_extents(&inode, self.block_size(), &mut self.file)?;
         let bs = self.block_size() as usize;

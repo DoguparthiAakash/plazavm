@@ -9,7 +9,9 @@ use plaza_foundation::core::{PlazaError, PlazaResult};
 /// - `name:tag@sha256:digest` -> ImageRef { name: "name", tag: Some("tag"), digest: Some(...) }
 pub fn parse_image_ref(reference: &str) -> PlazaResult<ImageRef> {
     if reference.is_empty() {
-        return Err(PlazaError::InvalidImageReference("Reference is empty".into()));
+        return Err(PlazaError::InvalidImageReference(
+            "Reference is empty".into(),
+        ));
     }
 
     // Handle Plaza-native schema prefixes
@@ -39,7 +41,9 @@ pub fn parse_image_ref(reference: &str) -> PlazaResult<ImageRef> {
     }
 
     if name.is_empty() {
-        return Err(PlazaError::InvalidImageReference("Missing image name".into()));
+        return Err(PlazaError::InvalidImageReference(
+            "Missing image name".into(),
+        ));
     }
 
     Ok(ImageRef {

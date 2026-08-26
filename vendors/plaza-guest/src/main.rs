@@ -1,6 +1,6 @@
 use std::env;
-use std::process::ExitCode;
 use std::ffi::OsString;
+use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().collect();
@@ -10,7 +10,7 @@ fn main() -> ExitCode {
     }
 
     let cmd = &args[1];
-    
+
     if cmd == "agent" {
         println!("SUCCESS_PLAZA_GUEST_READY");
         use std::io::Write;
@@ -23,16 +23,16 @@ fn main() -> ExitCode {
                 if cmd_line.is_empty() {
                     continue;
                 }
-                
+
                 // Extremely simple parser for demonstration
                 let parts: Vec<&str> = cmd_line.split_whitespace().collect();
                 if parts.is_empty() {
                     continue;
                 }
-                
+
                 let program = parts[0];
                 let prog_args = &parts[1..];
-                
+
                 match std::process::Command::new(program).args(prog_args).output() {
                     Ok(output) => {
                         std::io::stdout().write_all(&output.stdout).unwrap();

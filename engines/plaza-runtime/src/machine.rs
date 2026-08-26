@@ -5,10 +5,12 @@ use plaza_foundation::core::CapabilityPolicy;
 use std::path::PathBuf;
 
 /// The target operating system space to boot.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum OperatingSystemTarget {
     Auto,
     Linux,
+    Inferno,
     Windows,
     Bsd,
 }
@@ -16,6 +18,18 @@ pub enum OperatingSystemTarget {
 impl Default for OperatingSystemTarget {
     fn default() -> Self {
         Self::Auto
+    }
+}
+
+impl std::fmt::Display for OperatingSystemTarget {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Auto => write!(f, "auto"),
+            Self::Linux => write!(f, "linux"),
+            Self::Inferno => write!(f, "inferno"),
+            Self::Windows => write!(f, "windows"),
+            Self::Bsd => write!(f, "bsd"),
+        }
     }
 }
 
@@ -27,40 +41,40 @@ impl Default for OperatingSystemTarget {
 pub struct MachineConfig {
     /// The unique workspace ID.
     pub workspace_id: String,
-    
+
     /// The specific instance ID for this execution.
     pub instance_id: String,
-    
+
     /// The architecture and hardware sizing limits.
     pub machine: MachineSection,
-    
+
     /// The security capabilities granted to the runtime.
     pub capabilities: CapabilityPolicy,
-    
+
     /// The target OS space (Linux, Windows, BSD).
     pub os_target: OperatingSystemTarget,
-    
+
     /// The path to the resolved, bootable virtual block device image.
     pub boot_device: PathBuf,
-    
+
     /// Host to guest volume mounts (HostPath -> GuestPath).
     pub volume_mounts: std::collections::HashMap<PathBuf, String>,
-    
+
     /// Host to guest port forwarding (HostPort -> GuestPort).
     pub port_forwards: std::collections::HashMap<u16, u16>,
-    
+
     /// Environment variables to inject into the guest execution context.
     pub env_vars: std::collections::HashMap<String, String>,
-    
+
     /// Optional path to the kernel file for direct kernel boot (e.g. vmlinuz)
     pub kernel_path: Option<PathBuf>,
-    
+
     /// Optional path to the initrd file for direct kernel boot (e.g. initramfs)
     pub initrd_path: Option<PathBuf>,
-    
+
     /// Optional kernel arguments for direct kernel boot (e.g. root=/dev/vda)
     pub kernel_args: Option<String>,
-    
+
     /// Optional path to the modloop image containing kernel modules
     pub modloop_path: Option<PathBuf>,
 }

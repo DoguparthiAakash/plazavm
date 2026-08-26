@@ -10,7 +10,7 @@
 //!   the data from the highest immutable layer is first read, then the partial write
 //!   is applied on top (read-modify-write for sub-block writes).
 
-use crate::block::{VirtualBlockDevice, ImmutableLayer, CowWritableLayer, BLOCK_SIZE};
+use crate::block::{CowWritableLayer, ImmutableLayer, VirtualBlockDevice, BLOCK_SIZE};
 use plaza_foundation::core::{PlazaError, PlazaResult};
 use std::sync::Arc;
 
@@ -69,7 +69,7 @@ impl VirtualBlockDevice for LayeredBlockDevice {
         }
         let length = std::cmp::min(buffer.len() as u64, self.logical_size - offset) as usize;
         let mut bytes_read = 0;
-        
+
         while bytes_read < length {
             let current_offset = offset + bytes_read as u64;
             let current_block = current_offset / crate::block::BLOCK_SIZE;
@@ -78,11 +78,14 @@ impl VirtualBlockDevice for LayeredBlockDevice {
                 (length - bytes_read) as u64,
                 crate::block::BLOCK_SIZE - offset_in_block,
             ) as usize;
-            
+
             let buf_slice = &mut buffer[bytes_read..bytes_read + bytes_to_read];
-            
+
             if self.writable_layer.has_block(current_block) {
-                let n = self.writable_layer.read_at(current_offset, buf_slice).await?;
+                let n = self
+                    .writable_layer
+                    .read_at(current_offset, buf_slice)
+                    .await?;
                 if n != bytes_to_read {
                     return Err(plaza_foundation::core::PlazaError::Io(std::io::Error::new(
                         std::io::ErrorKind::UnexpectedEof,
@@ -100,7 +103,7 @@ impl VirtualBlockDevice for LayeredBlockDevice {
             }
             bytes_read += bytes_to_read;
         }
-        
+
         Ok(bytes_read)
     }
 
@@ -125,10 +128,9 @@ impl VirtualBlockDevice for LayeredBlockDevice {
                 // Read the full block from immutable layers
                 let block_offset = block_idx * BLOCK_SIZE;
                 let mut block_buf = vec![0u8; BLOCK_SIZE as usize];
-                let readable_len = std::cmp::min(
-                    BLOCK_SIZE,
-                    self.logical_size.saturating_sub(block_offset),
-                ) as usize;
+                let readable_len =
+                    std::cmp::min(BLOCK_SIZE, self.logical_size.saturating_sub(block_offset))
+                        as usize;
                 self.read_from_immutable(block_offset, &mut block_buf[..readable_len])
                     .await?;
                 // Write the full block to the writable layer to materialize it
@@ -139,7 +141,9 @@ impl VirtualBlockDevice for LayeredBlockDevice {
         }
 
         // Now write the actual data
-        self.writable_layer.write_at(offset, &buffer[..max_write]).await
+        self.writable_layer
+            .write_at(offset, &buffer[..max_write])
+            .await
     }
 
     async fn flush(&mut self) -> PlazaResult<()> {

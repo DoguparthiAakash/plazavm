@@ -14,6 +14,8 @@ impl DependencyGraph {
     }
 
     pub async fn build(&self, _manifest: &crate::model::PackageManifest) -> PlazaResult<()> {
-        Err(plaza_foundation::core::PlazaError::storage("Dependency graph building not implemented for DP1"))
+        Err(plaza_foundation::core::PlazaError::storage(
+            "Dependency graph building not implemented for DP1",
+        ))
     }
 }

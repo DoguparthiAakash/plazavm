@@ -23,9 +23,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut num_imports = 0;
     let mut num_exports = 0;
-    
-    let mut browser_dependent = vec![];
 
+    let mut browser_dependent = vec![];
 
     for payload in Parser::new(0).parse_all(&wasm_bytes) {
         match payload? {
@@ -33,11 +32,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 for import in s {
                     let import = import?;
                     num_imports += 1;
-                    
+
                     let name = format!("{}.{}", import.module, import.field.unwrap_or(""));
-                    
+
                     browser_dependent.push(name.clone());
-                    
+
                     println!("Import: {}", name);
                 }
             }
@@ -55,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\nSummary:");
     println!("Total Imports: {}", num_imports);
     println!("Total Exports: {}", num_exports);
-    
+
     println!("\nAll Imports:");
     for js_dep in browser_dependent.iter() {
         println!("  - {}", js_dep);

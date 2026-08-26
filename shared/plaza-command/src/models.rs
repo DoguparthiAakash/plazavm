@@ -86,4 +86,3 @@ pub struct CommandMetadata {
     pub supports_transaction: bool,
     pub supports_interactive_mode: bool,
 }
-

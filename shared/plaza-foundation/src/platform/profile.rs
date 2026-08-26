@@ -56,4 +56,3 @@ impl std::fmt::Display for PlatformProfile {
         }
     }
 }
-

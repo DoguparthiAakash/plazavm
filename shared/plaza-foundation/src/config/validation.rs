@@ -40,9 +40,7 @@ pub fn validate_plaza_yaml(config: &PlazaYaml) -> PlazaResult<()> {
 fn validate_schema(config: &PlazaYaml) -> PlazaResult<()> {
     // Workspace name is mandatory and must not be blank.
     if config.workspace.name.trim().is_empty() {
-        return Err(PlazaError::Config(
-            "workspace.name cannot be empty".into(),
-        ));
+        return Err(PlazaError::Config("workspace.name cannot be empty".into()));
     }
 
     // If an image is specified, its name must not be blank if it exists.
@@ -56,9 +54,7 @@ fn validate_schema(config: &PlazaYaml) -> PlazaResult<()> {
 
     // Runtime backend must be a recognized value.
     if let Some(ref runtime) = config.runtime {
-        runtime
-            .parsed_backend()
-            .map_err(PlazaError::Config)?;
+        runtime.parsed_backend().map_err(PlazaError::Config)?;
     }
 
     Ok(())
@@ -245,11 +241,7 @@ workspace:
         let config = PlazaYaml::parse_yaml(yaml).unwrap();
         assert!(validate_plaza_yaml(&config).is_ok());
         // Capabilities should default to deny-all.
-        let caps = config
-            .capabilities
-            .as_ref()
-            .cloned()
-            .unwrap_or_default();
+        let caps = config.capabilities.as_ref().cloned().unwrap_or_default();
         assert!(!caps.has_filesystem());
         assert!(!caps.has_network());
         assert!(!caps.has_clipboard());

@@ -12,13 +12,13 @@ use std::path::PathBuf;
 pub struct BlendLayer {
     /// The name of the distribution (e.g., "ubuntu", "fedora", "alpine").
     pub distribution: String,
-    
+
     /// The specific package manager to map into the workspace (e.g., "apt", "dnf", "apk").
     pub package_manager: String,
-    
+
     /// Priority in the overlayfs stack (lower number = higher priority).
     pub priority: u32,
-    
+
     /// Path to the extracted root filesystem of this distribution layer.
     pub source_path: PathBuf,
 }
@@ -40,15 +40,19 @@ impl BlendOrchestrator {
     }
 
     /// Compute the overlayfs mount parameters for the blended layers.
-    pub fn compute_overlay_args(&self, workdir: &PathBuf, upperdir: &PathBuf) -> PlazaResult<String> {
+    pub fn compute_overlay_args(
+        &self,
+        workdir: &PathBuf,
+        upperdir: &PathBuf,
+    ) -> PlazaResult<String> {
         let mut lowerdirs = Vec::new();
         for layer in &self.layers {
             lowerdirs.push(layer.source_path.to_string_lossy().to_string());
         }
-        
+
         // Reverse lowerdirs because overlayfs processes right-to-left
         lowerdirs.reverse();
-        
+
         let lowerdir_arg = lowerdirs.join(":");
         Ok(format!(
             "lowerdir={},upperdir={},workdir={}",

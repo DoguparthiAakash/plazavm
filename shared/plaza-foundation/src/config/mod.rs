@@ -19,4 +19,6 @@ pub mod workspace_config;
 pub use app_config::PlazaConfig;
 pub use capabilities::CapabilityGrants;
 pub use manager::ConfigManager;
-pub use workspace_config::{IntentConfig, PlazaYaml, PlazaYamlVersion, WorkspaceConfig, WorkspaceConfigVersion};
+pub use workspace_config::{
+    IntentConfig, PlazaYaml, PlazaYamlVersion, WorkspaceConfig, WorkspaceConfigVersion,
+};

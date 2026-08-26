@@ -31,4 +31,3 @@ pub trait ExecutableCommand: Send + Sync {
     /// Cleanup any temporary resources regardless of success or failure.
     async fn cleanup(&self, ctx: &mut CommandContext) -> Result<()>;
 }
-

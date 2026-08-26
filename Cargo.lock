@@ -4013,6 +4013,7 @@ dependencies = [
  "plaza-command",
  "plaza-foundation",
  "plaza-image",
+ "plaza-machine",
  "plaza-runtime",
  "plaza-storage",
  "reqwest",

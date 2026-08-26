@@ -88,12 +88,7 @@ impl Reader {
 
     /// Read file contents into a pre-allocated buffer.  Returns the number of
     /// bytes actually written to `buf` (may be less than `buf.len()` at EOF).
-    pub fn read_file_into(
-        &mut self,
-        path: &str,
-        buf: &mut [u8],
-        offset: u64,
-    ) -> ReadResult<usize> {
+    pub fn read_file_into(&mut self, path: &str, buf: &mut [u8], offset: u64) -> ReadResult<usize> {
         let data = self.read_file(path, offset, Some(buf.len()))?;
         let n = data.len().min(buf.len());
         buf[..n].copy_from_slice(&data[..n]);

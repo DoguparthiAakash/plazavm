@@ -1,10 +1,10 @@
 //! Integration test: spawns V86Plugin → plaza-guest agent → exec over serial.
 
-use plaza_runtime::{RuntimeBackend, MachineConfig};
+use plaza_foundation::core::PlazaResult;
+use plaza_image::block::VirtualBlockDevice;
 use plaza_runtime::backends::v86::V86Plugin;
 use plaza_runtime::storage::RuntimeStorage;
-use plaza_image::block::VirtualBlockDevice;
-use plaza_foundation::core::PlazaResult;
+use plaza_runtime::{MachineConfig, RuntimeBackend};
 use std::sync::Arc;
 
 /// A trivial in-memory block device for testing.
@@ -19,8 +19,12 @@ impl VirtualBlockDevice for NullBlockDevice {
     async fn write_at(&mut self, _offset: u64, buffer: &[u8]) -> PlazaResult<usize> {
         Ok(buffer.len())
     }
-    async fn flush(&mut self) -> PlazaResult<()> { Ok(()) }
-    fn size(&self) -> u64 { 64 * 1024 * 1024 } // 64 MiB dummy
+    async fn flush(&mut self) -> PlazaResult<()> {
+        Ok(())
+    }
+    fn size(&self) -> u64 {
+        64 * 1024 * 1024
+    } // 64 MiB dummy
 }
 
 #[tokio::main]

@@ -6,7 +6,7 @@ impl SerialPort {
     pub fn new(tx: tokio::sync::mpsc::Sender<Vec<u8>>) -> Self {
         Self { tx }
     }
-    
+
     pub fn read_port(&mut self, port: u16) -> u32 {
         if port == 0x3FD {
             // Line Status Register (LSR)
@@ -16,7 +16,7 @@ impl SerialPort {
         }
         0
     }
-    
+
     pub fn write_port(&mut self, port: u16, value: u32) {
         if port == 0x3F8 {
             // Transmit Data Register

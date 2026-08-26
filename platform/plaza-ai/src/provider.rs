@@ -82,4 +82,3 @@ impl AiProvider for OpenAIProvider {
         Ok("OpenAI provider stub response".into())
     }
 }
-

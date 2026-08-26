@@ -60,4 +60,3 @@ async fn test_resource_allocation_exceeds_host_memory() {
         plaza_foundation::core::PlazaError::ResourceExhausted { .. }
     ));
 }
-

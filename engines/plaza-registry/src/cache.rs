@@ -7,9 +7,11 @@ pub struct RegistryCache {
 
 impl RegistryCache {
     pub fn new(cache_dir: PathBuf) -> Self {
-        Self { _cache_dir: cache_dir }
+        Self {
+            _cache_dir: cache_dir,
+        }
     }
-    
+
     pub async fn clear(&self) -> PlazaResult<()> {
         Ok(())
     }

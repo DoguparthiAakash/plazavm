@@ -1,7 +1,7 @@
 //! Translates `MachineConfig` into QEMU command-line arguments.
 
-use plaza_foundation::core::PlazaResult;
 use crate::MachineConfig;
+use plaza_foundation::core::PlazaResult;
 use std::ffi::OsString;
 use std::path::PathBuf;
 
@@ -21,8 +21,6 @@ impl QemuAdapter {
             "none".into(),
         ];
 
-
-
         Self { binary, args }
     }
 
@@ -36,7 +34,7 @@ impl QemuAdapter {
         let mem_mb = plaza_foundation::core::types::ByteSize::parse(&config.machine.memory.size)
             .unwrap_or_else(|_| plaza_foundation::core::types::ByteSize::from_mb(256))
             .as_mb();
-            
+
         self.args.push("-m".into());
         self.args.push(format!("{}M", mem_mb).into());
 

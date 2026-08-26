@@ -1,7 +1,7 @@
 //! Kernel Adaptation Layer (KAL) providing abstract interface to Linux kernel primitives.
 
-use async_trait::async_trait;
 use crate::core::PlazaResult;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,5 +49,3 @@ impl KernelAdapter for LinuxKernelAdapter {
         Ok(())
     }
 }
-
-

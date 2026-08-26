@@ -19,6 +19,16 @@ pub enum PlazaError {
     #[error("runtime unavailable: {0}")]
     RuntimeUnavailable(String),
 
+    // ── Inferno runtime errors ─────────────────────────────────────────────
+    #[error("Inferno kernel unavailable: {reason}")]
+    InfernoKernelUnavailable { reason: String },
+
+    #[error("Inferno root filesystem unavailable: {reason}")]
+    InfernoRootFilesystemUnavailable { reason: String },
+
+    #[error("Inferno runtime unavailable: {reason}")]
+    InfernoRuntimeUnavailable { reason: String },
+
     #[error("no suitable runtime for workspace: {reason}")]
     NoSuitableRuntime { reason: String },
 
@@ -68,7 +78,10 @@ pub enum PlazaError {
 
     // ── Resource validation errors ──────────────────────────────────────────
     #[error("insufficient resources: requested {requested}, available {available}")]
-    InsufficientResources { requested: String, available: String },
+    InsufficientResources {
+        requested: String,
+        available: String,
+    },
 
     // ── Image errors ────────────────────────────────────────────────────────
     #[error("image not found: {name}")]
@@ -176,6 +189,33 @@ impl PlazaError {
                 resolution: "Check plaza.yaml syntax and configuration parameters".into(),
                 correlation_id: uuid::Uuid::new_v4().to_string(),
             },
+            Self::InfernoKernelUnavailable { reason } => CanonicalError {
+                code: "PZE-4001".into(),
+                category: "Inferno".into(),
+                message: format!("Inferno kernel unavailable: {}", reason),
+                severity: ErrorSeverity::Fatal,
+                recoverable: false,
+                resolution: "Build Inferno kernel: ./scripts/build-inferno-kernel.sh (Linux/Mac) or .\\scripts\\build-inferno-kernel.ps1 (Windows)".into(),
+                correlation_id: uuid::Uuid::new_v4().to_string(),
+            },
+            Self::InfernoRootFilesystemUnavailable { reason } => CanonicalError {
+                code: "PZE-4002".into(),
+                category: "Inferno".into(),
+                message: format!("Inferno root filesystem unavailable: {}", reason),
+                severity: ErrorSeverity::Fatal,
+                recoverable: false,
+                resolution: "Ensure Inferno root filesystem is built and placed in staging/inferno/".into(),
+                correlation_id: uuid::Uuid::new_v4().to_string(),
+            },
+            Self::InfernoRuntimeUnavailable { reason } => CanonicalError {
+                code: "PZE-4003".into(),
+                category: "Inferno".into(),
+                message: format!("Inferno runtime unavailable: {}", reason),
+                severity: ErrorSeverity::Fatal,
+                recoverable: false,
+                resolution: "Verify Inferno kernel and root filesystem are available. Run 'plaza doctor' for diagnostics.".into(),
+                correlation_id: uuid::Uuid::new_v4().to_string(),
+            },
             _ => CanonicalError {
                 code: "PZE-1001".into(),
                 category: "Core".into(),
@@ -207,5 +247,3 @@ pub struct CanonicalError {
     pub resolution: String,
     pub correlation_id: String,
 }
-
-

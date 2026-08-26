@@ -68,4 +68,3 @@ pub struct NodeConnection {
     pub target_node_id: String,
     pub connection_type: String, // "network", "volume", "link"
 }
-

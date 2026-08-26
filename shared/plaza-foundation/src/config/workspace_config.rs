@@ -279,11 +279,7 @@ workspace:
   name: test
 "#;
         let config = PlazaYaml::parse_yaml(yaml).unwrap();
-        let caps = config
-            .capabilities
-            .as_ref()
-            .cloned()
-            .unwrap_or_default();
+        let caps = config.capabilities.as_ref().cloned().unwrap_or_default();
         assert!(!caps.has_filesystem());
         assert!(!caps.has_network());
         assert!(!caps.has_clipboard());

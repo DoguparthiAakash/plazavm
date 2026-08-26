@@ -81,4 +81,3 @@ pub fn run_migrations(conn: &Connection) -> PlazaResult<()> {
 
     Ok(())
 }
-

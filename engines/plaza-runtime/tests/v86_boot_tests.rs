@@ -4,13 +4,12 @@
 //! Test 2: All env imports resolve.
 //! Test 3: WASM module instantiates with V86Environment.
 
+use plaza_runtime::backends::v86::environment::{V86Environment, V86State};
 use std::path::PathBuf;
 use wasmtime::{Engine, Module, Store};
-use plaza_runtime::backends::v86::environment::{V86Environment, V86State};
 
 fn v86_wasm_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../v86_investigation/v86.wasm")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../v86_investigation/v86.wasm")
 }
 
 // ─── Test 1: WASM artifact loads ─────────────────────────────────────
@@ -27,7 +26,12 @@ fn test_1_wasm_artifact_loads() {
     let module = Module::from_file(&engine, &path).unwrap();
     println!("v86.wasm loaded: {} imports", module.imports().len());
     for import in module.imports() {
-        println!("Import: module={}, name={}, type={:?}", import.module(), import.name(), import.ty());
+        println!(
+            "Import: module={}, name={}, type={:?}",
+            import.module(),
+            import.name(),
+            import.ty()
+        );
     }
 }
 
@@ -57,9 +61,18 @@ async fn test_3_wasm_instantiates() {
     }
 
     let env = V86Environment::new(&path).unwrap();
-    let mut store = Store::new(env.engine(), V86State { storage_bridge: None });
+    let mut store = Store::new(
+        env.engine(),
+        V86State {
+            storage_bridge: None,
+        },
+    );
     let instance = env.instantiate(&mut store).await;
-    assert!(instance.is_ok(), "v86 instantiation failed: {:?}", instance.err());
+    assert!(
+        instance.is_ok(),
+        "v86 instantiation failed: {:?}",
+        instance.err()
+    );
 
     // Verify we can find exported functions in the instance
     let instance = instance.unwrap();
@@ -82,14 +95,20 @@ async fn test_4_v86_initializes() {
     }
 
     let env = V86Environment::new(&path).unwrap();
-    let mut store = Store::new(env.engine(), V86State { storage_bridge: None });
+    let mut store = Store::new(
+        env.engine(),
+        V86State {
+            storage_bridge: None,
+        },
+    );
     let instance = env.instantiate(&mut store).await.unwrap();
 
     let rust_init = instance.get_func(&mut store, "rust_init");
     if let Some(func) = rust_init {
         println!("Found rust_init");
         if func.ty(&store).params().len() == 0 {
-            func.call(&mut store, &[], &mut []).expect("rust_init failed");
+            func.call(&mut store, &[], &mut [])
+                .expect("rust_init failed");
             println!("rust_init called successfully");
         } else {
             println!("rust_init requires params");
@@ -98,4 +117,3 @@ async fn test_4_v86_initializes() {
         println!("rust_init not found");
     }
 }
-

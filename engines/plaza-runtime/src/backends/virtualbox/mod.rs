@@ -4,17 +4,13 @@ use async_trait::async_trait;
 use plaza_foundation::core::types::{Architecture, HealthStatus, OperatingSystem, Timestamp};
 use plaza_foundation::core::PlazaResult;
 
-use crate::{
-    RuntimeBackend, RuntimeCapabilities, RuntimeInstance, RuntimeMetrics, RuntimeStatus,
-};
+use crate::{RuntimeBackend, RuntimeCapabilities, RuntimeInstance, RuntimeMetrics, RuntimeStatus};
 
-pub struct VirtualBoxPlugin {
-}
+pub struct VirtualBoxPlugin {}
 
 impl VirtualBoxPlugin {
     pub fn new() -> Self {
-        Self {
-        }
+        Self {}
     }
 }
 
@@ -66,7 +62,11 @@ impl RuntimeBackend for VirtualBoxPlugin {
         Ok("7.0.0".into())
     }
 
-    async fn create(&self, _machine: &crate::MachineConfig, _storage: crate::RuntimeStorage) -> PlazaResult<RuntimeInstance> {
+    async fn create(
+        &self,
+        _machine: &crate::MachineConfig,
+        _storage: crate::RuntimeStorage,
+    ) -> PlazaResult<RuntimeInstance> {
         Ok(RuntimeInstance {
             id: format!("vbox-{}", uuid::Uuid::new_v4()),
             name: "virtualbox-vm".into(),
@@ -103,4 +103,3 @@ impl RuntimeBackend for VirtualBoxPlugin {
         Ok(())
     }
 }
-

@@ -1,12 +1,12 @@
 //! WASM execution abstraction for the v86 emulator.
 
-use plaza_foundation::core::{PlazaError, PlazaResult};
 use crate::MachineConfig;
+use plaza_foundation::core::{PlazaError, PlazaResult};
 
 /// WASM Runner abstraction.
 ///
-/// In a real implementation, this would spin up a headless JavaScript engine 
-/// (like V8 via Deno/Node) or a native WebAssembly runtime (like Wasmtime/Wasmer) 
+/// In a real implementation, this would spin up a headless JavaScript engine
+/// (like V8 via Deno/Node) or a native WebAssembly runtime (like Wasmtime/Wasmer)
 /// to execute `v86.wasm`.
 pub struct V86Runner {
     wasm_path: std::path::PathBuf,
@@ -62,21 +62,24 @@ impl V86Runner {
 
     /// Spawn the WASM execution engine asynchronously.
     pub async fn run(
-        &self, 
-        options: serde_json::Value, 
+        &self,
+        options: serde_json::Value,
         storage: crate::storage::RuntimeStorage,
         mut to_vm_rx: tokio::sync::mpsc::Receiver<String>,
-        from_vm_tx: tokio::sync::mpsc::Sender<String>
+        from_vm_tx: tokio::sync::mpsc::Sender<String>,
     ) -> PlazaResult<()> {
         // We will attempt to run it natively using Wasmtime via V86Environment
         use crate::backends::v86::environment::{V86Environment, V86State};
         use crate::backends::v86::storage::WasmMemoryBridge;
-        
+
         let env = match V86Environment::new(&self.wasm_path) {
             Ok(env) => env,
             Err(e) => {
                 // Return a clear error if v86.wasm isn't available, maintaining truthful reporting
-                return Err(PlazaError::RuntimeUnavailable(format!("v86.wasm not found or failed to load: {}", e)));
+                return Err(PlazaError::RuntimeUnavailable(format!(
+                    "v86.wasm not found or failed to load: {}",
+                    e
+                )));
             }
         };
 
@@ -94,9 +97,9 @@ impl V86Runner {
 
         // V86 WASM module exports a `main` or similar initialization function.
         // As we don't have the real v86.wasm file, we'll try to find the start function.
-        let main_func = instance.get_typed_func::<(), ()>(&mut store, "main").or_else(|_| {
-            instance.get_typed_func::<(), ()>(&mut store, "_start")
-        });
+        let main_func = instance
+            .get_typed_func::<(), ()>(&mut store, "main")
+            .or_else(|_| instance.get_typed_func::<(), ()>(&mut store, "_start"));
 
         match main_func {
             Ok(func) => {
@@ -110,9 +113,9 @@ impl V86Runner {
             Err(_) => {
                 eprintln!("Could not find main or _start in v86.wasm, assuming library mode.");
                 // For Phase 4/5 development, simulate the VM natively using plaza-guest agent
-                use tokio::process::Command;
                 use std::process::Stdio;
                 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+                use tokio::process::Command;
 
                 // We assume we are running from the workspace root (e:\plazavm)
                 // In Windows, the binary has .exe extension

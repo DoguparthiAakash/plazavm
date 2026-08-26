@@ -160,4 +160,3 @@ impl ValidationReporter {
         md
     }
 }
-

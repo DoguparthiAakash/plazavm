@@ -53,6 +53,3 @@ impl ConfigManager {
         Ok(default_cfg)
     }
 }
-
-
-

@@ -2,8 +2,8 @@
 
 #[cfg(test)]
 mod blob_store_tests {
-    use plaza_image::store::blob::{BlobStore, LocalBlobStore};
     use plaza_image::model::ContentHash;
+    use plaza_image::store::blob::{BlobStore, LocalBlobStore};
     use std::io::Cursor;
 
     #[tokio::test]
@@ -57,8 +57,9 @@ mod blob_store_tests {
         let store = LocalBlobStore::new(dir.path().join("blobs")).await.unwrap();
 
         let fake_hash = ContentHash::new_sha256(
-            "0000000000000000000000000000000000000000000000000000000000000000"
-        ).unwrap();
+            "0000000000000000000000000000000000000000000000000000000000000000",
+        )
+        .unwrap();
         assert!(!store.exists(&fake_hash).await.unwrap());
     }
 
@@ -87,10 +88,14 @@ mod content_hash_tests {
     #[test]
     fn test_valid_sha256() {
         let hash = ContentHash::new_sha256(
-            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        ).unwrap();
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        )
+        .unwrap();
         assert_eq!(hash.algorithm, HashAlgorithm::Sha256);
-        assert_eq!(hash.to_string(), "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        assert_eq!(
+            hash.to_string(),
+            "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
     }
 
     #[test]
@@ -102,7 +107,8 @@ mod content_hash_tests {
     fn test_invalid_digest_chars() {
         assert!(ContentHash::new_sha256(
             "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
-        ).is_err());
+        )
+        .is_err());
     }
 
     #[test]
@@ -119,15 +125,18 @@ mod content_hash_tests {
 
     #[test]
     fn test_from_str_unsupported_algorithm() {
-        assert!(ContentHash::from_str("md5:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789").is_err());
+        assert!(ContentHash::from_str(
+            "md5:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+        )
+        .is_err());
     }
 }
 
 #[cfg(test)]
 mod manifest_store_tests {
-    use plaza_image::store::manifest::{ManifestStore, LocalManifestStore};
-    use plaza_image::model::*;
     use plaza_foundation::core::types::Timestamp;
+    use plaza_image::model::*;
+    use plaza_image::store::manifest::{LocalManifestStore, ManifestStore};
     use std::collections::HashMap;
 
     fn sample_manifest() -> ImageManifest {
@@ -138,8 +147,9 @@ mod manifest_store_tests {
             architecture: "x86_64".to_string(),
             layers: vec![ImageLayer {
                 digest: ContentHash::new_sha256(
-                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-                ).unwrap(),
+                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                )
+                .unwrap(),
                 size: 1024,
                 media_type: LayerMediaType::RawBlock,
             }],
@@ -157,7 +167,9 @@ mod manifest_store_tests {
     #[tokio::test]
     async fn test_put_and_get_manifest() {
         let dir = tempfile::tempdir().unwrap();
-        let store = LocalManifestStore::new(dir.path().join("manifests")).await.unwrap();
+        let store = LocalManifestStore::new(dir.path().join("manifests"))
+            .await
+            .unwrap();
 
         let manifest = sample_manifest();
         store.put_manifest(&manifest).await.unwrap();
@@ -172,7 +184,9 @@ mod manifest_store_tests {
     #[tokio::test]
     async fn test_get_missing_manifest() {
         let dir = tempfile::tempdir().unwrap();
-        let store = LocalManifestStore::new(dir.path().join("manifests")).await.unwrap();
+        let store = LocalManifestStore::new(dir.path().join("manifests"))
+            .await
+            .unwrap();
 
         let result = store.get_manifest("nonexistent", "1.0").await.unwrap();
         assert!(result.is_none());
@@ -181,7 +195,9 @@ mod manifest_store_tests {
     #[tokio::test]
     async fn test_remove_manifest() {
         let dir = tempfile::tempdir().unwrap();
-        let store = LocalManifestStore::new(dir.path().join("manifests")).await.unwrap();
+        let store = LocalManifestStore::new(dir.path().join("manifests"))
+            .await
+            .unwrap();
 
         let manifest = sample_manifest();
         store.put_manifest(&manifest).await.unwrap();
@@ -214,7 +230,10 @@ mod resolver_tests {
 
     #[test]
     fn test_parse_name_digest() {
-        let r = parse_image_ref("alpine@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855").unwrap();
+        let r = parse_image_ref(
+            "alpine@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        )
+        .unwrap();
         assert_eq!(r.name, "alpine");
         assert!(r.tag.is_none());
         assert!(r.digest.is_some());
@@ -233,9 +252,11 @@ mod resolver_tests {
 
 #[cfg(test)]
 mod virtual_block_device_tests {
-    use plaza_image::block::{VirtualBlockDevice, FileBackedImmutableLayer, CowWritableLayer, BLOCK_SIZE};
-    use plaza_image::composer::LayeredBlockDevice;
     use plaza_image::block::ImmutableLayer;
+    use plaza_image::block::{
+        CowWritableLayer, FileBackedImmutableLayer, VirtualBlockDevice, BLOCK_SIZE,
+    };
+    use plaza_image::composer::LayeredBlockDevice;
     use std::sync::Arc;
 
     #[tokio::test]
@@ -277,7 +298,11 @@ mod virtual_block_device_tests {
         let content = vec![0xAAu8; 4096];
         tokio::fs::write(&base_path, &content).await.unwrap();
 
-        let layer = Arc::new(FileBackedImmutableLayer::open(base_path.clone()).await.unwrap());
+        let layer = Arc::new(
+            FileBackedImmutableLayer::open(base_path.clone())
+                .await
+                .unwrap(),
+        );
         let cow_path = dir.path().join("cow.raw");
         let cow = CowWritableLayer::create(cow_path, 4096).await.unwrap();
 
@@ -303,11 +328,15 @@ mod virtual_block_device_tests {
 
         // Base layer: "AAAA"
         let base_path = dir.path().join("base.raw");
-        tokio::fs::write(&base_path, vec![0xAAu8; 4096]).await.unwrap();
+        tokio::fs::write(&base_path, vec![0xAAu8; 4096])
+            .await
+            .unwrap();
 
         // Override layer: "BBBB"
         let over_path = dir.path().join("override.raw");
-        tokio::fs::write(&over_path, vec![0xBBu8; 4096]).await.unwrap();
+        tokio::fs::write(&over_path, vec![0xBBu8; 4096])
+            .await
+            .unwrap();
 
         let base = Arc::new(FileBackedImmutableLayer::open(base_path).await.unwrap());
         let over = Arc::new(FileBackedImmutableLayer::open(over_path).await.unwrap());
@@ -337,7 +366,10 @@ mod virtual_block_device_tests {
 
         let mut buf = vec![0u8; 1];
         let result = device.read_at(4096, &mut buf).await;
-        assert!(result.is_err(), "Reading at exact size boundary should error");
+        assert!(
+            result.is_err(),
+            "Reading at exact size boundary should error"
+        );
     }
 
     #[tokio::test]
@@ -411,7 +443,9 @@ mod gc_tests {
 
         // Create a fake blob
         let digest = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-        tokio::fs::write(sha_dir.join(digest), b"data").await.unwrap();
+        tokio::fs::write(sha_dir.join(digest), b"data")
+            .await
+            .unwrap();
 
         let gc = LocalGarbageCollector::new(&blob_dir);
         let reachable = HashSet::new();
@@ -431,7 +465,9 @@ mod gc_tests {
         tokio::fs::create_dir_all(&sha_dir).await.unwrap();
 
         let digest = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-        tokio::fs::write(sha_dir.join(digest), b"data").await.unwrap();
+        tokio::fs::write(sha_dir.join(digest), b"data")
+            .await
+            .unwrap();
 
         let gc = LocalGarbageCollector::new(&blob_dir);
         let reachable = HashSet::new();
@@ -449,7 +485,9 @@ mod gc_tests {
         tokio::fs::create_dir_all(&sha_dir).await.unwrap();
 
         let digest = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-        tokio::fs::write(sha_dir.join(digest), b"data").await.unwrap();
+        tokio::fs::write(sha_dir.join(digest), b"data")
+            .await
+            .unwrap();
 
         let gc = LocalGarbageCollector::new(&blob_dir);
         let mut reachable = HashSet::new();
@@ -464,13 +502,15 @@ mod gc_tests {
 /// Integration test: full image lifecycle from import through COW through GC.
 #[cfg(test)]
 mod integration_tests {
-    use plaza_image::store::blob::{BlobStore, LocalBlobStore};
-    use plaza_image::store::manifest::{ManifestStore, LocalManifestStore};
-    use plaza_image::block::{FileBackedImmutableLayer, CowWritableLayer, VirtualBlockDevice, ImmutableLayer};
+    use plaza_foundation::core::types::Timestamp;
+    use plaza_image::block::{
+        CowWritableLayer, FileBackedImmutableLayer, ImmutableLayer, VirtualBlockDevice,
+    };
     use plaza_image::composer::LayeredBlockDevice;
     use plaza_image::gc::{GarbageCollector, LocalGarbageCollector};
     use plaza_image::model::*;
-    use plaza_foundation::core::types::Timestamp;
+    use plaza_image::store::blob::{BlobStore, LocalBlobStore};
+    use plaza_image::store::manifest::{LocalManifestStore, ManifestStore};
     use std::collections::{HashMap, HashSet};
     use std::io::Cursor;
     use std::sync::Arc;
@@ -545,7 +585,9 @@ mod integration_tests {
         let over_layer = Arc::new(FileBackedImmutableLayer::open(layer2_path).await.unwrap());
 
         let cow_path = dir.path().join("workspace_cow.raw");
-        let cow = CowWritableLayer::create(cow_path.clone(), 8192).await.unwrap();
+        let cow = CowWritableLayer::create(cow_path.clone(), 8192)
+            .await
+            .unwrap();
 
         let mut device = LayeredBlockDevice::new(vec![base_layer, over_layer], cow);
         assert_eq!(device.size(), 8192);
@@ -553,7 +595,10 @@ mod integration_tests {
         // 7. Read existing block from override layer (block 0 should be 0xFF from layer2)
         let mut buf = vec![0u8; 1];
         device.read_at(0, &mut buf).await.unwrap();
-        assert_eq!(buf[0], 0xFF, "Override layer should win for first 4096 bytes");
+        assert_eq!(
+            buf[0], 0xFF,
+            "Override layer should win for first 4096 bytes"
+        );
 
         // 8. Read block 1 (offset 4096) — should be from base layer (0 % 256 = 0)
         let mut buf2 = vec![0u8; 1];
@@ -569,7 +614,9 @@ mod integration_tests {
         assert_eq!(&buf3, b"PLAZAVM");
 
         // 11. Verify immutable base layer hasn't changed
-        let base_raw = tokio::fs::read(blob_store.get_path(&base_hash).unwrap()).await.unwrap();
+        let base_raw = tokio::fs::read(blob_store.get_path(&base_hash).unwrap())
+            .await
+            .unwrap();
         assert_eq!(base_raw[0], 0, "Base blob must remain immutable");
 
         // 12. Flush
@@ -582,6 +629,9 @@ mod integration_tests {
         reachable.insert(layer2_hash.clone());
 
         let report = gc.run_gc(&reachable, true).await.unwrap();
-        assert_eq!(report.deleted_blobs, 0, "All blobs are reachable — nothing to delete");
+        assert_eq!(
+            report.deleted_blobs, 0,
+            "All blobs are reachable — nothing to delete"
+        );
     }
 }

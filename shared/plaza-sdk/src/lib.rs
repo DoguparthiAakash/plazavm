@@ -1,5 +1,4 @@
-pub mod client;
 pub mod c_api;
-pub mod pdk;
+pub mod client;
 pub mod codegen;
-
+pub mod pdk;

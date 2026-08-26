@@ -83,5 +83,3 @@ impl CrashHandler {
         reports
     }
 }
-
-

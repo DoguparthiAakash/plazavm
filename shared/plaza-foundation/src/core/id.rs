@@ -346,4 +346,3 @@ mod tests {
         assert_eq!(target.to_string(), "local");
     }
 }
-

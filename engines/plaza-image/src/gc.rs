@@ -46,10 +46,15 @@ impl GarbageCollector for LocalGarbageCollector {
 
         let sha256_dir = self.blob_store_path.join("sha256");
         if !sha256_dir.exists() {
-            return Ok(GcReport { deleted_blobs, freed_bytes });
+            return Ok(GcReport {
+                deleted_blobs,
+                freed_bytes,
+            });
         }
 
-        let mut entries = tokio::fs::read_dir(&sha256_dir).await.map_err(PlazaError::Io)?;
+        let mut entries = tokio::fs::read_dir(&sha256_dir)
+            .await
+            .map_err(PlazaError::Io)?;
         while let Some(entry) = entries.next_entry().await.map_err(PlazaError::Io)? {
             let path = entry.path();
             if path.is_file() {
@@ -58,11 +63,13 @@ impl GarbageCollector for LocalGarbageCollector {
                     if !reachable_hashes.contains(&hash) {
                         let meta = entry.metadata().await.map_err(PlazaError::Io)?;
                         let size = meta.len();
-                        
+
                         if !dry_run {
-                            tokio::fs::remove_file(&path).await.map_err(PlazaError::Io)?;
+                            tokio::fs::remove_file(&path)
+                                .await
+                                .map_err(PlazaError::Io)?;
                         }
-                        
+
                         deleted_blobs += 1;
                         freed_bytes += size;
                     }
@@ -70,6 +77,9 @@ impl GarbageCollector for LocalGarbageCollector {
             }
         }
 
-        Ok(GcReport { deleted_blobs, freed_bytes })
+        Ok(GcReport {
+            deleted_blobs,
+            freed_bytes,
+        })
     }
 }

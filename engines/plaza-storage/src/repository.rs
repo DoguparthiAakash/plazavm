@@ -27,8 +27,9 @@ impl SqliteWorkspaceRepository {
         conn.execute_batch(
             "PRAGMA journal_mode = WAL;
              PRAGMA synchronous = NORMAL;
-             PRAGMA foreign_keys = ON;"
-        ).map_err(|e| PlazaError::Storage(format!("failed to set pragmas: {e}")))?;
+             PRAGMA foreign_keys = ON;",
+        )
+        .map_err(|e| PlazaError::Storage(format!("failed to set pragmas: {e}")))?;
 
         run_migrations(&conn)?;
 
@@ -185,4 +186,3 @@ mod tests {
         assert!(repo.get_raw(&id).unwrap().is_none());
     }
 }
-

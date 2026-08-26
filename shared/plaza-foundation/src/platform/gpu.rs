@@ -16,5 +16,3 @@ pub async fn detect_gpus() -> Vec<GpuCapabilities> {
     // Phase 2: real GPU detection
     Vec::new()
 }
-
-

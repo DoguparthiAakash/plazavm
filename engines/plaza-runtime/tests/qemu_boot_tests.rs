@@ -6,8 +6,8 @@
 
 use plaza_foundation::config::machine_section::{CpuSection, MachineSection, MemorySection};
 use plaza_foundation::core::CapabilityPolicy;
-use plaza_runtime::MachineConfig;
 use plaza_runtime::backends::qemu::adapter::QemuAdapter;
+use plaza_runtime::MachineConfig;
 use std::path::PathBuf;
 
 fn test_machine_config() -> MachineConfig {
@@ -56,7 +56,10 @@ fn test_2_tcg_config_generated() {
     let adapter = adapter.apply_config(&config).unwrap();
     let (binary, args) = adapter.into_command();
 
-    let args_str: Vec<String> = args.iter().map(|a| a.to_string_lossy().to_string()).collect();
+    let args_str: Vec<String> = args
+        .iter()
+        .map(|a| a.to_string_lossy().to_string())
+        .collect();
 
     // Binary path
     assert_eq!(binary, PathBuf::from("qemu-system-x86_64"));
@@ -98,7 +101,10 @@ fn test_2b_default_deny_no_network() {
     let adapter = adapter.apply_config(&config).unwrap();
     let (_, args) = adapter.into_command();
 
-    let args_str: Vec<String> = args.iter().map(|a| a.to_string_lossy().to_string()).collect();
+    let args_str: Vec<String> = args
+        .iter()
+        .map(|a| a.to_string_lossy().to_string())
+        .collect();
 
     assert!(
         !args_str.contains(&"-netdev".to_string()),
@@ -118,10 +124,13 @@ async fn test_3_nbd_server_constructed() {
     let socket_path = tmp.path().join("test-nbd.sock");
 
     // Create a 1 MiB COW writable layer (implements VirtualBlockDevice)
-    let cow = CowWritableLayer::create(cow_path, 1024 * 1024).await.unwrap();
+    let cow = CowWritableLayer::create(cow_path, 1024 * 1024)
+        .await
+        .unwrap();
     let storage = RuntimeStorage::new(cow);
 
-    let _nbd = plaza_runtime::backends::qemu::storage::nbd::NbdServer::new(socket_path.clone(), storage);
+    let _nbd =
+        plaza_runtime::backends::qemu::storage::nbd::NbdServer::new(socket_path.clone(), storage);
 
     // The server object was successfully constructed.
     // We don't call nbd.run() because that blocks forever on accept().
@@ -134,15 +143,17 @@ async fn test_3_nbd_server_constructed() {
 #[tokio::test]
 async fn test_4_nbd_protocol_handshake() {
     use plaza_image::block::CowWritableLayer;
-    use plaza_runtime::RuntimeStorage;
     use plaza_runtime::backends::qemu::storage::nbd::NbdServer;
+    use plaza_runtime::RuntimeStorage;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     let tmp = tempfile::tempdir().unwrap();
     let cow_path = tmp.path().join("cow_layer.bin");
     let socket_path = tmp.path().join("test-nbd.sock");
 
-    let cow = CowWritableLayer::create(cow_path, 1024 * 1024).await.unwrap();
+    let cow = CowWritableLayer::create(cow_path, 1024 * 1024)
+        .await
+        .unwrap();
     let storage = RuntimeStorage::new(cow);
     let nbd = NbdServer::new(socket_path.clone(), storage);
 
@@ -161,7 +172,9 @@ async fn test_4_nbd_protocol_handshake() {
     #[cfg(windows)]
     let mut stream = {
         let port_str = tokio::fs::read_to_string(&socket_path).await.unwrap();
-        tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port_str)).await.unwrap()
+        tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port_str))
+            .await
+            .unwrap()
     };
 
     // 1. Initial Handshake
@@ -192,7 +205,7 @@ async fn test_4_nbd_protocol_handshake() {
     let mut zeroes = vec![0u8; 124];
     stream.read_exact(&mut zeroes).await.unwrap();
     assert_eq!(zeroes, vec![0u8; 124]);
-    
+
     println!("NBD handshake successful");
 }
 
@@ -201,15 +214,17 @@ async fn test_4_nbd_protocol_handshake() {
 #[tokio::test]
 async fn test_5_nbd_protocol_io() {
     use plaza_image::block::CowWritableLayer;
-    use plaza_runtime::RuntimeStorage;
     use plaza_runtime::backends::qemu::storage::nbd::NbdServer;
+    use plaza_runtime::RuntimeStorage;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     let tmp = tempfile::tempdir().unwrap();
     let cow_path = tmp.path().join("cow_layer_io.bin");
     let socket_path = tmp.path().join("test-nbd-io.sock");
 
-    let cow = CowWritableLayer::create(cow_path, 1024 * 1024).await.unwrap();
+    let cow = CowWritableLayer::create(cow_path, 1024 * 1024)
+        .await
+        .unwrap();
     let storage = RuntimeStorage::new(cow);
     let nbd = NbdServer::new(socket_path.clone(), storage);
 
@@ -224,7 +239,9 @@ async fn test_5_nbd_protocol_io() {
     #[cfg(windows)]
     let mut stream = {
         let port_str = tokio::fs::read_to_string(&socket_path).await.unwrap();
-        tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port_str)).await.unwrap()
+        tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port_str))
+            .await
+            .unwrap()
     };
 
     // Fast-forward handshake
@@ -288,8 +305,8 @@ async fn test_5_nbd_protocol_io() {
 #[tokio::test]
 async fn test_6_qemu_execution_plugin() {
     use plaza_image::block::CowWritableLayer;
-    use plaza_runtime::{RuntimeBackend, RuntimeStorage};
     use plaza_runtime::backends::qemu::QemuPlugin;
+    use plaza_runtime::{RuntimeBackend, RuntimeStorage};
 
     let plugin = QemuPlugin::new();
     if !plugin.is_available().await {
@@ -298,26 +315,28 @@ async fn test_6_qemu_execution_plugin() {
     }
 
     let config = test_machine_config();
-    
+
     let tmp = tempfile::tempdir().unwrap();
     let cow_path = tmp.path().join("cow_layer_plugin.bin");
-    let cow = CowWritableLayer::create(cow_path, 1024 * 1024).await.unwrap();
+    let cow = CowWritableLayer::create(cow_path, 1024 * 1024)
+        .await
+        .unwrap();
     let storage = RuntimeStorage::new(cow);
 
     let instance = plugin.create(&config, storage).await.unwrap();
-    
+
     // Start instance
     plugin.start(&instance.id).await.unwrap();
-    
+
     // Check status
     let status = plugin.status(&instance.id).await.unwrap();
     assert_eq!(status, plaza_runtime::RuntimeStatus::Running);
-    
+
     // Stop instance
     plugin.stop(&instance.id).await.unwrap();
-    
+
     let status2 = plugin.status(&instance.id).await.unwrap();
     assert_eq!(status2, plaza_runtime::RuntimeStatus::Stopped);
-    
+
     println!("Plugin successfully orchestrated QEMU + NBD");
 }

@@ -12,4 +12,3 @@ pub use pipeline::*;
 pub use registry::CommandRegistry;
 pub use traits::ExecutableCommand;
 pub use transaction::TransactionManager;
-

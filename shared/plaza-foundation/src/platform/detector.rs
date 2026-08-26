@@ -1,9 +1,9 @@
 //! Host platform detection using `sysinfo`.
 
-use crate::platform::capabilities::*;
-use crate::platform::profile::PlatformProfile;
 use crate::core::types::{Architecture, HealthStatus};
 use crate::core::PlazaResult;
+use crate::platform::capabilities::*;
+use crate::platform::profile::PlatformProfile;
 use std::sync::Arc;
 use sysinfo::System;
 use tokio::sync::RwLock;
@@ -224,6 +224,3 @@ impl Default for PlatformDetector {
         Self::new()
     }
 }
-
-
-

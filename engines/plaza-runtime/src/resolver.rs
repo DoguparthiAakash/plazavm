@@ -9,7 +9,11 @@ use std::sync::Arc;
 use tracing::debug;
 
 /// Evaluates if a given backend supports the requirements of the given MachineConfig.
-pub fn supports(backend: &dyn RuntimeBackend, config: &MachineConfig, backend_override: Option<&str>) -> bool {
+pub fn supports(
+    backend: &dyn RuntimeBackend,
+    config: &MachineConfig,
+    backend_override: Option<&str>,
+) -> bool {
     let caps = backend.capabilities();
 
     // 1. Architecture Check
@@ -44,20 +48,24 @@ pub fn supports(backend: &dyn RuntimeBackend, config: &MachineConfig, backend_ov
 }
 
 /// Resolves the best backend for the given configuration from the list of candidates.
-pub fn resolve_backend<'a, I>(candidates: I, config: &MachineConfig, backend_override: Option<&str>) -> Option<Arc<dyn RuntimeBackend>>
+pub fn resolve_backend<'a, I>(
+    candidates: I,
+    config: &MachineConfig,
+    backend_override: Option<&str>,
+) -> Option<Arc<dyn RuntimeBackend>>
 where
     I: Iterator<Item = &'a Arc<dyn RuntimeBackend>>,
 {
     // Prioritize QEMU for non-WASM targets if available and supported.
     // In a mature implementation, we might score backends based on acceleration support,
     // memory overhead, etc. For now, we take the first matching backend.
-    
+
     for backend in candidates {
         if supports(backend.as_ref(), config, backend_override) {
             debug!("Resolved backend {} for configuration", backend.id());
             return Some(backend.clone());
         }
     }
-    
+
     None
 }

@@ -1,5 +1,5 @@
-use std::process::Command;
 use colored::*;
+use std::process::Command;
 
 pub async fn run(verbose: bool) -> anyhow::Result<()> {
     println!("{}", "Running PlazaVM Health Diagnostics...".bold().blue());
@@ -18,10 +18,14 @@ pub async fn run(verbose: bool) -> anyhow::Result<()> {
         if verbose {
             println!("Checking {}...", tool);
         }
-        
+
         match Command::new(tool).arg(arg).output() {
             Ok(output) if output.status.success() => {
-                let version = String::from_utf8_lossy(&output.stdout).lines().next().unwrap_or("").to_string();
+                let version = String::from_utf8_lossy(&output.stdout)
+                    .lines()
+                    .next()
+                    .unwrap_or("")
+                    .to_string();
                 println!("  {} {} ({})", "✓".green(), tool.bold(), version.dimmed());
             }
             _ => {
@@ -38,7 +42,12 @@ pub async fn run(verbose: bool) -> anyhow::Result<()> {
     if all_passed {
         println!("{}", "All required tools are installed!".bold().green());
     } else {
-        println!("{}", "Some required tools are missing. Please install them to continue.".bold().red());
+        println!(
+            "{}",
+            "Some required tools are missing. Please install them to continue."
+                .bold()
+                .red()
+        );
         anyhow::bail!("Diagnostics failed.");
     }
 

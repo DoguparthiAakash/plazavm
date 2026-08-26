@@ -5,7 +5,7 @@ use async_trait::async_trait;
 /// Middleware for intercepting command execution.
 #[async_trait]
 pub trait Middleware: Send + Sync {
-    /// Execute logic before the command runs. 
+    /// Execute logic before the command runs.
     /// If an error is returned, execution halts.
     async fn before_execute(&self, ctx: &CommandContext) -> Result<()>;
 
@@ -131,4 +131,3 @@ mod tests {
         assert_eq!(state.load(Ordering::SeqCst), 0);
     }
 }
-

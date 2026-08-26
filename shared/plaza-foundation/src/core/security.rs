@@ -109,5 +109,3 @@ impl SecretStore for InMemorySecretStore {
         Ok(guard.keys().cloned().collect())
     }
 }
-
-

@@ -20,7 +20,9 @@ impl SqliteEventStore {
     /// Store a domain event into the database.
     pub fn append(&self, event: &PlazaEvent) -> PlazaResult<()> {
         let conn = self.conn.lock().map_err(|e| {
-            plaza_foundation::core::PlazaError::Storage(format!("event store connection lock poisoned: {e}"))
+            plaza_foundation::core::PlazaError::Storage(format!(
+                "event store connection lock poisoned: {e}"
+            ))
         })?;
         let event_type = event.event_type();
         let payload = serde_json::to_string(event).unwrap_or_default();
@@ -52,7 +54,9 @@ impl SqliteEventStore {
     /// Query historical events for a specific workspace.
     pub fn get_workspace_events(&self, id: &WorkspaceId) -> PlazaResult<Vec<PlazaEvent>> {
         let conn = self.conn.lock().map_err(|e| {
-            plaza_foundation::core::PlazaError::Storage(format!("event store connection lock poisoned: {e}"))
+            plaza_foundation::core::PlazaError::Storage(format!(
+                "event store connection lock poisoned: {e}"
+            ))
         })?;
         let mut stmt = conn
             .prepare("SELECT payload_json FROM events WHERE workspace_id = ?1 ORDER BY id ASC")
@@ -67,7 +71,8 @@ impl SqliteEventStore {
 
         let mut events = Vec::new();
         for r in rows {
-            let json_str = r.map_err(|e| plaza_foundation::core::PlazaError::Storage(e.to_string()))?;
+            let json_str =
+                r.map_err(|e| plaza_foundation::core::PlazaError::Storage(e.to_string()))?;
             if let Ok(ev) = serde_json::from_str::<PlazaEvent>(&json_str) {
                 events.push(ev);
             }
@@ -79,13 +84,21 @@ impl SqliteEventStore {
     /// This is required for system-wide event replay and recovery at boot.
     pub fn get_all_events(&self, since_id: Option<i64>) -> PlazaResult<Vec<(i64, PlazaEvent)>> {
         let conn = self.conn.lock().map_err(|e| {
-            plaza_foundation::core::PlazaError::Storage(format!("event store connection lock poisoned: {e}"))
+            plaza_foundation::core::PlazaError::Storage(format!(
+                "event store connection lock poisoned: {e}"
+            ))
         })?;
 
         let (query, params_list) = if let Some(id) = since_id {
-            ("SELECT id, payload_json FROM events WHERE id > ?1 ORDER BY id ASC", vec![rusqlite::types::Value::Integer(id)])
+            (
+                "SELECT id, payload_json FROM events WHERE id > ?1 ORDER BY id ASC",
+                vec![rusqlite::types::Value::Integer(id)],
+            )
         } else {
-            ("SELECT id, payload_json FROM events ORDER BY id ASC", vec![])
+            (
+                "SELECT id, payload_json FROM events ORDER BY id ASC",
+                vec![],
+            )
         };
 
         let mut stmt = conn
@@ -102,7 +115,8 @@ impl SqliteEventStore {
 
         let mut events = Vec::new();
         for r in rows {
-            let (id, json_str) = r.map_err(|e| plaza_foundation::core::PlazaError::Storage(e.to_string()))?;
+            let (id, json_str) =
+                r.map_err(|e| plaza_foundation::core::PlazaError::Storage(e.to_string()))?;
             if let Ok(ev) = serde_json::from_str::<PlazaEvent>(&json_str) {
                 events.push((id, ev));
             }
@@ -110,4 +124,3 @@ impl SqliteEventStore {
         Ok(events)
     }
 }
-

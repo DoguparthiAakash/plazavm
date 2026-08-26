@@ -9,6 +9,7 @@ use plaza_runtime::RuntimeManager;
 use plaza_image::ImageManager;
 use crate::model::DesiredState;
 use tokio::time::{sleep, Duration};
+use plaza_runtime::runtime::GuestRuntimeParams;
 
 pub struct WorkspaceEngine {
     workspace_service: Arc<WorkspaceService>,
@@ -48,7 +49,7 @@ impl Engine for WorkspaceEngine {
         let ws_svc = self.workspace_service.clone();
         let rt_mgr = self.runtime_manager.clone();
         let img_mgr = self.image_manager.clone();
-        
+
         tokio::spawn(async move {
             loop {
                 if let Ok(workspaces) = ws_svc.list_workspaces().await {
@@ -59,7 +60,7 @@ impl Engine for WorkspaceEngine {
                             crate::model::RuntimeBackendPreference::Pinned(id) => id.clone(),
                             crate::model::RuntimeBackendPreference::Auto => "v86".to_string(),
                         };
-                        
+
                         // Get runtime status and metrics
                         let mut is_running = false;
                         let instance_id_to_check = ws.status.runtime_instance_id.clone().unwrap_or_else(|| id_str.clone());
@@ -87,113 +88,18 @@ impl Engine for WorkspaceEngine {
                                 }).await;
                             }
                         }
-                        
+
                         match (ws.spec.desired_state, is_running) {
                             (DesiredState::Running, false) => {
-                                // Start the instance
-                                if let Ok(backend) = rt_mgr.get_backend(&backend_id) {
-                                    tracing::info!("Preparing to start runtime for workspace {} [{}]", ws.name, id_str);
-                                    
-                                    // Resolve the base image
-                                    let ws_dir = plaza_foundation::core::paths::workspaces_dir().join(&ws.name);
-                                    let plaza_yaml_path = ws_dir.join("..").join("plaza.yaml"); // Assuming ws is inside .space
-                                    let plaza_yaml_path = if plaza_yaml_path.exists() {
-                                        plaza_yaml_path
-                                    } else {
-                                        // Fallback to project dir if initialized directly
-                                        std::env::current_dir().unwrap_or_default().join("plaza.yaml")
-                                    };
-                                    
-                                    let mut base_path = None;
-                                    if plaza_yaml_path.exists() {
-                                        if let Ok(content) = tokio::fs::read_to_string(&plaza_yaml_path).await {
-                                            if let Ok(yaml) = plaza_foundation::config::PlazaYaml::parse_yaml(&content) {
-                                                if let Ok(image_id) = crate::pipeline::TransactionalPipelineBuilder::provision_image(&yaml, img_mgr.clone()).await {
-                                                    if let Ok(manifest) = img_mgr.inspect_image(&image_id).await {
-                                                        if let Some(layer) = manifest.layers.first() {
-                                                            base_path = img_mgr.get_blob_path(&layer.digest).ok();
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    
-                                    if base_path.is_none() {
-                                        tracing::error!("Failed to resolve immutable base image for workspace {}", id_str);
-                                        continue;
-                                    }
-                                    let base_path = base_path.unwrap();
-                                    
-                                    // Setup workspace storage
-                                    let storage_dir = ws_dir.join(".plaza").join("storage");
-                                    let _ = tokio::fs::create_dir_all(&storage_dir).await;
-                                    let cow_path = storage_dir.join(format!("{}.img", id_str));
-                                    
-                                    use plaza_image::block::{Ext4WritableFilesystemProvider, WritableFilesystemProvider, FileBackedImmutableLayer};
-                                    
-                                    let provider = Ext4WritableFilesystemProvider::new(cow_path.clone(), 4096);
-                                    let ws_dev = match provider.create(1024 * 1024 * 1024).await { // 1GB limit for now
-                                        Ok(dev) => dev,
-                                        Err(e) => {
-                                            tracing::error!("Failed to create Ext4 workspace storage for {}: {}", id_str, e);
-                                            continue;
-                                        }
-                                    };
-                                    
-                                    let immutable_layer = match FileBackedImmutableLayer::open(base_path.to_path_buf()).await {
-                                        Ok(layer) => layer,
-                                        Err(e) => {
-                                            tracing::error!("Failed to open base immutable layer for {}: {}", id_str, e);
-                                            continue;
-                                        }
-                                    };
-                                    
-                                    let read_only_device = plaza_image::block::ReadOnlyBlockDevice::new(std::sync::Arc::new(immutable_layer));
-                                    let mut storage = plaza_runtime::RuntimeStorage::new(read_only_device);
-                                    let ws_dev_arc: std::sync::Arc<tokio::sync::Mutex<dyn plaza_image::block::VirtualBlockDevice>> = std::sync::Arc::new(tokio::sync::Mutex::new(ws_dev));
-                                    storage.workspace_device = Some(ws_dev_arc);
-                                    
-                                    let acq = crate::image::acquisition::AlpineAcquisitionSource::new().unwrap();
-                                    let (kernel_path, initrd_path, modloop_path) = acq.fetch_kernel_and_initrd("alpine:3.19.1").await.unwrap();
-                                    
-                                    let mut machine_section = plaza_foundation::config::machine_section::MachineSection::default();
-                                    if backend_id == "v86" {
-                                        machine_section.architecture = plaza_foundation::core::types::Architecture::X86_32;
-                                    }
-
-                                    let machine = plaza_runtime::MachineConfig {
-                                        workspace_id: id_str.clone(),
-                                        instance_id: id_str.clone(),
-                                        machine: machine_section,
-                                        capabilities: plaza_foundation::core::CapabilityPolicy::default(),
-                                        boot_device: std::path::PathBuf::from("dummy"),
-                                        kernel_path: Some(kernel_path),
-                                        initrd_path: Some(initrd_path),
-                                        kernel_args: Some("console=ttyS0 root=/dev/vda rw init=/plaza-init".into()),
-                                        modloop_path,
-                                        os_target: plaza_runtime::OperatingSystemTarget::Linux,
-                                        volume_mounts: std::collections::HashMap::new(),
-                                        port_forwards: std::collections::HashMap::new(),
-                                        env_vars: std::collections::HashMap::new(),
-                                    };
-                                    
-                                    match backend.create(&machine, storage).await {
-                                        Ok(rt_instance) => {
-                                            tracing::info!("Created runtime instance: {}", rt_instance.id);
-                                            if let Err(e) = backend.start(&rt_instance.id).await {
-                                                tracing::error!("Failed to start runtime for {}: {}", rt_instance.id, e);
-                                            } else {
-                                                tracing::info!("Started runtime for {}", rt_instance.id);
-                                                let _ = ws_svc.update_status(&ws.id, |status| {
-                                                    status.runtime_instance_id = Some(rt_instance.id.clone());
-                                                }).await;
-                                            }
-                                        }
-                                        Err(e) => {
-                                            tracing::error!("Failed to create runtime instance {}: {}", id_str, e);
-                                        }
-                                    }
+                                // Start the instance using GuestRuntime abstraction
+                                if let Err(e) = Self::start_workspace(
+                                    &ws,
+                                    &rt_mgr,
+                                    &img_mgr,
+                                    &ws_svc,
+                                    &backend_id,
+                                ).await {
+                                    tracing::error!("Failed to start workspace {}: {}", id_str, e);
                                 }
                             }
                             (DesiredState::Stopped, true) => {
@@ -251,7 +157,92 @@ impl Engine for WorkspaceEngine {
     async fn status(&self) -> PfeResult<String> {
         Ok("RUNNING".to_string())
     }
-
-
 }
 
+impl WorkspaceEngine {
+    /// Start a workspace using the GuestRuntime abstraction.
+    ///
+    /// This is the primary entry point for workspace startup. It:
+    /// 1. Resolves the appropriate GuestRuntime from the workspace spec
+    /// 2. Provisions the immutable base image
+    /// 3. Creates the workspace writable storage
+    /// 4. Builds the MachineConfig via the GuestRuntime
+    /// 5. Creates and starts the runtime instance via the backend
+    async fn start_workspace(
+        ws: &crate::model::Workspace,
+        rt_mgr: &Arc<RuntimeManager>,
+        img_mgr: &Arc<ImageManager>,
+        ws_svc: &Arc<WorkspaceService>,
+        backend_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let id_str = ws.id.to_string();
+        tracing::info!("Preparing to start runtime for workspace {} [{}]", ws.name, id_str);
+
+        // Resolve the GuestRuntime for this workspace
+        let guest_runtime = crate::runtime::create_guest_runtime(ws.spec.guest_runtime.clone());
+
+        tracing::info!(
+            "Using {} guest runtime for workspace '{}'",
+            guest_runtime.display_name(),
+            ws.name
+        );
+
+        // Build runtime parameters
+        let ws_dir = plaza_foundation::core::paths::workspaces_dir().join(&ws.name);
+        let params = GuestRuntimeParams {
+            workspace_id: id_str.clone(),
+            workspace_name: ws.name.clone(),
+            workspace_dir: ws_dir,
+            image_reference: ws.spec.runtime.image.clone(),
+        };
+
+        // Step 1: Provision immutable base image
+        let _image_id = guest_runtime.provision_image(&params, img_mgr.clone()).await
+            .map_err(|e| format!("Failed to provision image: {}", e))?;
+
+        // Step 2: Resolve base image path from ImageManager
+        let manifest = img_mgr.inspect_image(&_image_id).await
+            .map_err(|e| format!("Failed to inspect image: {}", e))?;
+        let base_path = manifest.layers.first()
+            .ok_or_else(|| format!("Image '{}' has no layers", _image_id))
+            .and_then(|layer| img_mgr.get_blob_path(&layer.digest)
+                .map_err(|e| format!("Failed to get blob path: {}", e)))?;
+
+        // Step 3: Create workspace writable storage device
+        let ws_dev = guest_runtime.create_workspace_device(&params).await
+            .map_err(|e| format!("Failed to create workspace device: {}", e))?;
+
+        // Step 4: Set up RuntimeStorage with immutable base + writable workspace
+        let immutable_layer = plaza_image::block::FileBackedImmutableLayer::open(base_path.clone()).await
+            .map_err(|e| format!("Failed to open immutable layer: {}", e))?;
+        let read_only_device = plaza_image::block::ReadOnlyBlockDevice::new(Arc::new(immutable_layer));
+        let mut storage = plaza_runtime::RuntimeStorage::new(read_only_device);
+        let ws_dev_arc: Arc<tokio::sync::Mutex<dyn plaza_image::block::VirtualBlockDevice>> =
+            Arc::new(tokio::sync::Mutex::new(ws_dev));
+        storage.workspace_device = Some(ws_dev_arc);
+
+        // Step 5: Build MachineConfig via GuestRuntime
+        let machine = guest_runtime.build_machine_config(&params, &base_path, &storage).await
+            .map_err(|e| format!("Failed to build machine config: {}", e))?;
+
+        // Step 6: Resolve backend and create/start runtime instance
+        let backend = rt_mgr.get_backend(backend_id)
+            .map_err(|e| format!("Backend '{}' not found: {}", backend_id, e))?;
+
+        let rt_instance = backend.create(&machine, storage).await
+            .map_err(|e| format!("Failed to create runtime instance: {}", e))?;
+
+        tracing::info!("Created runtime instance: {}", rt_instance.id);
+
+        backend.start(&rt_instance.id).await
+            .map_err(|e| format!("Failed to start runtime: {}", e))?;
+
+        tracing::info!("Started runtime for {}", rt_instance.id);
+
+        let _ = ws_svc.update_status(&ws.id, |status| {
+            status.runtime_instance_id = Some(rt_instance.id.clone());
+        }).await;
+
+        Ok(())
+    }
+}

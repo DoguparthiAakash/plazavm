@@ -336,8 +336,7 @@ impl Formatter {
                     // an earlier explicit create() call.
                     if self.tree.node(existing_idx).name == basename(path) {
                         if uid.is_some() || gid.is_some() {
-                            let inode =
-                                &mut self.inodes[(existing_inode_num - 1) as usize];
+                            let inode = &mut self.inodes[(existing_inode_num - 1) as usize];
                             inode.mode = mode;
                             if let Some(u) = uid {
                                 inode.set_uid(u);
@@ -413,8 +412,7 @@ impl Formatter {
         if let Some(xattr_map) = xattrs {
             if !xattr_map.is_empty() {
                 let child_ino = self.inodes.len() as u32 + 1;
-                let mut state =
-                    XattrState::new(child_ino, INODE_EXTRA_SIZE, self.block_size);
+                let mut state = XattrState::new(child_ino, INODE_EXTRA_SIZE, self.block_size);
                 // The reference implementation adds a sentinel "system.data" attribute.
                 state.add(ExtendedAttribute::new("system.data", Vec::new()))?;
                 for (name, value) in xattr_map {
@@ -739,12 +737,11 @@ impl Formatter {
         // Determine which inode to decrement and potentially reclaim.
         // For hard-link entries the target inode is the one that matters;
         // for regular entries it is the node's own inode.
-        let (target_ino, target_idx) =
-            if let Some(linked_ino) = self.tree.node(node_idx).link {
-                (linked_ino, (linked_ino - 1) as usize)
-            } else {
-                (inode_num, inode_idx)
-            };
+        let (target_ino, target_idx) = if let Some(linked_ino) = self.tree.node(node_idx).link {
+            (linked_ino, (linked_ino - 1) as usize)
+        } else {
+            (inode_num, inode_idx)
+        };
 
         if target_ino > FIRST_INODE - 1 {
             if self.inodes[target_idx].links_count > 0 {
@@ -860,8 +857,7 @@ impl Formatter {
         let total_groups_u32 = total_groups as u32;
 
         // Verify group descriptor space.
-        let gd_block_count =
-            (total_groups_u32 - 1) / self.groups_per_descriptor_block() + 1;
+        let gd_block_count = (total_groups_u32 - 1) / self.groups_per_descriptor_block() + 1;
         if gd_block_count > self.group_descriptor_blocks() {
             return Err(FormatError::InsufficientSpaceForGroupDescriptorBlocks);
         }
@@ -910,8 +906,7 @@ impl Formatter {
                 // Free the reserved-but-unused GD blocks.
                 let gd_reserved = self.group_descriptor_blocks();
                 for i in (used_gd_blocks + 1)..=gd_reserved {
-                    let was_set =
-                        (bitmap[(i / 8) as usize] >> (i % 8)) & 1;
+                    let was_set = (bitmap[(i / 8) as usize] >> (i % 8)) & 1;
                     bitmap[(i / 8) as usize] &= !(1 << (i % 8));
                     if was_set != 0 {
                         used_blocks -= 1;
@@ -924,8 +919,7 @@ impl Formatter {
                 for blk in deleted.start..deleted.end {
                     if blk / self.blocks_per_group() == group {
                         let j = blk % self.blocks_per_group();
-                        let was_set =
-                            (bitmap[(j / 8) as usize] >> (j % 8)) & 1;
+                        let was_set = (bitmap[(j / 8) as usize] >> (j % 8)) & 1;
                         bitmap[(j / 8) as usize] &= !(1 << (j % 8));
                         if was_set != 0 {
                             used_blocks -= 1;
@@ -969,8 +963,7 @@ impl Formatter {
             let free_inodes = inodes_per_group - used_inodes;
             let block_bitmap_lo = (bitmap_offset + 2 * group) as u32;
             let inode_bitmap_lo = block_bitmap_lo + 1;
-            let inode_table_lo =
-                (inode_table_offset as u32) + group * inode_table_size_per_group;
+            let inode_table_lo = (inode_table_offset as u32) + group * inode_table_size_per_group;
 
             group_descriptors.push(GroupDescriptor {
                 block_bitmap_lo,
@@ -1046,12 +1039,9 @@ impl Formatter {
             // Write block bitmap + inode bitmap at the right offset.
             self.seek_to_block(bb_offset)?;
 
-            if group == total_groups_u32 - 1
-                && blocks_in_group < self.blocks_per_group()
-            {
+            if group == total_groups_u32 - 1 && blocks_in_group < self.blocks_per_group() {
                 // Last partial group: mark out-of-range blocks as used.
-                let mut partial_bb =
-                    vec![0u8; self.blocks_per_group() as usize / 8];
+                let mut partial_bb = vec![0u8; self.blocks_per_group() as usize / 8];
                 for i in blocks_in_group..self.blocks_per_group() {
                     partial_bb[(i / 8) as usize] |= 1 << (i % 8);
                 }
@@ -1076,8 +1066,7 @@ impl Formatter {
 
         // -- Step 7: Write superblock --
         let computed_inodes = total_groups_u32 as u64 * inodes_per_group as u64;
-        let mut blocks_count =
-            total_groups_u32 as u64 * self.blocks_per_group() as u64;
+        let mut blocks_count = total_groups_u32 as u64 * self.blocks_per_group() as u64;
         if blocks_count < total_used_blocks as u64 {
             blocks_count = total_used_blocks as u64;
         }
@@ -1108,8 +1097,7 @@ impl Formatter {
         sb.lpf_ino = LOST_AND_FOUND_INODE;
         sb.inode_size = INODE_SIZE as u16;
         sb.feature_compat = compat::SPARSE_SUPER2 | compat::EXT_ATTR;
-        sb.feature_incompat =
-            incompat::FILETYPE | incompat::EXTENTS | incompat::FLEX_BG;
+        sb.feature_incompat = incompat::FILETYPE | incompat::EXTENTS | incompat::FLEX_BG;
         sb.feature_ro_compat =
             ro_compat::LARGE_FILE | ro_compat::HUGE_FILE | ro_compat::EXTRA_ISIZE;
         sb.min_extra_isize = EXTRA_ISIZE;
@@ -1207,8 +1195,7 @@ impl Formatter {
             )?;
 
             // Sort children by inode number for e2fsck compatibility.
-            let mut sorted_children: Vec<usize> =
-                self.tree.node(node_idx).children.clone();
+            let mut sorted_children: Vec<usize> = self.tree.node(node_idx).children.clone();
             sorted_children.sort_by_key(|&ci| self.tree.node(ci).inode);
 
             for &child_idx in &sorted_children {
@@ -1232,12 +1219,11 @@ impl Formatter {
                     effective_mode = self.inodes[(child_ino - 1) as usize].mode;
                 }
 
-                let (link_inode, link_mode) =
-                    if self.tree.node(child_idx).link.is_some() {
-                        (Some(effective_ino), Some(effective_mode))
-                    } else {
-                        (None, None)
-                    };
+                let (link_inode, link_mode) = if self.tree.node(child_idx).link.is_some() {
+                    (Some(effective_ino), Some(effective_mode))
+                } else {
+                    (None, None)
+                };
 
                 dir::write_dir_entry(
                     &mut self.file,
@@ -1300,8 +1286,7 @@ impl Formatter {
         }
 
         // Pad the rest of the table with zeros.
-        let table_size =
-            INODE_SIZE as u64 * block_groups as u64 * inodes_per_group as u64;
+        let table_size = INODE_SIZE as u64 * block_groups as u64 * inodes_per_group as u64;
         let written = self.inodes.len() as u64 * INODE_SIZE as u64;
         let rest = table_size - written;
         if rest > 0 {
@@ -1321,24 +1306,16 @@ impl Formatter {
 
     /// Find the (block_groups, inodes_per_group) pair that minimizes the
     /// number of block groups needed to hold all inodes and all data blocks.
-    fn optimize_block_group_layout(
-        &self,
-        blocks: u32,
-        inodes: u32,
-    ) -> (u32, u32) {
-        let group_count =
-            |blocks: u32, inodes: u32, ipg: u32| -> u32 {
-                let inode_blocks_per_group = ipg * INODE_SIZE / self.block_size;
-                // 2 blocks reserved for bitmaps.
-                let data_blocks_per_group =
-                    self.blocks_per_group() - inode_blocks_per_group - 2;
-                // Ensure enough groups for all the inodes.
-                let min_blocks =
-                    (inodes.saturating_sub(1)) / ipg * data_blocks_per_group + 1;
-                let effective_blocks = blocks.max(min_blocks);
-                (effective_blocks + data_blocks_per_group - 1)
-                    / data_blocks_per_group
-            };
+    fn optimize_block_group_layout(&self, blocks: u32, inodes: u32) -> (u32, u32) {
+        let group_count = |blocks: u32, inodes: u32, ipg: u32| -> u32 {
+            let inode_blocks_per_group = ipg * INODE_SIZE / self.block_size;
+            // 2 blocks reserved for bitmaps.
+            let data_blocks_per_group = self.blocks_per_group() - inode_blocks_per_group - 2;
+            // Ensure enough groups for all the inodes.
+            let min_blocks = (inodes.saturating_sub(1)) / ipg * data_blocks_per_group + 1;
+            let effective_blocks = blocks.max(min_blocks);
+            (effective_blocks + data_blocks_per_group - 1) / data_blocks_per_group
+        };
 
         let inc = (self.block_size * 512 / INODE_SIZE) as usize;
         let mut best_groups = u32::MAX;
@@ -1433,8 +1410,14 @@ mod tests {
         fmt.create(
             "/etc",
             make_mode(file_mode::S_IFDIR, 0o755),
-            None, None, None, None, None, None,
-        ).unwrap();
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
 
         // Create a regular file with content.
         let data = b"hello world\n";
@@ -1442,16 +1425,27 @@ mod tests {
         fmt.create(
             "/etc/motd",
             make_mode(file_mode::S_IFREG, 0o644),
-            None, None, Some(&mut cursor), None, None, None,
-        ).unwrap();
+            None,
+            None,
+            Some(&mut cursor),
+            None,
+            None,
+            None,
+        )
+        .unwrap();
 
         // Create a symlink.
         fmt.create(
             "/etc/motd.link",
             make_mode(file_mode::S_IFLNK, 0o777),
             Some("motd"),
-            None, None, None, None, None,
-        ).unwrap();
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
 
         fmt.close().unwrap();
     }
@@ -1467,8 +1461,14 @@ mod tests {
         fmt.create(
             "/file",
             make_mode(file_mode::S_IFREG, 0o644),
-            None, None, Some(&mut cursor), None, None, None,
-        ).unwrap();
+            None,
+            None,
+            Some(&mut cursor),
+            None,
+            None,
+            None,
+        )
+        .unwrap();
 
         fmt.link("/hardlink", "/file").unwrap();
         fmt.close().unwrap();
@@ -1483,8 +1483,14 @@ mod tests {
         fmt.create(
             "/dir/nested",
             make_mode(file_mode::S_IFDIR, 0o755),
-            None, None, None, None, None, None,
-        ).unwrap();
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
 
         fmt.unlink("/dir", false).unwrap();
         fmt.close().unwrap();
@@ -1500,13 +1506,25 @@ mod tests {
         fmt.create(
             "/var/log",
             make_mode(file_mode::S_IFDIR, 0o755),
-            None, None, None, None, None, None,
-        ).unwrap();
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
         fmt.create(
             "/var/log",
             make_mode(file_mode::S_IFDIR, 0o755),
-            None, None, None, None, None, None,
-        ).unwrap();
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
 
         fmt.close().unwrap();
     }
@@ -1523,8 +1541,14 @@ mod tests {
         fmt.create(
             "/big",
             make_mode(file_mode::S_IFREG, 0o644),
-            None, None, Some(&mut cursor), None, None, None,
-        ).unwrap();
+            None,
+            None,
+            Some(&mut cursor),
+            None,
+            None,
+            None,
+        )
+        .unwrap();
 
         fmt.close().unwrap();
     }

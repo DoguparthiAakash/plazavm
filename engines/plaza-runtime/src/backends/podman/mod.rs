@@ -4,17 +4,13 @@ use async_trait::async_trait;
 use plaza_foundation::core::types::{Architecture, HealthStatus, OperatingSystem, Timestamp};
 use plaza_foundation::core::PlazaResult;
 
-use crate::{
-    RuntimeBackend, RuntimeCapabilities, RuntimeInstance, RuntimeMetrics, RuntimeStatus,
-};
+use crate::{RuntimeBackend, RuntimeCapabilities, RuntimeInstance, RuntimeMetrics, RuntimeStatus};
 
-pub struct PodmanPlugin {
-}
+pub struct PodmanPlugin {}
 
 impl PodmanPlugin {
     pub fn new() -> Self {
-        Self {
-        }
+        Self {}
     }
 }
 
@@ -61,7 +57,11 @@ impl RuntimeBackend for PodmanPlugin {
         Ok("4.9.0".into())
     }
 
-    async fn create(&self, _machine: &crate::MachineConfig, _storage: crate::RuntimeStorage) -> PlazaResult<RuntimeInstance> {
+    async fn create(
+        &self,
+        _machine: &crate::MachineConfig,
+        _storage: crate::RuntimeStorage,
+    ) -> PlazaResult<RuntimeInstance> {
         Ok(RuntimeInstance {
             id: format!("podman-{}", uuid::Uuid::new_v4()),
             name: "podman-container".into(),
@@ -94,4 +94,3 @@ impl RuntimeBackend for PodmanPlugin {
         Ok(RuntimeMetrics::default())
     }
 }
-

@@ -56,4 +56,3 @@ pub enum StageStatus {
     Failed,
     Skipped,
 }
-

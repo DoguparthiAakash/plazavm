@@ -1,5 +1,4 @@
 pub mod api;
-pub mod volume;
-pub mod metadata;
 pub mod bootstrap;
-
+pub mod metadata;
+pub mod volume;

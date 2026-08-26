@@ -79,8 +79,6 @@ pub async fn start_workspace(state: State<'_, AppState>, id: String) -> Result<(
         .await
         .map_err(|e| e.to_string())?;
 
-
-
     Ok(())
 }
 
@@ -93,15 +91,11 @@ pub async fn stop_workspace(state: State<'_, AppState>, id: String) -> Result<()
         .await
         .map_err(|e| e.to_string())?;
 
-
-
     Ok(())
 }
 
 #[tauri::command]
-pub async fn get_system_metrics(
-    _state: State<'_, AppState>,
-) -> Result<serde_json::Value, String> {
+pub async fn get_system_metrics(_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     Ok(serde_json::json!({
         "cpu_usage_percent": 0.0,
         "memory_used_mb": 0,
@@ -226,7 +220,7 @@ pub async fn get_pro_images() -> Result<Vec<serde_json::Value>, String> {
             "size_mb": 210,
             "signature": "Ed25519 Valid",
             "sbom_packages": 92
-        })
+        }),
     ];
     Ok(images)
 }
@@ -251,7 +245,7 @@ pub async fn get_pur_images() -> Result<Vec<serde_json::Value>, String> {
             "size_mb": 890,
             "signature": "SIG-PUR-1.0",
             "sbom_packages": 198
-        })
+        }),
     ];
     Ok(images)
 }
@@ -272,7 +266,7 @@ pub async fn get_snapshot_timeline() -> Result<Vec<serde_json::Value>, String> {
             "message": "Installed CUDA 12.4 and PyTorch v2.3",
             "timestamp": "2026-07-25 20:30:00 UTC",
             "packages_count": 68
-        })
+        }),
     ];
     Ok(commits)
 }
@@ -284,4 +278,3 @@ pub async fn query_ai_assistant(prompt: String) -> Result<String, String> {
         prompt
     ))
 }
-

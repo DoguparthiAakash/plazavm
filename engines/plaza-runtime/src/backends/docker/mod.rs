@@ -5,9 +5,7 @@ use bollard::Docker;
 use plaza_foundation::core::types::{Architecture, HealthStatus, OperatingSystem, Timestamp};
 use plaza_foundation::core::PlazaResult;
 
-use crate::{
-    RuntimeBackend, RuntimeCapabilities, RuntimeInstance, RuntimeMetrics, RuntimeStatus,
-};
+use crate::{RuntimeBackend, RuntimeCapabilities, RuntimeInstance, RuntimeMetrics, RuntimeStatus};
 
 pub struct DockerPlugin {
     docker_client: Option<Docker>,
@@ -16,9 +14,7 @@ pub struct DockerPlugin {
 impl DockerPlugin {
     pub fn new() -> Self {
         let docker_client = Docker::connect_with_local_defaults().ok();
-        Self {
-            docker_client,
-        }
+        Self { docker_client }
     }
 }
 
@@ -77,7 +73,11 @@ impl RuntimeBackend for DockerPlugin {
         Ok("24.0.0".into())
     }
 
-    async fn create(&self, _machine: &crate::MachineConfig, _storage: crate::RuntimeStorage) -> PlazaResult<RuntimeInstance> {
+    async fn create(
+        &self,
+        _machine: &crate::MachineConfig,
+        _storage: crate::RuntimeStorage,
+    ) -> PlazaResult<RuntimeInstance> {
         let instance_id = format!("docker-{}", uuid::Uuid::new_v4());
         Ok(RuntimeInstance {
             id: instance_id,

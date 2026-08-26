@@ -1,15 +1,15 @@
 use crate::distribution::WorkspaceImageBuildPlan;
 use crate::image::acquisition::get_acquisition_source;
+use backhand::{compression::Compressor, FilesystemCompressor, FilesystemWriter, NodeHeader};
+use flate2::read::GzDecoder;
 use plaza_foundation::core::{PlazaError, PlazaResult};
 use plaza_image::ImageManager;
-use std::sync::Arc;
-use tracing::{debug, info, warn};
-use backhand::{FilesystemWriter, NodeHeader, compression::Compressor, FilesystemCompressor};
 use std::fs::File;
 use std::io::Read;
-use flate2::read::GzDecoder;
-use tar::Archive;
 use std::path::Path;
+use std::sync::Arc;
+use tar::Archive;
+use tracing::{debug, info, warn};
 
 pub struct UserspaceImageBuilder;
 
@@ -19,7 +19,10 @@ impl UserspaceImageBuilder {
         plan: WorkspaceImageBuildPlan,
         image_manager: Arc<ImageManager>,
     ) -> PlazaResult<String> {
-        info!("Starting Userspace Image Builder for Workspace Image ID: {}", image_id);
+        info!(
+            "Starting Userspace Image Builder for Workspace Image ID: {}",
+            image_id
+        );
 
         // Security check: We must NOT execute host commands.
         // If the plan requires running commands (e.g., apk add), we must abort.
@@ -33,17 +36,20 @@ impl UserspaceImageBuilder {
 
         let source = get_acquisition_source(&plan.base_image)?;
         let archive_path = source.fetch_base_image(&plan.base_image).await?;
-        
-        info!("Successfully acquired and verified real rootfs archive for '{}'", plan.base_image);
+
+        info!(
+            "Successfully acquired and verified real rootfs archive for '{}'",
+            plan.base_image
+        );
 
         // Phase 18: Construct virtual block device strictly in userspace using backhand.
         info!("Constructing userspace SquashFS base image from archive...");
-        
+
         let temp_dir = std::env::temp_dir();
         let out_path = temp_dir.join(format!("{}.sqsh", image_id));
         let out_path_clone = out_path.clone();
         let archive_path_clone = archive_path.clone();
-        
+
         tokio::task::spawn_blocking(move || -> PlazaResult<()> {
             let archive_file = File::open(&archive_path_clone).map_err(|e| PlazaError::process(e.to_string()))?;
             let tar = GzDecoder::new(archive_file);
@@ -180,16 +186,18 @@ exec sh
             writer.write(&mut out_file).map_err(|e| PlazaError::process(e.to_string()))?;
             Ok(())
         }).await.map_err(|e| PlazaError::process(e.to_string()))??;
-        
+
         info!("Successfully generated SquashFS image at {:?}", out_path);
-        
+
         // Push the compiled base image into the ImageManager
-        image_manager.import_raw(image_id, "latest", &out_path).await?;
-        
+        image_manager
+            .import_raw(image_id, "latest", &out_path)
+            .await?;
+
         // Cleanup temp files
         let _ = tokio::fs::remove_file(archive_path).await;
         let _ = tokio::fs::remove_file(out_path).await;
-        
+
         Ok(image_id.to_string())
     }
 }

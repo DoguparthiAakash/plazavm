@@ -88,7 +88,10 @@ impl SessionManager {
         fs::create_dir_all(&sessions_dir)?;
         let file_path = sessions_dir.join(format!("{}.json", session.session_id));
         let content = serde_json::to_string_pretty(session).map_err(|e| {
-            plaza_foundation::core::PlazaError::serialization(format!("Failed to serialize session: {}", e))
+            plaza_foundation::core::PlazaError::serialization(format!(
+                "Failed to serialize session: {}",
+                e
+            ))
         })?;
         fs::write(file_path, content)?;
 
@@ -141,7 +144,10 @@ impl SessionManager {
 
         let content = fs::read_to_string(session_file)?;
         let session: WorkspaceSession = serde_json::from_str(&content).map_err(|e| {
-            plaza_foundation::core::PlazaError::serialization(format!("Failed to deserialize session: {}", e))
+            plaza_foundation::core::PlazaError::serialization(format!(
+                "Failed to deserialize session: {}",
+                e
+            ))
         })?;
 
         Ok(Some(session))
@@ -169,4 +175,3 @@ impl SessionManager {
         Ok(sessions)
     }
 }
-

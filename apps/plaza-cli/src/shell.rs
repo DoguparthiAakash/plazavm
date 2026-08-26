@@ -197,15 +197,16 @@ impl PshShell {
             // Route to natively compiled plaza-guest uutils
             let exe_path = env::current_exe()?;
             let guest_bin = exe_path.parent().unwrap().join("plaza-guest.exe");
-            
+
             if guest_bin.exists() {
-                let mut child = Command::new(&guest_bin)
-                    .args(&args)
-                    .spawn()?;
+                let mut child = Command::new(&guest_bin).args(&args).spawn()?;
                 let _ = child.wait()?;
                 return Ok(());
             } else {
-                eprintln!("Error: plaza-guest native utilities not found at {:?}", guest_bin);
+                eprintln!(
+                    "Error: plaza-guest native utilities not found at {:?}",
+                    guest_bin
+                );
                 // Fallthrough to standard shell
             }
         }
@@ -239,4 +240,3 @@ mod whoami {
         }
     }
 }
-

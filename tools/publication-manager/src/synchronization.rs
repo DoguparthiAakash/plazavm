@@ -1,13 +1,26 @@
-use std::process::Command;
 use colored::*;
+use std::process::Command;
 
 pub async fn bootstrap() -> anyhow::Result<()> {
-    println!("{}", "Bootstrapping PlazaVM developer environment...".bold().blue());
+    println!(
+        "{}",
+        "Bootstrapping PlazaVM developer environment..."
+            .bold()
+            .blue()
+    );
 
     let steps = vec![
         ("Updating Rust", "rustup", vec!["update"]),
-        ("Installing cargo-binstall", "cargo", vec!["install", "cargo-binstall", "--locked"]),
-        ("Installing tauri-cli", "cargo", vec!["binstall", "tauri-cli", "-y"]),
+        (
+            "Installing cargo-binstall",
+            "cargo",
+            vec!["install", "cargo-binstall", "--locked"],
+        ),
+        (
+            "Installing tauri-cli",
+            "cargo",
+            vec!["binstall", "tauri-cli", "-y"],
+        ),
         ("Installing npm dependencies", "npm", vec!["install"]),
     ];
 

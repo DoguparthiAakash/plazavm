@@ -2,9 +2,10 @@
 
 use super::graph::WorkspaceGraph;
 use plaza_foundation::config::IntentConfig;
-use plaza_foundation::core::id::WorkspaceId;
 use plaza_foundation::core::capability_policy::CapabilityPolicy;
+use plaza_foundation::core::id::WorkspaceId;
 use plaza_foundation::core::types::{Architecture, HealthStatus, OperatingSystem, Timestamp};
+use plaza_runtime::runtime::GuestRuntimeKind;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -52,6 +53,10 @@ impl Workspace {
 pub struct WorkspaceSpec {
     pub desired_state: DesiredState,
     pub runtime: RuntimeSpec,
+    /// The guest runtime to use inside the workspace VM.
+    /// Defaults to Inferno (the primary runtime). Use "linux" explicitly for Linux.
+    #[serde(default)]
+    pub guest_runtime: GuestRuntimeKind,
     pub resources: ResourceSpec,
     pub networking: NetworkSpec,
     pub storage: Vec<VolumeSpec>,
@@ -67,6 +72,7 @@ impl Default for WorkspaceSpec {
         Self {
             desired_state: DesiredState::Stopped,
             runtime: RuntimeSpec::default(),
+            guest_runtime: GuestRuntimeKind::default(),
             resources: ResourceSpec::default(),
             networking: NetworkSpec::default(),
             storage: Vec::new(),
@@ -293,13 +299,16 @@ impl WorkspaceImageSpec {
         let image = yaml.image.as_ref();
 
         Self {
-            engine_distribution: engine.map(|e| e.distribution.clone()).unwrap_or_else(|| "alpine".to_string()),
+            engine_distribution: engine
+                .map(|e| e.distribution.clone())
+                .unwrap_or_else(|| "alpine".to_string()),
             engine_version: engine.and_then(|e| e.version.clone()),
             base_image: image.and_then(|i| i.base.clone()),
             packages: image.map(|i| i.packages.clone()).unwrap_or_default(),
             tools: image.map(|i| i.tools.clone()).unwrap_or_default(),
             project_language: project.map(|p| p.language.clone()),
-            project_runtime_version: project.and_then(|p| p.runtime.as_ref().map(|r| r.version.clone())),
+            project_runtime_version: project
+                .and_then(|p| p.runtime.as_ref().map(|r| r.version.clone())),
             project_dependencies: project.map(|p| p.dependencies.clone()).unwrap_or_default(),
             environment: yaml.environment.clone(),
         }
@@ -310,13 +319,13 @@ impl WorkspaceImageSpec {
         // We use JSON canonicalization implicitly by serializing an ordered version of the struct.
         // BTreeMap would guarantee key ordering for the environment map if we needed it, but
         // for now we sort the lists to ensure determinism regardless of YAML order.
-        
+
         let mut packages = self.packages.clone();
         packages.sort();
-        
+
         let mut tools = self.tools.clone();
         tools.sort();
-        
+
         let mut project_deps = self.project_dependencies.clone();
         project_deps.sort();
 
@@ -350,11 +359,15 @@ impl WorkspaceImageSpec {
             environment: env,
         };
 
-        let serialized = serde_json::to_string(&canonical).expect("Failed to serialize WorkspaceImageSpec");
+        let serialized =
+            serde_json::to_string(&canonical).expect("Failed to serialize WorkspaceImageSpec");
         let mut hasher = Sha256::new();
         hasher.update(serialized.as_bytes());
         let result = hasher.finalize();
-        result.iter().map(|b| format!("{:02x}", b)).collect::<String>()
+        result
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect::<String>()
     }
 }
 
@@ -409,5 +422,38 @@ mod tests {
         spec2.engine_distribution = "fedora".into();
 
         assert_ne!(spec1.compute_identity(), spec2.compute_identity());
+    }
+
+    #[test]
+    fn workspace_spec_default_has_inferno_guest_runtime() {
+        let spec = WorkspaceSpec::default();
+        assert_eq!(spec.guest_runtime, GuestRuntimeKind::Inferno);
+    }
+
+    #[test]
+    fn workspace_spec_serde_roundtrip_with_guest_runtime() {
+        let mut spec = WorkspaceSpec::default();
+        spec.guest_runtime = GuestRuntimeKind::Inferno;
+        let json = serde_json::to_string(&spec).unwrap();
+        let deserialized: WorkspaceSpec = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.guest_runtime, GuestRuntimeKind::Inferno);
+    }
+
+    #[test]
+    fn workspace_spec_backward_compat_no_guest_runtime_field() {
+        // Existing serialized specs without guest_runtime should deserialize with Inferno default
+        let json = r#"{
+            "desired_state": "stopped",
+            "runtime": { "kind": "container", "backend": "auto", "os": "linux", "arch": "x86_64" },
+            "resources": { "cpu_cores": 2, "memory_mb": 2048, "gpu_enabled": false, "priority": "normal" },
+            "networking": { "mode": "none", "ports": [], "dns": [] },
+            "storage": [],
+            "devices": [],
+            "environment": {},
+            "capabilities": { "network": { "enabled": false, "mode": "none" }, "filesystem": [], "clipboard": { "read": false, "write": false }, "environment": { "allowed_keys": [] }, "devices": { "gpu": false, "camera": false, "microphone": false, "audio": false, "usb": false } },
+            "extensions": []
+        }"#;
+        let spec: WorkspaceSpec = serde_json::from_str(json).unwrap();
+        assert_eq!(spec.guest_runtime, GuestRuntimeKind::Inferno);
     }
 }

@@ -27,4 +27,3 @@ fn test_sqlite_restart_persistence_and_recovery() {
         assert_eq!(fetched.1.as_deref(), Some("desc"));
     }
 }
-

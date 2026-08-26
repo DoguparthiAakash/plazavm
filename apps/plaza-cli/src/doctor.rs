@@ -1,6 +1,6 @@
+use plaza_foundation::core::paths;
 use std::path::PathBuf;
 use std::process::Command;
-use plaza_foundation::core::paths;
 
 pub struct DoctorReport {
     pub category: String,
@@ -47,7 +47,7 @@ pub fn run_diagnostics() -> Vec<DoctorReport> {
 
 fn check_system() -> DoctorReport {
     let mut checks = Vec::new();
-    
+
     // Windows OS Check
     #[cfg(target_os = "windows")]
     checks.push(CheckResult {
@@ -55,7 +55,7 @@ fn check_system() -> DoctorReport {
         status: CheckStatus::Pass,
         message: "Windows execution environment detected".to_string(),
     });
-    
+
     #[cfg(not(target_os = "windows"))]
     checks.push(CheckResult {
         name: "OS Environment".to_string(),
@@ -67,7 +67,11 @@ fn check_system() -> DoctorReport {
     let arch = std::env::consts::ARCH;
     checks.push(CheckResult {
         name: "CPU Architecture".to_string(),
-        status: if arch == "x86_64" { CheckStatus::Pass } else { CheckStatus::Warn },
+        status: if arch == "x86_64" {
+            CheckStatus::Pass
+        } else {
+            CheckStatus::Warn
+        },
         message: format!("Architecture: {}", arch),
     });
 
@@ -113,14 +117,22 @@ fn check_qemu() -> DoctorReport {
     let mut checks = Vec::new();
 
     // Check qemu-system-x86_64
-    let qemu_cmd = if cfg!(target_os = "windows") { "qemu-system-x86_64.exe" } else { "qemu-system-x86_64" };
-    
+    let qemu_cmd = if cfg!(target_os = "windows") {
+        "qemu-system-x86_64.exe"
+    } else {
+        "qemu-system-x86_64"
+    };
+
     // Try to run `qemu-system-x86_64 --version`
     match Command::new(qemu_cmd).arg("--version").output() {
         Ok(output) if output.status.success() => {
             let version_output = String::from_utf8_lossy(&output.stdout);
-            let version = version_output.lines().next().unwrap_or("Unknown version").to_string();
-            
+            let version = version_output
+                .lines()
+                .next()
+                .unwrap_or("Unknown version")
+                .to_string();
+
             checks.push(CheckResult {
                 name: "QEMU-TCG".to_string(),
                 status: CheckStatus::Pass,
@@ -151,7 +163,7 @@ fn check_qemu() -> DoctorReport {
 
 fn check_storage() -> DoctorReport {
     let mut checks = Vec::new();
-    
+
     // Image Directory
     let images_dir = paths::images_dir();
     checks.push(CheckResult {
@@ -218,8 +230,16 @@ fn check_wasm() -> DoctorReport {
 
     checks.push(CheckResult {
         name: "v86 WASM".to_string(),
-        status: if found { CheckStatus::Warn } else { CheckStatus::Warn }, // As per instructions, report WARN if incomplete
-        message: if found { format!("{} (v86 support is currently incomplete)", check_msg) } else { check_msg },
+        status: if found {
+            CheckStatus::Warn
+        } else {
+            CheckStatus::Warn
+        }, // As per instructions, report WARN if incomplete
+        message: if found {
+            format!("{} (v86 support is currently incomplete)", check_msg)
+        } else {
+            check_msg
+        },
     });
 
     DoctorReport {
@@ -234,7 +254,8 @@ fn check_security() -> DoctorReport {
     checks.push(CheckResult {
         name: "Privileged Virtualization".to_string(),
         status: CheckStatus::Pass,
-        message: "PlazaVM operates entirely in userspace (No KVM/WHPX/Hyper-V required)".to_string(),
+        message: "PlazaVM operates entirely in userspace (No KVM/WHPX/Hyper-V required)"
+            .to_string(),
     });
 
     checks.push(CheckResult {

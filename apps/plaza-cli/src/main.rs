@@ -1,8 +1,8 @@
-pub mod shell;
-pub mod validator;
-pub mod doctor;
-mod ui;
 mod benchmark;
+pub mod doctor;
+pub mod shell;
+mod ui;
+pub mod validator;
 
 use clap::{Parser, Subcommand};
 use plaza_api::bootstrap::BootstrapBuilder;
@@ -14,11 +14,11 @@ use plaza_foundation::core::panic_handler::CrashHandler;
 use plaza_workspace::model::WorkspaceSpec;
 use plaza_workspace::{SessionManager, WorkspaceSession};
 
-use std::path::PathBuf;
-use plaza_image::{ManifestStore, GarbageCollector};
+use plaza_image::{GarbageCollector, ManifestStore};
 use shell::PshShell;
 use std::env;
 use std::path::Path;
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(name = "plaza", author, version, about = "PlazaVM Workspace Operating Platform CLI", long_about = None)]
@@ -77,6 +77,7 @@ enum Commands {
         /// Path to the plazaessentials.toml file
         path: PathBuf,
     },
+    /// Manage Workspaces (init, activate, deactivate, switch, etc.)
     /// Manage Workspaces (init, activate, deactivate, switch, etc.)
     Workspace {
         #[command(subcommand)]
@@ -199,6 +200,9 @@ enum WorkspaceAction {
     Init {
         /// Name of the workspace
         name: String,
+        /// Guest runtime kind: inferno (default) or linux
+        #[arg(short, long, default_value = "inferno")]
+        runtime: String,
         #[arg(short, long)]
         path: Option<String>,
     },
@@ -219,6 +223,9 @@ enum WorkspaceAction {
         name: String,
         #[arg(short, long)]
         image: Option<String>,
+        /// Guest runtime kind: inferno (default) or linux
+        #[arg(short, long, default_value = "inferno")]
+        runtime: String,
         #[arg(short, long)]
         path: Option<String>,
     },
@@ -382,19 +389,34 @@ async fn main() -> anyhow::Result<()> {
     let container = BootstrapBuilder::new().build().await?;
 
     // Setup Command Pipeline & Dispatcher
-    let engine_manager = std::sync::Arc::new(plaza_foundation::engine::manager::EngineManager::new());
+    let engine_manager =
+        std::sync::Arc::new(plaza_foundation::engine::manager::EngineManager::new());
     let command_registry = plaza_command::registry::CommandRegistry::new();
     // Create ImageManager and RuntimeManager
-    let blob_store = std::sync::Arc::new(plaza_image::LocalBlobStore::new(std::path::PathBuf::from(".plaza/blobs")).await?);
-    let manifest_store = std::sync::Arc::new(plaza_image::LocalManifestStore::new(std::path::PathBuf::from(".plaza/manifests")).await?);
-    let gc = std::sync::Arc::new(plaza_image::gc::LocalGarbageCollector::new(std::path::PathBuf::from(".plaza/blobs")));
-    let image_manager = std::sync::Arc::new(plaza_image::ImageManager::new(blob_store, manifest_store, gc));
-    
+    let blob_store = std::sync::Arc::new(
+        plaza_image::LocalBlobStore::new(std::path::PathBuf::from(".plaza/blobs")).await?,
+    );
+    let manifest_store = std::sync::Arc::new(
+        plaza_image::LocalManifestStore::new(std::path::PathBuf::from(".plaza/manifests")).await?,
+    );
+    let gc = std::sync::Arc::new(plaza_image::gc::LocalGarbageCollector::new(
+        std::path::PathBuf::from(".plaza/blobs"),
+    ));
+    let image_manager = std::sync::Arc::new(plaza_image::ImageManager::new(
+        blob_store,
+        manifest_store,
+        gc,
+    ));
+
     let mut runtime_manager = plaza_runtime::RuntimeManager::new();
-    runtime_manager.register_backend(std::sync::Arc::new(plaza_runtime::backends::qemu::QemuPlugin::new()));
-    runtime_manager.register_backend(std::sync::Arc::new(plaza_runtime::backends::v86::V86Plugin::default()));
+    runtime_manager.register_backend(std::sync::Arc::new(
+        plaza_runtime::backends::qemu::QemuPlugin::new(),
+    ));
+    runtime_manager.register_backend(std::sync::Arc::new(
+        plaza_runtime::backends::v86::V86Plugin::default(),
+    ));
     let runtime_manager = std::sync::Arc::new(runtime_manager);
-    
+
     // Create & Register Engines
     let workspace_engine = std::sync::Arc::new(plaza_workspace::engine::WorkspaceEngine::new(
         container.workspace_service.clone(),
@@ -402,14 +424,18 @@ async fn main() -> anyhow::Result<()> {
         image_manager.clone(),
     ));
     engine_manager.register(workspace_engine).await;
-    
+
     // Commands removed for refactoring
-    
+
     let mut raw_pipeline = plaza_command::pipeline::CommandPipeline::new();
-    
-    raw_pipeline.add_middleware(Box::new(plaza_command::middlewares::ObservabilityMiddleware::new()));
-    raw_pipeline.add_middleware(Box::new(plaza_command::middlewares::EventMiddleware::new((*container.event_bus).clone())));
-    
+
+    raw_pipeline.add_middleware(Box::new(
+        plaza_command::middlewares::ObservabilityMiddleware::new(),
+    ));
+    raw_pipeline.add_middleware(Box::new(plaza_command::middlewares::EventMiddleware::new(
+        (*container.event_bus).clone(),
+    )));
+
     let pipeline = std::sync::Arc::new(raw_pipeline);
     let dispatcher = plaza_command::dispatcher::CommandDispatcher::new(
         std::sync::Arc::new(tokio::sync::RwLock::new(command_registry)),
@@ -428,11 +454,11 @@ async fn main() -> anyhow::Result<()> {
                         return Ok(());
                     }
                     println!("✓ Engines started successfully. Running in background. Press Ctrl+C to stop.");
-                    
+
                     if let Err(e) = tokio::signal::ctrl_c().await {
                         eprintln!("Failed to listen for Ctrl+C: {}", e);
                     }
-                    
+
                     println!("\nStopping all engines...");
                     if let Err(e) = engine_manager.stop_all().await {
                         eprintln!("❌ Failed to stop engines: {}", e);
@@ -452,7 +478,11 @@ async fn main() -> anyhow::Result<()> {
             println!("🚀 Running ephemeral workspace with image '{}'", image);
             println!("(Native PlazaVM Runtime integration pending...)");
         }
-        Commands::Exec { workspace, command, it } => {
+        Commands::Exec {
+            workspace,
+            command,
+            it,
+        } => {
             println!("⚙️ Executing command in workspace '{}'", workspace);
             println!("(Native PlazaVM Runtime integration pending...)");
         }
@@ -460,7 +490,11 @@ async fn main() -> anyhow::Result<()> {
             let workspaces = container.workspace_service.list_workspaces().await?;
             println!("ACTIVE WORKSPACES ({}):", workspaces.len());
             for ws in workspaces {
-                let path_str = ws.metadata.project_path.clone().unwrap_or_else(|| "No path".to_string());
+                let path_str = ws
+                    .metadata
+                    .project_path
+                    .clone()
+                    .unwrap_or_else(|| "No path".to_string());
                 println!(
                     "  [{}] {} ({}) - Status: {:?}",
                     ws.id, ws.name, path_str, ws.status.state
@@ -471,418 +505,468 @@ async fn main() -> anyhow::Result<()> {
             println!("📦 Installing dependencies from {:?}", path);
             println!("(Native Plaza Essentials integration pending...)");
         }
-        Commands::Workspace { action } => match action.unwrap_or(WorkspaceAction::Activate { workspace: None }) {
-            WorkspaceAction::List => {
-                let workspaces = container.workspace_service.list_workspaces().await?;
-                println!("Workspaces ({}):", workspaces.len());
-                for ws in workspaces {
-                    let path_str = ws.metadata.project_path.clone().unwrap_or_else(|| "No path".to_string());
-                    println!(
-                        "  - [{}] {} [{}] ({:?}, {})",
-                        ws.id, ws.name, path_str, ws.status.state, ws.status.health
-                    );
+        Commands::Workspace { action } => {
+            match action.unwrap_or(WorkspaceAction::Activate { workspace: None }) {
+                WorkspaceAction::List => {
+                    let workspaces = container.workspace_service.list_workspaces().await?;
+                    println!("Workspaces ({}):", workspaces.len());
+                    for ws in workspaces {
+                        let path_str = ws
+                            .metadata
+                            .project_path
+                            .clone()
+                            .unwrap_or_else(|| "No path".to_string());
+                        println!(
+                            "  - [{}] {} [{}] ({:?}, {})",
+                            ws.id, ws.name, path_str, ws.status.state, ws.status.health
+                        );
+                    }
                 }
-            }
-            WorkspaceAction::Create { name, image, path } => {
-                println!("Creating workspace '{}'...", name);
-                
-                let workspaces = container.workspace_service.list_workspaces().await?;
-                if workspaces.iter().any(|w| w.name == name) {
-                    eprintln!("❌ A workspace named '{}' already exists.", name);
-                    return Ok(());
-                }
-                
-                let mut spec = plaza_workspace::model::WorkspaceSpec::default();
-                if let Some(img) = image {
-                    spec.runtime.image = Some(img);
-                }
-                // Optional: handle OS override flags from CLI if they were globally accessible,
-                // but for now we just use the image parameter if provided.
+                WorkspaceAction::Create { name, image, runtime, path } => {
+                    println!("Creating workspace '{}'...", name);
 
-                let target_dir = path
-                    .map(PathBuf::from)
-                    .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
-                let project_path = target_dir.to_string_lossy().to_string();
+                    let workspaces = container.workspace_service.list_workspaces().await?;
+                    if workspaces.iter().any(|w| w.name == name) {
+                        eprintln!("❌ A workspace named '{}' already exists.", name);
+                        return Ok(());
+                    }
 
-                match plaza_workspace::WorkspaceBuilder::build(&name, spec.clone(), Some(project_path)) {
-                    Ok((ws, _root)) => {
-                        match container.workspace_service.save_workspace(&ws).await {
-                            Ok(_) => {
-                                println!("✓ Successfully created workspace '{}' [{}]", ws.name, ws.id);
-                                println!("✓ Workspace is ready. Run 'plaza workspace list' to view it.");
+                    let guest_runtime_kind: plaza_runtime::runtime::GuestRuntimeKind = runtime.parse()
+                        .map_err(|e: plaza_foundation::core::PlazaError| {
+                            eprintln!("❌ Invalid runtime '{}': {}", runtime, e);
+                            e
+                        })?;
+
+                    let mut spec = plaza_workspace::model::WorkspaceSpec::default();
+                    spec.guest_runtime = guest_runtime_kind.clone();
+                    if let Some(img) = image {
+                        spec.runtime.image = Some(img);
+                    }
+                    println!("  Runtime: {}", guest_runtime_kind);
+                    // Optional: handle OS override flags from CLI if they were globally accessible,
+                    // but for now we just use the image parameter if provided.
+
+                    let target_dir = path.map(PathBuf::from).unwrap_or_else(|| {
+                        env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+                    });
+                    let project_path = target_dir.to_string_lossy().to_string();
+
+                    match plaza_workspace::WorkspaceBuilder::build(
+                        &name,
+                        spec.clone(),
+                        Some(project_path),
+                    ) {
+                        Ok((ws, _root)) => {
+                            match container.workspace_service.save_workspace(&ws).await {
+                                Ok(_) => {
+                                    println!(
+                                        "✓ Successfully created workspace '{}' [{}]",
+                                        ws.name, ws.id
+                                    );
+                                    println!("✓ Workspace is ready. Run 'plaza workspace list' to view it.");
+                                }
+                                Err(e) => {
+                                    eprintln!("❌ Failed to save workspace to registry: {}", e)
+                                }
                             }
-                            Err(e) => eprintln!("❌ Failed to save workspace to registry: {}", e),
                         }
-                    }
-                    Err(e) => eprintln!("❌ Failed to build workspace layout: {}", e),
-                }
-            }
-            WorkspaceAction::Inspect { id } => {
-                let workspaces = container.workspace_service.list_workspaces().await?;
-                let target = workspaces
-                    .into_iter()
-                    .find(|w| w.id.to_string() == id || w.name == id);
-                match target {
-                    Some(ws) => {
-                        let puri = format!("plaza://workspace/{}", ws.id);
-                        println!("Workspace Details:");
-                        println!("  ID             : {}", ws.id);
-                        println!("  Name           : {}", ws.name);
-                        println!("  PURI           : {}", puri);
-                        println!("  State          : {:?}", ws.status.state);
-                        println!("  Health         : {}", ws.status.health);
-                        if let Some(pid) = ws.status.pid {
-                            println!("  PID            : {}", pid);
-                        }
-                        if let Some(uptime) = ws.status.uptime_secs {
-                            println!("  Uptime         : {}s", uptime);
-                        }
-                        if let Some(exec_mode) = &ws.status.execution_mode {
-                            println!("  Execution Mode : {}", exec_mode);
-                        }
-                        if let Some(storage) = &ws.status.storage_backend {
-                            println!("  Storage Backend: {}", storage);
-                        }
-                        println!("  Desired State  : {:?}", ws.spec.desired_state);
-                        println!("  Runtime Backend: {:?}", ws.spec.runtime.backend);
-                        println!("  Runtime Image  : {:?}", ws.spec.runtime.image);
-                        println!("  Created At     : {}", ws.metadata.created_at);
-                    }
-                    None => {
-                        println!("Workspace '{}' not found.", id);
+                        Err(e) => eprintln!("❌ Failed to build workspace layout: {}", e),
                     }
                 }
-            }
-            WorkspaceAction::Start { id } => {
-                let ws_id = resolve_ws_id(&container, &id).await?;
-                container
-                    .workspace_service
-                    .set_desired_state(&ws_id, plaza_workspace::model::DesiredState::Running)
-                    .await?;
-
-                println!("Triggered start for workspace '{id}' [{ws_id}]");
-            }
-            WorkspaceAction::Stop { id } => {
-                let ws_id = resolve_ws_id(&container, &id).await?;
-                container
-                    .workspace_service
-                    .set_desired_state(&ws_id, plaza_workspace::model::DesiredState::Stopped)
-                    .await?;
-
-                println!("Triggered stop for workspace '{id}' [{ws_id}]");
-            }
-            WorkspaceAction::Delete { id } => {
-                let ws_id = resolve_ws_id(&container, &id).await?;
-                container.workspace_service.delete_workspace(&ws_id).await?;
-                println!("Deleted workspace '{id}' [{ws_id}]");
-            }
-            WorkspaceAction::Exec { id, cmd } => {
-                let ws_id = resolve_ws_id(&container, &id).await?;
-                println!(
-                    "Executing inside workspace '{id}' [{ws_id}]: {}",
-                    cmd.join(" ")
-                );
-                
-                let workspace = match container.workspace_service.get_workspace(&ws_id).await? {
-                    Some(ws) => ws,
-                    None => {
-                        eprintln!("❌ Workspace '{}' not found.", id);
-                        std::process::exit(1);
+                WorkspaceAction::Inspect { id } => {
+                    let workspaces = container.workspace_service.list_workspaces().await?;
+                    let target = workspaces
+                        .into_iter()
+                        .find(|w| w.id.to_string() == id || w.name == id);
+                    match target {
+                        Some(ws) => {
+                            let puri = format!("plaza://workspace/{}", ws.id);
+                            println!("Workspace Details:");
+                            println!("  ID             : {}", ws.id);
+                            println!("  Name           : {}", ws.name);
+                            println!("  PURI           : {}", puri);
+                            println!("  State          : {:?}", ws.status.state);
+                            println!("  Health         : {}", ws.status.health);
+                            if let Some(pid) = ws.status.pid {
+                                println!("  PID            : {}", pid);
+                            }
+                            if let Some(uptime) = ws.status.uptime_secs {
+                                println!("  Uptime         : {}s", uptime);
+                            }
+                            if let Some(exec_mode) = &ws.status.execution_mode {
+                                println!("  Execution Mode : {}", exec_mode);
+                            }
+                            if let Some(storage) = &ws.status.storage_backend {
+                                println!("  Storage Backend: {}", storage);
+                            }
+                            println!("  Desired State  : {:?}", ws.spec.desired_state);
+                            println!("  Runtime Backend: {:?}", ws.spec.runtime.backend);
+                            println!("  Runtime Image  : {:?}", ws.spec.runtime.image);
+                            println!("  Created At     : {}", ws.metadata.created_at);
+                        }
+                        None => {
+                            println!("Workspace '{}' not found.", id);
+                        }
                     }
-                };
-                
-                if let Some(instance_id) = &workspace.status.runtime_instance_id {
-                    let backend_id = workspace.status.runtime_backend.as_deref().unwrap_or("qemu");
-                    if let Ok(backend) = runtime_manager.get_backend(backend_id) {
-                        let full_cmd = cmd.join(" ");
-                        // QEMU needs a newline to execute via serial
-                        let full_cmd_with_newline = format!("{}\n", full_cmd);
-                        match backend.exec(instance_id, &full_cmd_with_newline).await {
-                            Ok(_) => println!("Exec command sent successfully"),
-                            Err(e) => eprintln!("❌ Failed to execute command: {}", e),
+                }
+                WorkspaceAction::Start { id } => {
+                    let ws_id = resolve_ws_id(&container, &id).await?;
+                    container
+                        .workspace_service
+                        .set_desired_state(&ws_id, plaza_workspace::model::DesiredState::Running)
+                        .await?;
+
+                    println!("Triggered start for workspace '{id}' [{ws_id}]");
+                }
+                WorkspaceAction::Stop { id } => {
+                    let ws_id = resolve_ws_id(&container, &id).await?;
+                    container
+                        .workspace_service
+                        .set_desired_state(&ws_id, plaza_workspace::model::DesiredState::Stopped)
+                        .await?;
+
+                    println!("Triggered stop for workspace '{id}' [{ws_id}]");
+                }
+                WorkspaceAction::Delete { id } => {
+                    let ws_id = resolve_ws_id(&container, &id).await?;
+                    container.workspace_service.delete_workspace(&ws_id).await?;
+                    println!("Deleted workspace '{id}' [{ws_id}]");
+                }
+                WorkspaceAction::Exec { id, cmd } => {
+                    let ws_id = resolve_ws_id(&container, &id).await?;
+                    println!(
+                        "Executing inside workspace '{id}' [{ws_id}]: {}",
+                        cmd.join(" ")
+                    );
+
+                    let workspace = match container.workspace_service.get_workspace(&ws_id).await? {
+                        Some(ws) => ws,
+                        None => {
+                            eprintln!("❌ Workspace '{}' not found.", id);
+                            std::process::exit(1);
+                        }
+                    };
+
+                    if let Some(instance_id) = &workspace.status.runtime_instance_id {
+                        let backend_id = workspace
+                            .status
+                            .runtime_backend
+                            .as_deref()
+                            .unwrap_or("qemu");
+                        if let Ok(backend) = runtime_manager.get_backend(backend_id) {
+                            let full_cmd = cmd.join(" ");
+                            // QEMU needs a newline to execute via serial
+                            let full_cmd_with_newline = format!("{}\n", full_cmd);
+                            match backend.exec(instance_id, &full_cmd_with_newline).await {
+                                Ok(_) => println!("Exec command sent successfully"),
+                                Err(e) => eprintln!("❌ Failed to execute command: {}", e),
+                            }
+                        } else {
+                            eprintln!("❌ Runtime backend '{}' not found.", backend_id);
                         }
                     } else {
-                        eprintln!("❌ Runtime backend '{}' not found.", backend_id);
-                    }
-                } else {
-                    eprintln!("❌ Cannot execute: Workspace '{}' is not running.", id);
-                    std::process::exit(1);
-                }
-            }
-            WorkspaceAction::Shell { id } => {
-                let ws_id = resolve_ws_id(&container, &id).await?;
-                let workspace = match container.workspace_service.get_workspace(&ws_id).await? {
-                    Some(ws) => ws,
-                    None => {
-                        eprintln!("❌ Cannot connect to shell: Workspace '{}' not found.", id);
+                        eprintln!("❌ Cannot execute: Workspace '{}' is not running.", id);
                         std::process::exit(1);
                     }
-                };
-                
-                if workspace.status.runtime_instance_id.is_none() {
-                    eprintln!("❌ Cannot connect to shell: Workspace '{}' is not running.", id);
+                }
+                WorkspaceAction::Shell { id } => {
+                    let ws_id = resolve_ws_id(&container, &id).await?;
+                    let workspace = match container.workspace_service.get_workspace(&ws_id).await? {
+                        Some(ws) => ws,
+                        None => {
+                            eprintln!("❌ Cannot connect to shell: Workspace '{}' not found.", id);
+                            std::process::exit(1);
+                        }
+                    };
+
+                    if workspace.status.runtime_instance_id.is_none() {
+                        eprintln!(
+                            "❌ Cannot connect to shell: Workspace '{}' is not running.",
+                            id
+                        );
+                        std::process::exit(1);
+                    }
+
+                    // Phase 16: Return UnsupportedCapability instead of falling back to a host shell
+                    eprintln!(
+                        "❌ [UnsupportedCapability] Guest shell console infrastructure is missing."
+                    );
+                    eprintln!("   PlazaVM strongly isolates the project environment. Host shell fallback is disabled.");
                     std::process::exit(1);
                 }
-                
-                // Phase 16: Return UnsupportedCapability instead of falling back to a host shell
-                eprintln!("❌ [UnsupportedCapability] Guest shell console infrastructure is missing.");
-                eprintln!("   PlazaVM strongly isolates the project environment. Host shell fallback is disabled.");
-                std::process::exit(1);
-            }
-            WorkspaceAction::Service {
-                action,
-                workspace_id,
-                service_name,
-            } => {
-                let svc = service_name.unwrap_or_else(|| "default".into());
-                println!("Service action '{action}' executed for service '{svc}' in workspace '{workspace_id}'");
-            }
-            WorkspaceAction::Snapshot {
-                action,
-                workspace_id,
-                snapshot_name,
-            } => {
-                let name = snapshot_name.unwrap_or_else(|| "snap1".into());
-                println!("Snapshot action '{action}' executed for '{name}' in workspace '{workspace_id}'");
-            }
-            WorkspaceAction::Init { name, path } => {
-                let target_dir = path
-                    .map(PathBuf::from)
-                    .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
-                println!(
-                    "🚀 Initializing PlazaVM Workspace operating layout in '{}'...",
-                    target_dir.display()
-                );
-
-                let plaza_yaml_path = target_dir.join("plaza.yaml");
-                let config = if plaza_yaml_path.exists() {
-                    println!("✓ Found existing plaza.yaml configuration file.");
-                    let content = std::fs::read_to_string(&plaza_yaml_path).expect("Failed to read plaza.yaml");
-                    plaza_foundation::config::PlazaYaml::parse_yaml(&content).expect("Invalid plaza.yaml syntax")
-                } else {
-                    println!("✓ Generating default plaza.yaml configuration.");
-                    let yaml = plaza_foundation::config::PlazaYaml::generate_minimal(&name);
-                    std::fs::write(&plaza_yaml_path, yaml).expect("Failed to write plaza.yaml");
-                    // Safe to unwrap since we just generated it
-                    plaza_foundation::config::PlazaYaml::parse_yaml(&std::fs::read_to_string(&plaza_yaml_path).unwrap()).unwrap()
-                };
-
-                let spec = WorkspaceSpec::default();
-                let project_path = target_dir.to_string_lossy().to_string();
-                let (ws, _root) = plaza_workspace::WorkspaceBuilder::build(&config.workspace.name, spec, Some(project_path))?;
-                if let Err(e) = container.workspace_service.save_workspace(&ws).await {
-                    eprintln!("❌ Failed to register workspace to central registry: {}", e);
+                WorkspaceAction::Service {
+                    action,
+                    workspace_id,
+                    service_name,
+                } => {
+                    let svc = service_name.unwrap_or_else(|| "default".into());
+                    println!("Service action '{action}' executed for service '{svc}' in workspace '{workspace_id}'");
                 }
+                WorkspaceAction::Snapshot {
+                    action,
+                    workspace_id,
+                    snapshot_name,
+                } => {
+                    let name = snapshot_name.unwrap_or_else(|| "snap1".into());
+                    println!("Snapshot action '{action}' executed for '{name}' in workspace '{workspace_id}'");
+                }
+                WorkspaceAction::Init { name, runtime, path } => {
+                    let target_dir = path.map(PathBuf::from).unwrap_or_else(|| {
+                        env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+                    });
+                    println!(
+                        "🚀 Initializing PlazaVM Workspace operating layout in '{}'...",
+                        target_dir.display()
+                    );
+                    let guest_runtime_kind: plaza_runtime::runtime::GuestRuntimeKind = runtime.parse()
+                        .unwrap_or_else(|e: plaza_foundation::core::PlazaError| {
+                            eprintln!("❌ Invalid runtime '{}': {}. Defaulting to inferno.", runtime, e);
+                            plaza_runtime::runtime::GuestRuntimeKind::Inferno
+                        });
+                    println!("  Guest Runtime: {}", guest_runtime_kind);
 
-                println!("✓ Created workspace '{}' [{}]", ws.name, ws.id);
-                println!("✓ Initialized operational directory tree at '.space/'");
-                println!("✓ Generated '.space/workspace.yaml' & '.space/workspace.lock'");
-                println!("✓ Provisioned subdirectories: config/, runtime/, sessions/, cache/, backend/, mounts/, locks/, registry/, logs/, telemetry/, images/, snapshots/, plugins/, env/, sockets/, state/");
-                println!("\nRun 'plaza workspace activate' to launch PSH shell.");
-            }
-            WorkspaceAction::Activate { workspace } => {
-                let current_dir = env::current_dir()?;
-                let space_dir = current_dir.join(".space");
-                let ws_name = workspace.unwrap_or_else(|| {
-                    current_dir
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("workspace")
-                        .to_string()
-                });
+                    let plaza_yaml_path = target_dir.join("plaza.yaml");
+                    let config = if plaza_yaml_path.exists() {
+                        println!("✓ Found existing plaza.yaml configuration file.");
+                        let content = std::fs::read_to_string(&plaza_yaml_path)
+                            .expect("Failed to read plaza.yaml");
+                        plaza_foundation::config::PlazaYaml::parse_yaml(&content)
+                            .expect("Invalid plaza.yaml syntax")
+                    } else {
+                        println!("✓ Generating default plaza.yaml configuration.");
+                        let yaml = plaza_foundation::config::PlazaYaml::generate_minimal(&name);
+                        std::fs::write(&plaza_yaml_path, yaml).expect("Failed to write plaza.yaml");
+                        // Safe to unwrap since we just generated it
+                        plaza_foundation::config::PlazaYaml::parse_yaml(
+                            &std::fs::read_to_string(&plaza_yaml_path).unwrap(),
+                        )
+                        .unwrap()
+                    };
 
-                println!(
-                    "🚀 Activating Workspace Operating Environment '{}'...",
-                    ws_name
-                );
-                println!("  [1/15] Validating workspace.yaml manifest...");
-                println!("  [2/15] Loading workspace.lock lockfile...");
-                
-                // --- Phase 16 Identity Calculation & Image Verification ---
-                println!("  [3/15] Resolving Workspace Image Identity...");
-                let plaza_yaml_path = current_dir.join("plaza.yaml");
-                if plaza_yaml_path.exists() {
-                    let content = std::fs::read_to_string(&plaza_yaml_path)?;
-                    if let Ok(yaml) = plaza_foundation::config::PlazaYaml::parse_yaml(&content) {
-                        match plaza_workspace::pipeline::TransactionalPipelineBuilder::provision_image(&yaml, image_manager.clone()).await {
+                    let mut spec = WorkspaceSpec::default();
+                    spec.guest_runtime = guest_runtime_kind;
+                    let project_path = target_dir.to_string_lossy().to_string();
+                    let (ws, _root) = plaza_workspace::WorkspaceBuilder::build(
+                        &config.workspace.name,
+                        spec,
+                        Some(project_path),
+                    )?;
+                    if let Err(e) = container.workspace_service.save_workspace(&ws).await {
+                        eprintln!("❌ Failed to register workspace to central registry: {}", e);
+                    }
+
+                    println!("✓ Created workspace '{}' [{}]", ws.name, ws.id);
+                    println!("✓ Initialized operational directory tree at '.space/'");
+                    println!("✓ Generated '.space/workspace.yaml' & '.space/workspace.lock'");
+                    println!("✓ Provisioned subdirectories: config/, runtime/, sessions/, cache/, backend/, mounts/, locks/, registry/, logs/, telemetry/, images/, snapshots/, plugins/, env/, sockets/, state/");
+                    println!("\nRun 'plaza workspace activate' to launch PSH shell.");
+                }
+                WorkspaceAction::Activate { workspace } => {
+                    let current_dir = env::current_dir()?;
+                    let space_dir = current_dir.join(".space");
+                    let ws_name = workspace.unwrap_or_else(|| {
+                        current_dir
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("workspace")
+                            .to_string()
+                    });
+
+                    println!(
+                        "🚀 Activating Workspace Operating Environment '{}'...",
+                        ws_name
+                    );
+                    println!("  [1/15] Validating workspace.yaml manifest...");
+                    println!("  [2/15] Loading workspace.lock lockfile...");
+
+                    // --- Phase 16 Identity Calculation & Image Verification ---
+                    println!("  [3/15] Resolving Workspace Image Identity...");
+                    let plaza_yaml_path = current_dir.join("plaza.yaml");
+                    if plaza_yaml_path.exists() {
+                        let content = std::fs::read_to_string(&plaza_yaml_path)?;
+                        if let Ok(yaml) = plaza_foundation::config::PlazaYaml::parse_yaml(&content)
+                        {
+                            match plaza_workspace::pipeline::TransactionalPipelineBuilder::provision_image(&yaml, image_manager.clone()).await {
                             Ok(id) => println!("  ✓ Image Resolved (ID: {})", id),
                             Err(e) => {
                                 eprintln!("  ❌ Image Provisioning Failed: {}", e);
                                 std::process::exit(1);
                             }
                         }
+                        } else {
+                            println!("  ! Warning: Could not parse plaza.yaml, skipping image validation.");
+                        }
                     } else {
-                        println!("  ! Warning: Could not parse plaza.yaml, skipping image validation.");
+                        println!("  ! Warning: No plaza.yaml found, skipping image validation.");
                     }
-                } else {
-                    println!("  ! Warning: No plaza.yaml found, skipping image validation.");
+
+                    println!("  [4/15] Resolving toolchain & capability dependencies...");
+                    println!("  [5/15] Building ExecutionPlan...");
+
+                    let detector = plaza_foundation::platform::PlatformDetector::new();
+                    let caps = detector.scan().await?;
+                    let profile = detector.profile().await;
+                    println!(
+                        "  [5/15] Detected Host Operating System: {} ({})",
+                        caps.os.name, caps.os.arch
+                    );
+
+                    let backend_name = "PlazaVM Userspace Engine";
+                    println!("  [6/15] Backend Selected: {}", backend_name);
+                    println!("  [7/15] Starting Workspace Runtime Engine...");
+                    println!("  [8/15] Mounting Project, Cache & OverlayFS Layers...");
+                    println!("  [9/15] Configuring Workspace Sandbox Networking...");
+                    println!("  [10/15] Injecting Environment Variables & PATH...");
+                    println!("  [11/15] Loading Vault Secrets...");
+                    println!("  [12/15] Starting Required Services (Postgres, Redis)...");
+
+                    let ws_id = WorkspaceId::new();
+                    let driver_id = DriverId::new("docker");
+                    let session =
+                        SessionManager::load_active_session(&space_dir)?.unwrap_or_else(|| {
+                            WorkspaceSession::new(
+                                ws_id,
+                                &ws_name,
+                                plaza_foundation::core::id::RuntimeBackendKind::Docker,
+                                driver_id,
+                                current_dir.clone(),
+                            )
+                        });
+
+                    println!(
+                        "  [13/15] Workspace Session Restored (ID: {})",
+                        session.session_id
+                    );
+                    println!("  [14/15] Preparing Plaza Shell (PSH) Prompt...");
+                    println!("  [15/15] Launching Interactive Session Loop...");
+
+                    println!("\n✓ Workspace Loaded");
+                    println!("✓ Backend Selected ({})", backend_name);
+                    println!("✓ Runtime Ready");
+                    println!("✓ Environment Loaded");
+                    println!("✓ Workspace Shell Ready");
+
+                    let mut psh = PshShell::new(
+                        &ws_name,
+                        backend_name,
+                        profile.to_string(),
+                        session,
+                        space_dir,
+                    );
+                    psh.run().await?;
                 }
-
-                println!("  [4/15] Resolving toolchain & capability dependencies...");
-                println!("  [5/15] Building ExecutionPlan...");
-
-                let detector = plaza_foundation::platform::PlatformDetector::new();
-                let caps = detector.scan().await?;
-                let profile = detector.profile().await;
-                println!(
-                    "  [5/15] Detected Host Operating System: {} ({})",
-                    caps.os.name, caps.os.arch
-                );
-
-                let backend_name = "PlazaVM Userspace Engine";
-                println!("  [6/15] Backend Selected: {}", backend_name);
-                println!("  [7/15] Starting Workspace Runtime Engine...");
-                println!("  [8/15] Mounting Project, Cache & OverlayFS Layers...");
-                println!("  [9/15] Configuring Workspace Sandbox Networking...");
-                println!("  [10/15] Injecting Environment Variables & PATH...");
-                println!("  [11/15] Loading Vault Secrets...");
-                println!("  [12/15] Starting Required Services (Postgres, Redis)...");
-
-                let ws_id = WorkspaceId::new();
-                let driver_id = DriverId::new("docker");
-                let session =
-                    SessionManager::load_active_session(&space_dir)?.unwrap_or_else(|| {
-                        WorkspaceSession::new(
-                            ws_id,
-                            &ws_name,
-                            plaza_foundation::core::id::RuntimeBackendKind::Docker,
-                            driver_id,
-                            current_dir.clone(),
-                        )
+                WorkspaceAction::Deactivate => {
+                    println!("Deactivating active workspace session...");
+                    println!("✓ Runtime suspended, session saved to .space/sessions/");
+                }
+                WorkspaceAction::Switch { name } => {
+                    println!("🔄 Switching active workspace context to '{}'...", name);
+                    println!("✓ Restored previous session state instantly for '{}'", name);
+                }
+                WorkspaceAction::Export { id, target } => {
+                    println!("Exported workspace '{id}' archive to '{target}'");
+                }
+                WorkspaceAction::Import { source } => {
+                    println!("Imported workspace archive from '{source}'");
+                }
+                WorkspaceAction::Commit { message } => {
+                    let current_dir = std::env::current_dir()?;
+                    let space_dir = current_dir.join(".space");
+                    let spec = plaza_workspace::WorkspaceSpec::default();
+                    let commit = plaza_workspace::WscEngine::commit(
+                        &space_dir,
+                        "Developer",
+                        &message,
+                        spec,
+                        std::collections::HashMap::new(),
+                        Vec::new(),
+                    )?;
+                    println!(
+                        "✓ Recorded Workspace Execution Commit [{}]",
+                        commit.commit_id
+                    );
+                    println!("  Message: {}", commit.message);
+                    println!("  Timestamp: {}", commit.timestamp);
+                }
+                WorkspaceAction::History => {
+                    let current_dir = std::env::current_dir()?;
+                    let space_dir = current_dir.join(".space");
+                    let timeline = plaza_workspace::WscEngine::load_timeline(&space_dir)?;
+                    println!(
+                        "Workspace Execution Commit Timeline ({} commits):",
+                        timeline.commits.len()
+                    );
+                    println!("--------------------------------------------------");
+                    for c in timeline.commits.iter().rev() {
+                        let head_marker =
+                            if timeline.head_commit_id.as_deref() == Some(&c.commit_id) {
+                                " (HEAD)"
+                            } else {
+                                ""
+                            };
+                        println!("* commit {}{}", c.commit_id, head_marker);
+                        println!("  Author: {}", c.author);
+                        println!("  Date:   {}", c.timestamp);
+                        println!("    {}", c.message);
+                        println!();
+                    }
+                }
+                WorkspaceAction::Diff { commit_a, commit_b } => {
+                    let ca = commit_a.unwrap_or_else(|| "HEAD~1".into());
+                    let cb = commit_b.unwrap_or_else(|| "HEAD".into());
+                    println!("Comparing Workspace Commits {} .. {}", ca, cb);
+                    println!("  manifest: no structural changes");
+                    println!("  packages: 0 added, 0 removed");
+                    println!("  environment: matching");
+                }
+                WorkspaceAction::Checkout { commit_id } => {
+                    println!(
+                        "Restoring workspace execution state to commit '{}'...",
+                        commit_id
+                    );
+                    println!("✓ Restored manifest, package graph, and environment state.");
+                }
+                WorkspaceAction::Rollback => {
+                    println!("🔄 Rolling back workspace to previous commit state...");
+                    println!("✓ Rolled back workspace execution state successfully.");
+                }
+                WorkspaceAction::Validate { workspace } => {
+                    let current_dir = env::current_dir()?;
+                    let ws_name = workspace.unwrap_or_else(|| {
+                        current_dir
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("workspace")
+                            .to_string()
                     });
-
-                println!(
-                    "  [13/15] Workspace Session Restored (ID: {})",
-                    session.session_id
-                );
-                println!("  [14/15] Preparing Plaza Shell (PSH) Prompt...");
-                println!("  [15/15] Launching Interactive Session Loop...");
-
-                println!("\n✓ Workspace Loaded");
-                println!("✓ Backend Selected ({})", backend_name);
-                println!("✓ Runtime Ready");
-                println!("✓ Environment Loaded");
-                println!("✓ Workspace Shell Ready");
-
-                let mut psh = PshShell::new(
-                    &ws_name,
-                    backend_name,
-                    profile.to_string(),
-                    session,
-                    space_dir,
-                );
-                psh.run().await?;
-            }
-            WorkspaceAction::Deactivate => {
-                println!("Deactivating active workspace session...");
-                println!("✓ Runtime suspended, session saved to .space/sessions/");
-            }
-            WorkspaceAction::Switch { name } => {
-                println!("🔄 Switching active workspace context to '{}'...", name);
-                println!("✓ Restored previous session state instantly for '{}'", name);
-            }
-            WorkspaceAction::Export { id, target } => {
-                println!("Exported workspace '{id}' archive to '{target}'");
-            }
-            WorkspaceAction::Import { source } => {
-                println!("Imported workspace archive from '{source}'");
-            }
-            WorkspaceAction::Commit { message } => {
-                let current_dir = std::env::current_dir()?;
-                let space_dir = current_dir.join(".space");
-                let spec = plaza_workspace::WorkspaceSpec::default();
-                let commit = plaza_workspace::WscEngine::commit(
-                    &space_dir,
-                    "Developer",
-                    &message,
-                    spec,
-                    std::collections::HashMap::new(),
-                    Vec::new(),
-                )?;
-                println!(
-                    "✓ Recorded Workspace Execution Commit [{}]",
-                    commit.commit_id
-                );
-                println!("  Message: {}", commit.message);
-                println!("  Timestamp: {}", commit.timestamp);
-            }
-            WorkspaceAction::History => {
-                let current_dir = std::env::current_dir()?;
-                let space_dir = current_dir.join(".space");
-                let timeline = plaza_workspace::WscEngine::load_timeline(&space_dir)?;
-                println!(
-                    "Workspace Execution Commit Timeline ({} commits):",
-                    timeline.commits.len()
-                );
-                println!("--------------------------------------------------");
-                for c in timeline.commits.iter().rev() {
-                    let head_marker = if timeline.head_commit_id.as_deref() == Some(&c.commit_id) {
-                        " (HEAD)"
-                    } else {
-                        ""
-                    };
-                    println!("* commit {}{}", c.commit_id, head_marker);
-                    println!("  Author: {}", c.author);
-                    println!("  Date:   {}", c.timestamp);
-                    println!("    {}", c.message);
-                    println!();
+                    println!("🔍 Validating Workspace: {}", ws_name);
+                    println!("  ✓ Loaded workspace.yaml");
+                    println!("  ✓ Capabilities validated against default-deny policy.");
+                    println!("  ✓ Validated image manifest and layers.");
+                    println!("  ✓ Validated resource configuration constraints.");
+                    println!("Validation passed successfully.");
+                }
+                WorkspaceAction::Permissions { workspace } => {
+                    let current_dir = env::current_dir()?;
+                    let ws_name = workspace.unwrap_or_else(|| {
+                        current_dir
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("workspace")
+                            .to_string()
+                    });
+                    println!("🛡️  Capability Permissions for Workspace: {}", ws_name);
+                    println!("--------------------------------------------------");
+                    println!("Filesystem:   DENIED");
+                    println!("Network:      DENIED");
+                    println!("Environment:  DENIED");
+                    println!("Clipboard:    DENIED");
+                    println!("Devices:      DENIED");
+                    println!("--------------------------------------------------");
+                    println!("Policy: Default-Deny Strict");
                 }
             }
-            WorkspaceAction::Diff { commit_a, commit_b } => {
-                let ca = commit_a.unwrap_or_else(|| "HEAD~1".into());
-                let cb = commit_b.unwrap_or_else(|| "HEAD".into());
-                println!("Comparing Workspace Commits {} .. {}", ca, cb);
-                println!("  manifest: no structural changes");
-                println!("  packages: 0 added, 0 removed");
-                println!("  environment: matching");
-            }
-            WorkspaceAction::Checkout { commit_id } => {
-                println!(
-                    "Restoring workspace execution state to commit '{}'...",
-                    commit_id
-                );
-                println!("✓ Restored manifest, package graph, and environment state.");
-            }
-            WorkspaceAction::Rollback => {
-                println!("🔄 Rolling back workspace to previous commit state...");
-                println!("✓ Rolled back workspace execution state successfully.");
-            }
-            WorkspaceAction::Validate { workspace } => {
-                let current_dir = env::current_dir()?;
-                let ws_name = workspace.unwrap_or_else(|| {
-                    current_dir
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("workspace")
-                        .to_string()
-                });
-                println!("🔍 Validating Workspace: {}", ws_name);
-                println!("  ✓ Loaded workspace.yaml");
-                println!("  ✓ Capabilities validated against default-deny policy.");
-                println!("  ✓ Validated image manifest and layers.");
-                println!("  ✓ Validated resource configuration constraints.");
-                println!("Validation passed successfully.");
-            }
-            WorkspaceAction::Permissions { workspace } => {
-                let current_dir = env::current_dir()?;
-                let ws_name = workspace.unwrap_or_else(|| {
-                    current_dir
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("workspace")
-                        .to_string()
-                });
-                println!("🛡️  Capability Permissions for Workspace: {}", ws_name);
-                println!("--------------------------------------------------");
-                println!("Filesystem:   DENIED");
-                println!("Network:      DENIED");
-                println!("Environment:  DENIED");
-                println!("Clipboard:    DENIED");
-                println!("Devices:      DENIED");
-                println!("--------------------------------------------------");
-                println!("Policy: Default-Deny Strict");
-            }
-        },
+        }
         Commands::Platform => {
             let detector = plaza_foundation::platform::PlatformDetector::new();
             let caps = detector.scan().await?;
@@ -1014,7 +1098,10 @@ async fn main() -> anyhow::Result<()> {
                 println!("  [2/4] IMPORTER FILTER: Stripped kernel images & bootloaders");
                 println!("  [3/4] Generated SPDX-2.3 Software Bill of Materials (SBOM)");
                 println!("  [4/4] Signed PRI tarball with Ed25519 key");
-                println!("✓ Successfully Imported Userspace Runtime Image: {}", res.pri_uri);
+                println!(
+                    "✓ Successfully Imported Userspace Runtime Image: {}",
+                    res.pri_uri
+                );
                 println!("  Digest: {}", res.digest);
                 println!("  Signature: {}", res.signature);
             }
@@ -1032,30 +1119,49 @@ async fn main() -> anyhow::Result<()> {
             }
             ImageAction::Import { source, name } => {
                 let img_name = name.unwrap_or_else(|| "imported-image".to_string());
-                println!("📥 Importing raw block image from '{}' as '{}'...", source, img_name);
-                
+                println!(
+                    "📥 Importing raw block image from '{}' as '{}'...",
+                    source, img_name
+                );
+
                 // Initialize default Plaza Image Manager using host ~/.plaza/images
-                let base_dir = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from(".")).join(".plaza").join("images");
+                let base_dir = dirs::home_dir()
+                    .unwrap_or_else(|| std::path::PathBuf::from("."))
+                    .join(".plaza")
+                    .join("images");
                 std::fs::create_dir_all(&base_dir)?;
-                
+
                 // Construct dependencies manually for the CLI execution
-                let blob_store = std::sync::Arc::new(plaza_image::store::LocalBlobStore::new(base_dir.join("blobs")).await?);
-                let manifest_store = std::sync::Arc::new(plaza_image::store::LocalManifestStore::new(base_dir.join("manifests")).await?);
-                let gc = std::sync::Arc::new(plaza_image::gc::LocalGarbageCollector::new(base_dir.join("blobs")));
+                let blob_store = std::sync::Arc::new(
+                    plaza_image::store::LocalBlobStore::new(base_dir.join("blobs")).await?,
+                );
+                let manifest_store = std::sync::Arc::new(
+                    plaza_image::store::LocalManifestStore::new(base_dir.join("manifests")).await?,
+                );
+                let gc = std::sync::Arc::new(plaza_image::gc::LocalGarbageCollector::new(
+                    base_dir.join("blobs"),
+                ));
                 let manager = plaza_image::ImageManager::new(blob_store, manifest_store, gc);
-                
+
                 let file_path = std::path::Path::new(&source);
                 if !file_path.exists() {
                     anyhow::bail!("Source file not found: {}", source);
                 }
-                
+
                 manager.import_raw(&img_name, "latest", file_path).await?;
-                println!("✓ Successfully imported image '{}' into content store.", img_name);
+                println!(
+                    "✓ Successfully imported image '{}' into content store.",
+                    img_name
+                );
             }
             ImageAction::Remove { id } => {
                 println!("🗑️  Removing Image Manifest: {}", id);
-                let base_dir = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from(".")).join(".plaza").join("images");
-                let manifest_store = plaza_image::store::LocalManifestStore::new(base_dir.join("manifests")).await?;
+                let base_dir = dirs::home_dir()
+                    .unwrap_or_else(|| std::path::PathBuf::from("."))
+                    .join(".plaza")
+                    .join("images");
+                let manifest_store =
+                    plaza_image::store::LocalManifestStore::new(base_dir.join("manifests")).await?;
                 let (name, tag) = if id.contains(':') {
                     let parts: Vec<&str> = id.split(':').collect();
                     (parts[0], parts[1])
@@ -1063,18 +1169,27 @@ async fn main() -> anyhow::Result<()> {
                     (id.as_str(), "latest")
                 };
                 manifest_store.remove_manifest(name, tag).await?;
-                println!("✓ Image '{}' removed. Run 'plaza image gc' to reclaim space.", id);
+                println!(
+                    "✓ Image '{}' removed. Run 'plaza image gc' to reclaim space.",
+                    id
+                );
             }
             ImageAction::Gc { dry_run } => {
                 println!("🧹 Running Garbage Collection...");
-                let base_dir = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from(".")).join(".plaza").join("images");
+                let base_dir = dirs::home_dir()
+                    .unwrap_or_else(|| std::path::PathBuf::from("."))
+                    .join(".plaza")
+                    .join("images");
                 let gc = plaza_image::gc::LocalGarbageCollector::new(base_dir.join("blobs"));
                 let reachable = std::collections::HashSet::new(); // Stub: no active manifests attached
-                
+
                 let report = gc.run_gc(&reachable, dry_run).await?;
                 println!("✓ Freed {} bytes", report.freed_bytes);
                 if dry_run {
-                    println!("✓ [Dry Run] Would delete {} unreachable blobs", report.deleted_blobs);
+                    println!(
+                        "✓ [Dry Run] Would delete {} unreachable blobs",
+                        report.deleted_blobs
+                    );
                 } else {
                     println!("✓ Deleted {} unreachable blobs", report.deleted_blobs);
                 }
@@ -1102,13 +1217,19 @@ async fn main() -> anyhow::Result<()> {
         },
         Commands::Benchmark { action } => match action {
             Some(BenchmarkAction::RawBlockPersistence) => {
-                benchmark::run_raw_block_persistence(image_manager).await.unwrap();
+                benchmark::run_raw_block_persistence(image_manager)
+                    .await
+                    .unwrap();
             }
             Some(BenchmarkAction::RawBlockIsolation) => {
-                benchmark::run_raw_block_isolation(image_manager).await.unwrap();
+                benchmark::run_raw_block_isolation(image_manager)
+                    .await
+                    .unwrap();
             }
             Some(BenchmarkAction::GuestFilesystemWrite) => {
-                benchmark::run_guest_filesystem_persistence(image_manager).await.unwrap();
+                benchmark::run_guest_filesystem_persistence(image_manager)
+                    .await
+                    .unwrap();
             }
             Some(BenchmarkAction::CrashRecovery) => {
                 benchmark::run_crash_recovery(image_manager).await.unwrap();
@@ -1117,19 +1238,24 @@ async fn main() -> anyhow::Result<()> {
                 benchmark::run_stress(image_manager, cycles).await.unwrap();
             }
             Some(BenchmarkAction::Load { concurrency }) => {
-                println!("⚡ Running Multi-Device Load Validation ({} concurrent workspaces)...", concurrency);
+                println!(
+                    "⚡ Running Multi-Device Load Validation ({} concurrent workspaces)...",
+                    concurrency
+                );
                 let yaml_content = "
 version: '1'
 workspace:
   name: load-test-ws-real
 engine:
   distribution: alpine:3.19.1
-".to_string();
-                let yaml = plaza_foundation::config::PlazaYaml::parse_yaml(&yaml_content).expect("Failed to parse load-test-ws-real YAML");
-                
+"
+                .to_string();
+                let yaml = plaza_foundation::config::PlazaYaml::parse_yaml(&yaml_content)
+                    .expect("Failed to parse load-test-ws-real YAML");
+
                 let mut handles = vec![];
                 let start_time = std::time::Instant::now();
-                
+
                 for i in 0..concurrency {
                     let yaml_clone = yaml.clone();
                     let img_mgr = image_manager.clone();
@@ -1206,13 +1332,13 @@ engine:
                         Ok(id)
                     }));
                 }
-                
+
                 let mut results = vec![];
                 for handle in handles {
                     results.push(handle.await);
                 }
                 let elapsed = start_time.elapsed();
-                
+
                 let mut success = 0;
                 let mut errors = 0;
                 for res in results {
@@ -1220,11 +1346,11 @@ engine:
                         Ok(Ok(id)) => {
                             println!("  [Workspace] Full Lifecycle Succeeded (ID: {})", id);
                             success += 1;
-                        },
+                        }
                         Ok(Err(e)) => {
                             println!("  [Workspace] Lifecycle Failed: {}", e);
                             errors += 1;
-                        },
+                        }
                         Err(e) => {
                             println!("  Task join error: {}", e);
                             errors += 1;
@@ -1239,8 +1365,10 @@ engine:
                 benchmark::run_engine_integration(
                     image_manager,
                     container.workspace_service.clone(),
-                    runtime_manager.clone()
-                ).await.unwrap();
+                    runtime_manager.clone(),
+                )
+                .await
+                .unwrap();
             }
             None => {
                 println!("⚡ Running PlazaVM Benchmark Suite...");
@@ -1354,4 +1482,3 @@ async fn resolve_ws_id(
     }
     anyhow::bail!("Workspace '{}' not found", id_or_name);
 }
-

@@ -14,6 +14,8 @@ impl PackageResolver {
     }
 
     pub async fn resolve(&self, _name: &str) -> PlazaResult<crate::model::PackageManifest> {
-        Err(plaza_foundation::core::PlazaError::storage("Package resolution not implemented for DP1"))
+        Err(plaza_foundation::core::PlazaError::storage(
+            "Package resolution not implemented for DP1",
+        ))
     }
 }

@@ -8,7 +8,10 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 #[async_trait::async_trait]
 pub trait BlobStore: Send + Sync {
     /// Read a stream and store it atomically. Returns the computed ContentHash.
-    async fn put_stream(&self, reader: &mut (dyn tokio::io::AsyncRead + Unpin + Send)) -> PlazaResult<ContentHash>;
+    async fn put_stream(
+        &self,
+        reader: &mut (dyn tokio::io::AsyncRead + Unpin + Send),
+    ) -> PlazaResult<ContentHash>;
 
     /// Check if a blob exists by hash.
     async fn exists(&self, hash: &ContentHash) -> PlazaResult<bool>;
@@ -28,11 +31,17 @@ pub struct LocalBlobStore {
 impl LocalBlobStore {
     pub async fn new(base_dir: impl Into<PathBuf>) -> PlazaResult<Self> {
         let base_dir = base_dir.into();
-        fs::create_dir_all(&base_dir).await.map_err(PlazaError::Io)?;
+        fs::create_dir_all(&base_dir)
+            .await
+            .map_err(PlazaError::Io)?;
         let temp_dir = base_dir.join("tmp");
-        fs::create_dir_all(&temp_dir).await.map_err(PlazaError::Io)?;
+        fs::create_dir_all(&temp_dir)
+            .await
+            .map_err(PlazaError::Io)?;
         let sha256_dir = base_dir.join("sha256");
-        fs::create_dir_all(&sha256_dir).await.map_err(PlazaError::Io)?;
+        fs::create_dir_all(&sha256_dir)
+            .await
+            .map_err(PlazaError::Io)?;
 
         Ok(Self { base_dir })
     }
@@ -48,17 +57,20 @@ impl LocalBlobStore {
 
 #[async_trait::async_trait]
 impl BlobStore for LocalBlobStore {
-    async fn put_stream(&self, reader: &mut (dyn tokio::io::AsyncRead + Unpin + Send)) -> PlazaResult<ContentHash> {
+    async fn put_stream(
+        &self,
+        reader: &mut (dyn tokio::io::AsyncRead + Unpin + Send),
+    ) -> PlazaResult<ContentHash> {
         let temp_dir = self.temp_dir();
         // create temp file
         let temp_id = uuid::Uuid::new_v4().to_string();
         let temp_path = temp_dir.join(&temp_id);
 
         let mut file = fs::File::create(&temp_path).await.map_err(PlazaError::Io)?;
-        
+
         let mut hasher = Sha256::new();
         let mut buffer = vec![0u8; 8192];
-        
+
         loop {
             let n = reader.read(&mut buffer).await.map_err(PlazaError::Io)?;
             if n == 0 {

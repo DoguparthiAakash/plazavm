@@ -134,5 +134,3 @@ impl PalSecurity for DefaultPalSecurity {
         Ok(())
     }
 }
-
-

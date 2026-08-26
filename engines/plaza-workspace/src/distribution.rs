@@ -5,7 +5,9 @@ use async_trait::async_trait;
 pub enum DistributionError {
     #[error("Unsupported engine distribution: {0}")]
     UnsupportedDistribution(String),
-    #[error("Image building capability is unavailable for this engine. Pre-built images are required.")]
+    #[error(
+        "Image building capability is unavailable for this engine. Pre-built images are required."
+    )]
     ImageBuildUnavailable,
 }
 
@@ -22,17 +24,26 @@ pub struct WorkspaceImageBuildPlan {
 pub trait EngineDistribution: Send + Sync {
     /// Validate the spec and produce a logical build plan.
     /// Returns `ImageBuildUnavailable` instead of actually executing host commands.
-    async fn resolve_build_plan(&self, spec: &WorkspaceImageSpec) -> Result<WorkspaceImageBuildPlan, DistributionError>;
+    async fn resolve_build_plan(
+        &self,
+        spec: &WorkspaceImageSpec,
+    ) -> Result<WorkspaceImageBuildPlan, DistributionError>;
 }
 
 pub struct AlpineEngine;
 
 #[async_trait]
 impl EngineDistribution for AlpineEngine {
-    async fn resolve_build_plan(&self, spec: &WorkspaceImageSpec) -> Result<WorkspaceImageBuildPlan, DistributionError> {
-        let base = spec.base_image.clone().unwrap_or_else(|| "alpine:latest".to_string());
+    async fn resolve_build_plan(
+        &self,
+        spec: &WorkspaceImageSpec,
+    ) -> Result<WorkspaceImageBuildPlan, DistributionError> {
+        let base = spec
+            .base_image
+            .clone()
+            .unwrap_or_else(|| "alpine:latest".to_string());
         let mut commands = Vec::new();
-        
+
         if !spec.packages.is_empty() || !spec.tools.is_empty() {
             let mut pkgs = spec.packages.clone();
             pkgs.extend(spec.tools.clone());
@@ -51,8 +62,13 @@ pub struct FedoraEngine;
 
 #[async_trait]
 impl EngineDistribution for FedoraEngine {
-    async fn resolve_build_plan(&self, _spec: &WorkspaceImageSpec) -> Result<WorkspaceImageBuildPlan, DistributionError> {
-        Err(DistributionError::UnsupportedDistribution("fedora".to_string()))
+    async fn resolve_build_plan(
+        &self,
+        _spec: &WorkspaceImageSpec,
+    ) -> Result<WorkspaceImageBuildPlan, DistributionError> {
+        Err(DistributionError::UnsupportedDistribution(
+            "fedora".to_string(),
+        ))
     }
 }
 
@@ -60,8 +76,13 @@ pub struct ArchEngine;
 
 #[async_trait]
 impl EngineDistribution for ArchEngine {
-    async fn resolve_build_plan(&self, _spec: &WorkspaceImageSpec) -> Result<WorkspaceImageBuildPlan, DistributionError> {
-        Err(DistributionError::UnsupportedDistribution("arch".to_string()))
+    async fn resolve_build_plan(
+        &self,
+        _spec: &WorkspaceImageSpec,
+    ) -> Result<WorkspaceImageBuildPlan, DistributionError> {
+        Err(DistributionError::UnsupportedDistribution(
+            "arch".to_string(),
+        ))
     }
 }
 
@@ -74,6 +95,8 @@ pub fn get_engine(distribution: &str) -> Result<Box<dyn EngineDistribution>, Dis
     } else if distribution.starts_with("arch") {
         Ok(Box::new(ArchEngine))
     } else {
-        Err(DistributionError::UnsupportedDistribution(distribution.to_string()))
+        Err(DistributionError::UnsupportedDistribution(
+            distribution.to_string(),
+        ))
     }
 }

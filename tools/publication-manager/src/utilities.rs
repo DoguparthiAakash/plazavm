@@ -1,10 +1,13 @@
-use std::process::Command;
 use colored::*;
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 
 pub async fn clean() -> anyhow::Result<()> {
-    println!("{}", "Cleaning PlazaVM developer workspace...".bold().blue());
+    println!(
+        "{}",
+        "Cleaning PlazaVM developer workspace...".bold().blue()
+    );
 
     // 1. Cargo clean
     println!("{} Cleaning Cargo target...", "→".cyan());

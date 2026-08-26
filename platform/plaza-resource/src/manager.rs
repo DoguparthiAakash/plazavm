@@ -124,4 +124,3 @@ impl ResourceManager {
         self.allocations.read().await.values().cloned().collect()
     }
 }
-

@@ -46,7 +46,11 @@ pub trait RuntimeBackend: Send + Sync {
     ///
     /// The runtime engine does NOT parse user YAML. It receives a strongly-typed
     /// and pre-validated `MachineConfig` from the policy engine.
-    async fn create(&self, machine: &crate::machine::MachineConfig, storage: crate::storage::RuntimeStorage) -> PlazaResult<RuntimeInstance>;
+    async fn create(
+        &self,
+        machine: &crate::machine::MachineConfig,
+        storage: crate::storage::RuntimeStorage,
+    ) -> PlazaResult<RuntimeInstance>;
 
     /// Start a previously created instance.
     async fn start(&self, instance_id: &str) -> PlazaResult<()>;
@@ -135,4 +139,3 @@ pub trait RuntimeBackend: Send + Sync {
         })
     }
 }
-

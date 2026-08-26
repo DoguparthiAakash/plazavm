@@ -8,4 +8,3 @@ pub mod repository;
 
 pub use event_store::SqliteEventStore;
 pub use repository::SqliteWorkspaceRepository;
-

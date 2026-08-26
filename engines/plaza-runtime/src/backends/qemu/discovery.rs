@@ -9,7 +9,7 @@ use std::process::Command;
 /// Ensures the executable is present and functioning.
 pub fn discover_qemu(arch: &str) -> PlazaResult<PathBuf> {
     let binary_name = format!("qemu-system-{}", arch);
-    
+
     // Check if the binary is in PATH
     let output = Command::new(&binary_name)
         .arg("--version")

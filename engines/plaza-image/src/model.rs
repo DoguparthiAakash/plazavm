@@ -65,7 +65,7 @@ impl FromStr for ContentHash {
         if parts.len() != 2 {
             return Err(ContentHashError::InvalidFormat);
         }
-        
+
         let alg = match parts[0] {
             "sha256" => HashAlgorithm::Sha256,
             other => return Err(ContentHashError::UnsupportedAlgorithm(other.to_string())),

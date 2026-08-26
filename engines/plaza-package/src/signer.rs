@@ -14,6 +14,8 @@ impl PackageSigner {
     }
 
     pub async fn sign(&self, _data: &[u8]) -> PlazaResult<Vec<u8>> {
-        Err(plaza_foundation::core::PlazaError::storage("Package signing not implemented for DP1"))
+        Err(plaza_foundation::core::PlazaError::storage(
+            "Package signing not implemented for DP1",
+        ))
     }
 }

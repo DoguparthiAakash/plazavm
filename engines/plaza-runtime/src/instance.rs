@@ -120,7 +120,10 @@ impl ConsoleStream {
     }
 
     /// Send a command string to the guest.
-    pub async fn send(&self, data: String) -> Result<(), tokio::sync::mpsc::error::SendError<String>> {
+    pub async fn send(
+        &self,
+        data: String,
+    ) -> Result<(), tokio::sync::mpsc::error::SendError<String>> {
         self.tx.send(data).await
     }
 
@@ -130,4 +133,3 @@ impl ConsoleStream {
         self.rx.lock().await.recv().await
     }
 }
-

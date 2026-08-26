@@ -100,7 +100,7 @@ impl QmpClient {
             .map_err(|e| PlazaError::process(format!("QMP cap read error: {}", e)))?;
 
         debug!("QMP Cap Response: {}", cap_resp.trim());
-        
+
         self.stream = Some(reader.into_inner());
 
         Ok(())

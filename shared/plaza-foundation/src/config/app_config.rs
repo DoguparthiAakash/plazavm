@@ -57,5 +57,3 @@ impl PlazaConfig {
         toml::from_str(content).map_err(|e| crate::core::PlazaError::Config(e.to_string()))
     }
 }
-
-

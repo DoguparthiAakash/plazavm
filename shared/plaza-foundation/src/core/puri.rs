@@ -111,5 +111,3 @@ mod tests {
         assert_eq!(uri.to_string(), "plaza://workspace/my-ai-lab?env=prod#main");
     }
 }
-
-

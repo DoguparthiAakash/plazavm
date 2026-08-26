@@ -73,4 +73,3 @@ impl Default for VirtualHardwareProfile {
         Self::for_kind(HardwareProfileKind::Desktop)
     }
 }
-

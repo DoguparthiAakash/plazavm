@@ -1,11 +1,11 @@
 use super::builder::WorkspaceBuilder;
-use super::model::{Workspace, WorkspaceSpec, WorkspaceImageSpec};
+use super::model::{Workspace, WorkspaceImageSpec, WorkspaceSpec};
 use crate::distribution::{get_engine, DistributionError};
-use plaza_foundation::core::{PlazaError, PlazaResult};
 use plaza_foundation::config::PlazaYaml;
+use plaza_foundation::core::{PlazaError, PlazaResult};
 use std::path::PathBuf;
-use tracing::{info, debug, error};
 use std::sync::Arc;
+use tracing::{debug, error, info};
 
 #[derive(Debug)]
 pub enum BuilderStage {
@@ -28,10 +28,10 @@ impl TransactionalPipelineBuilder {
         image_manager: Arc<plaza_image::ImageManager>,
     ) -> Result<String, PlazaError> {
         debug!("Provisioning workspace image from PlazaYaml");
-        
+
         let spec = WorkspaceImageSpec::from_yaml(yaml);
         let id = spec.compute_identity();
-        
+
         info!("Calculated Workspace Image ID: {}", id);
 
         // Check if image exists in registry/cache
@@ -41,9 +41,8 @@ impl TransactionalPipelineBuilder {
         }
 
         // Image doesn't exist, we need to build it.
-        let engine = get_engine(&spec.engine_distribution).map_err(|e| {
-            PlazaError::config(format!("Unsupported distribution: {}", e))
-        })?;
+        let engine = get_engine(&spec.engine_distribution)
+            .map_err(|e| PlazaError::config(format!("Unsupported distribution: {}", e)))?;
 
         let plan = engine.resolve_build_plan(&spec).await.map_err(|e| match e {
             DistributionError::ImageBuildUnavailable => {
@@ -53,12 +52,9 @@ impl TransactionalPipelineBuilder {
         })?;
 
         info!("Cold Cache Miss: Workspace image {} is missing. Acquiring/Building via userspace builder...", id);
-        
-        let new_id = crate::image::builder::UserspaceImageBuilder::build(
-            &id,
-            plan,
-            image_manager,
-        ).await?;
+
+        let new_id =
+            crate::image::builder::UserspaceImageBuilder::build(&id, plan, image_manager).await?;
 
         Ok(new_id)
     }
@@ -72,10 +68,10 @@ impl TransactionalPipelineBuilder {
 
         // Stage 1: Filesystem Layout
         Self::execute_stage(BuilderStage::Filesystem)?;
-        
+
         // Stage 2: Security & Capability Enforcement
         Self::execute_stage(BuilderStage::Security)?;
-        
+
         // Let the WorkspaceBuilder do the filesystem layout for DP1
         let (workspace, path) = WorkspaceBuilder::build(name_str, spec, None)?;
 
@@ -88,7 +84,10 @@ impl TransactionalPipelineBuilder {
         // Stage 5: Validation
         Self::execute_stage(BuilderStage::Validation)?;
 
-        info!("Workspace pipeline completed successfully for '{}'", workspace.name);
+        info!(
+            "Workspace pipeline completed successfully for '{}'",
+            workspace.name
+        );
         Ok((workspace, path))
     }
 

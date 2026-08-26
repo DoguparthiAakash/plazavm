@@ -96,9 +96,10 @@ impl FileTree {
             }
 
             let node = &self.nodes[current];
-            let found = node.children.iter().find(|&&child_idx| {
-                self.nodes[child_idx].name == name
-            });
+            let found = node
+                .children
+                .iter()
+                .find(|&&child_idx| self.nodes[child_idx].name == name);
 
             match found {
                 Some(&child_idx) => current = child_idx,

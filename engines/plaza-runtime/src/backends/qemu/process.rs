@@ -9,7 +9,7 @@ use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::mpsc;
-use tracing::{info, warn, debug};
+use tracing::{debug, info, warn};
 
 /// Represents a running QEMU process.
 pub struct QemuProcess {
@@ -26,7 +26,7 @@ impl QemuProcess {
         let listener = TcpListener::bind("127.0.0.1:0")
             .map_err(|e| PlazaError::process(format!("Failed to bind QMP port: {}", e)))?;
         let port = listener.local_addr().unwrap().port();
-        
+
         // We must drop the listener so QEMU can bind to it
         drop(listener);
         let socket_addr: SocketAddr = format!("127.0.0.1:{}", port).parse().unwrap();
@@ -37,8 +37,9 @@ impl QemuProcess {
         let (mut binary, mut args) = adapter.into_command();
         args.push("-qmp".into());
         args.push(qmp_arg.into());
-        
-        let serial_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await
+
+        let serial_listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
             .map_err(|e| PlazaError::process(format!("Failed to bind serial port: {}", e)))?;
         let serial_port = serial_listener.local_addr().unwrap().port();
         args.push("-serial".into());
@@ -55,22 +56,28 @@ impl QemuProcess {
             .map_err(|e| PlazaError::process(format!("Failed to spawn QEMU: {}", e)))?;
 
         // Wait for serial connection from QEMU
-        let (serial_stream, _) = tokio::time::timeout(Duration::from_secs(10), serial_listener.accept()).await
-            .map_err(|_| PlazaError::process("QEMU did not connect to serial port in time"))?
-            .map_err(|e| PlazaError::process(format!("Failed to accept serial connection: {}", e)))?;
-            
+        let (serial_stream, _) =
+            tokio::time::timeout(Duration::from_secs(10), serial_listener.accept())
+                .await
+                .map_err(|_| PlazaError::process("QEMU did not connect to serial port in time"))?
+                .map_err(|e| {
+                    PlazaError::process(format!("Failed to accept serial connection: {}", e))
+                })?;
+
         let (mut serial_rx, serial_tx) = serial_stream.into_split();
 
         // Monitor stdout for PLAZA_GUEST_READY
         let stdout = child.stdout.take().unwrap();
         let stderr = child.stderr.take().unwrap();
         let (ready_tx, ready_rx) = mpsc::channel(1);
-        
+
         tokio::spawn(async move {
             let mut buf = [0u8; 1024];
             let mut line_buf = String::new();
             while let Ok(n) = tokio::io::AsyncReadExt::read(&mut serial_rx, &mut buf).await {
-                if n == 0 { break; }
+                if n == 0 {
+                    break;
+                }
                 let chunk = String::from_utf8_lossy(&buf[..n]);
                 print!("{}", chunk);
                 debug!("QEMU output: {}", chunk);
@@ -100,7 +107,7 @@ impl QemuProcess {
         });
 
         let mut qmp = QmpClient::new(socket_addr);
-        
+
         // Try connecting to QMP with timeout
         match tokio::time::timeout(Duration::from_secs(10), qmp.connect()).await {
             Ok(Ok(_)) => {
@@ -116,7 +123,12 @@ impl QemuProcess {
             }
         }
 
-        Ok(Self { child, qmp, ready_rx: Some(ready_rx), serial_tx: Some(serial_tx) })
+        Ok(Self {
+            child,
+            qmp,
+            ready_rx: Some(ready_rx),
+            serial_tx: Some(serial_tx),
+        })
     }
 
     /// Wait for the PLAZA_GUEST_READY marker from the serial output.
@@ -155,11 +167,14 @@ impl QemuProcess {
         // Try to powerdown first for graceful OS shutdown, then quit
         let _ = self.qmp.system_powerdown().await;
         let _ = self.qmp.quit().await;
-        
+
         // Wait for process to exit
         match tokio::time::timeout(Duration::from_secs(5), self.child.wait()).await {
             Ok(Ok(_)) => Ok(()),
-            Ok(Err(e)) => Err(PlazaError::process(format!("Failed to wait on QEMU: {}", e))),
+            Ok(Err(e)) => Err(PlazaError::process(format!(
+                "Failed to wait on QEMU: {}",
+                e
+            ))),
             Err(_) => {
                 warn!("QEMU did not exit gracefully, force killing");
                 let _ = self.child.kill().await;
@@ -176,9 +191,10 @@ impl QemuProcess {
     /// Forcefully kill the process.
     pub async fn force_kill(&mut self) -> PlazaResult<()> {
         warn!("Force killing QEMU process");
-        self.child.kill().await.map_err(|e| {
-            PlazaError::process(format!("Failed to kill QEMU process: {}", e))
-        })
+        self.child
+            .kill()
+            .await
+            .map_err(|e| PlazaError::process(format!("Failed to kill QEMU process: {}", e)))
     }
 
     /// Get the OS process ID.

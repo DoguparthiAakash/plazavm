@@ -30,4 +30,3 @@ fn test_runtime_spec_defaults() {
     assert_eq!(spec.runtime.kind, RuntimeKind::Container);
     assert_eq!(spec.runtime.backend, RuntimeBackendPreference::Auto);
 }
-

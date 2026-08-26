@@ -58,25 +58,17 @@ pub fn validate_transition(from: WorkspaceState, to: WorkspaceState) -> PlazaRes
         ),
         WorkspaceState::Running => matches!(
             to,
-            WorkspaceState::Paused
-                | WorkspaceState::Stopping
-                | WorkspaceState::Error
+            WorkspaceState::Paused | WorkspaceState::Stopping | WorkspaceState::Error
         ),
         WorkspaceState::Paused => matches!(
             to,
-            WorkspaceState::Running
-                | WorkspaceState::Stopping
-                | WorkspaceState::Error
+            WorkspaceState::Running | WorkspaceState::Stopping | WorkspaceState::Error
         ),
-        WorkspaceState::Stopping => matches!(
-            to,
-            WorkspaceState::Stopped | WorkspaceState::Error
-        ),
-        WorkspaceState::Error => matches!(
-            to,
-            WorkspaceState::Stopped | WorkspaceState::Destroying
-        ),
-        WorkspaceState::Destroying => matches!(to, WorkspaceState::Destroyed | WorkspaceState::Error),
+        WorkspaceState::Stopping => matches!(to, WorkspaceState::Stopped | WorkspaceState::Error),
+        WorkspaceState::Error => matches!(to, WorkspaceState::Stopped | WorkspaceState::Destroying),
+        WorkspaceState::Destroying => {
+            matches!(to, WorkspaceState::Destroyed | WorkspaceState::Error)
+        }
         WorkspaceState::Destroyed => false, // Terminal state — no transitions out.
     };
 

@@ -12,7 +12,7 @@ impl SystemTrayManager {
     pub fn new() -> Self {
         Self
     }
-    
+
     pub fn build_tray(&self) -> PlazaResult<()> {
         Ok(()) // DP1 Stub
     }

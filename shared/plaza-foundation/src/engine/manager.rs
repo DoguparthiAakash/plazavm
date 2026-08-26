@@ -10,7 +10,7 @@ use tracing::{info, warn};
 pub trait Engine: Send + Sync {
     fn name(&self) -> &'static str;
     fn dependencies(&self) -> Vec<&'static str>;
-    
+
     async fn initialize(&self) -> PfeResult<()>;
     async fn start(&self) -> PfeResult<()>;
     async fn stop(&self) -> PfeResult<()>;
@@ -18,7 +18,7 @@ pub trait Engine: Send + Sync {
     async fn reload(&self) -> PfeResult<()>;
     async fn recover(&self) -> PfeResult<()>;
     async fn shutdown(&self) -> PfeResult<()>;
-    
+
     async fn health(&self) -> PfeResult<String>;
     async fn metrics(&self) -> PfeResult<HashMap<String, String>>;
     async fn diagnostics(&self) -> PfeResult<Vec<String>>;
@@ -60,7 +60,7 @@ impl EngineManager {
     /// (In a complete implementation, this performs topological sort based on `dependencies()`).
     pub async fn start_all(&self) -> PfeResult<()> {
         let reg = self.engines.read().await;
-        
+
         info!("EngineManager: Initializing all engines...");
         for (name, engine) in reg.iter() {
             engine.initialize().await?;
@@ -76,11 +76,11 @@ impl EngineManager {
         Ok(())
     }
 
-
-
-
     /// Invokes register_services on all registered engines
-    pub async fn invoke_service_registration(&self, registry: &mut crate::engine::registry::ServiceRegistry) {
+    pub async fn invoke_service_registration(
+        &self,
+        registry: &mut crate::engine::registry::ServiceRegistry,
+    ) {
         let reg = self.engines.read().await;
         for engine in reg.values() {
             engine.register_services(registry);

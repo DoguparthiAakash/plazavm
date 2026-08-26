@@ -11,6 +11,6 @@ pub use priority::WorkspacePriority;
 pub use vhal::{HardwareProfileKind, VirtualHardwareProfile};
 pub mod cgroups;
 pub mod cpu;
-pub mod memory;
 pub mod io;
+pub mod memory;
 pub mod numa;

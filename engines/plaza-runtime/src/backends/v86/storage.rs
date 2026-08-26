@@ -3,8 +3,8 @@
 //! This module bridges WebAssembly linear memory operations (like `mmap_read8`,
 //! `mmap_write8`) to the PlazaVM `VirtualBlockDevice`.
 
-use plaza_foundation::core::PlazaResult;
 use crate::storage::RuntimeStorage;
+use plaza_foundation::core::PlazaResult;
 
 /// A bridge layer to translate WASM memory calls into block device calls.
 pub struct WasmMemoryBridge {
@@ -22,7 +22,7 @@ impl WasmMemoryBridge {
         // v86 memory translation is currently stubbed until Wasmtime async Config is enabled.
         // This validates the architecture boundary required by Phase 14.
         let buffer = vec![0u8; size];
-        
+
         Ok(buffer)
     }
 

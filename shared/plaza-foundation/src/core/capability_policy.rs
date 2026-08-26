@@ -64,7 +64,7 @@ impl CapabilityPolicy {
         };
 
         let filesystem = Self::resolve_filesystem(grants, workspace_dir)?;
-        
+
         let network = grants
             .network
             .as_ref()
@@ -121,13 +121,15 @@ impl CapabilityPolicy {
         if let Some(fs_grants) = &grants.filesystem {
             for grant in fs_grants {
                 let joined_path = workspace_dir.join(&grant.path);
-                
+
                 // std::fs::canonicalize requires the path to exist on disk.
                 // For DP1, we assume the paths must exist if they are granted.
-                let canonical_path = std::fs::canonicalize(&joined_path)
-                    .map_err(|e| crate::core::PlazaError::config(format!(
-                        "failed to resolve path '{}': {}", grant.path, e
-                    )))?;
+                let canonical_path = std::fs::canonicalize(&joined_path).map_err(|e| {
+                    crate::core::PlazaError::config(format!(
+                        "failed to resolve path '{}': {}",
+                        grant.path, e
+                    ))
+                })?;
 
                 resolved.push(ResolvedFilesystemGrant {
                     host_path: canonical_path,

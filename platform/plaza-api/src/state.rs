@@ -20,7 +20,6 @@ pub struct AppState {
     pub workspace_service: Arc<WorkspaceService>,
     pub resource_manager: Arc<ResourceManager>,
 
-
     pub image_registry: Arc<RuntimeImageRegistry>,
     pub template_registry: Arc<WorkspaceTemplateRegistry>,
 }
@@ -37,10 +36,8 @@ impl AppState {
             workspace_service: container.workspace_service.clone(),
             resource_manager: container.resource_manager.clone(),
 
-
             image_registry: container.image_registry.clone(),
             template_registry: container.template_registry.clone(),
         })
     }
 }
-

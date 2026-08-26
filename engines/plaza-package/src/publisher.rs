@@ -14,6 +14,8 @@ impl PackagePublisher {
     }
 
     pub async fn publish(&self, _manifest: &crate::model::PackageManifest) -> PlazaResult<()> {
-        Err(plaza_foundation::core::PlazaError::storage("Package publishing not implemented for DP1"))
+        Err(plaza_foundation::core::PlazaError::storage(
+            "Package publishing not implemented for DP1",
+        ))
     }
 }

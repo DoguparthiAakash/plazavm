@@ -9,12 +9,22 @@ pub struct ImportExportManager {
 
 impl ImportExportManager {
     pub fn new(workspace_dir: PathBuf) -> Self {
-        Self { _workspace_dir: workspace_dir }
+        Self {
+            _workspace_dir: workspace_dir,
+        }
     }
 
     /// Exports a workspace to a portable archive format
-    pub async fn export_workspace(&self, workspace: &Workspace, destination: PathBuf) -> PlazaResult<()> {
-        info!("Exporting workspace {} to {}", workspace.name, destination.display());
+    pub async fn export_workspace(
+        &self,
+        workspace: &Workspace,
+        destination: PathBuf,
+    ) -> PlazaResult<()> {
+        info!(
+            "Exporting workspace {} to {}",
+            workspace.name,
+            destination.display()
+        );
         // In DP1, we just simulate the export process
         let export_metadata = format!("Exported: {}\nID: {}", workspace.name, workspace.id);
         std::fs::write(&destination, export_metadata)
@@ -26,10 +36,15 @@ impl ImportExportManager {
     pub async fn import_workspace(&self, source_archive: PathBuf) -> PlazaResult<Workspace> {
         info!("Importing workspace from {}", source_archive.display());
         if !source_archive.exists() {
-            return Err(PlazaError::storage(format!("Source archive not found: {}", source_archive.display())));
+            return Err(PlazaError::storage(format!(
+                "Source archive not found: {}",
+                source_archive.display()
+            )));
         }
-        
+
         // Simulate reading the archive and creating a workspace structure
-        Err(PlazaError::storage("Import logic is not fully implemented in DP1"))
+        Err(PlazaError::storage(
+            "Import logic is not fully implemented in DP1",
+        ))
     }
 }

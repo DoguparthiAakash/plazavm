@@ -12,7 +12,7 @@ impl ClipboardSync {
     pub fn new() -> Self {
         Self
     }
-    
+
     pub async fn sync(&self) -> PlazaResult<()> {
         Ok(()) // DP1 Stub
     }

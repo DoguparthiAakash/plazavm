@@ -152,5 +152,3 @@ pub struct RuntimeHealthReport {
     pub gpu_ready: bool,
     pub snapshot_capable: bool,
 }
-
-

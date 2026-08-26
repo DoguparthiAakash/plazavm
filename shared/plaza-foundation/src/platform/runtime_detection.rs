@@ -5,4 +5,3 @@
 //! scoring, and dependency checking.
 
 pub use super::capabilities::{InstalledRuntime, RuntimeHealthReport};
-

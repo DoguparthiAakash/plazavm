@@ -134,4 +134,3 @@ mod tests {
         assert!(metadata_dir().starts_with(&base));
     }
 }
-

@@ -125,12 +125,8 @@ impl ExtendedAttribute {
         let full_words = value.len() / 4;
         for i in 0..full_words {
             let off = i * 4;
-            let word = u32::from_le_bytes([
-                value[off],
-                value[off + 1],
-                value[off + 2],
-                value[off + 3],
-            ]);
+            let word =
+                u32::from_le_bytes([value[off], value[off + 1], value[off + 2], value[off + 3]]);
             h = (h << VALUE_HASH_SHIFT) ^ (h >> (8 * 4 - VALUE_HASH_SHIFT)) ^ word;
         }
 
@@ -293,7 +289,8 @@ impl XattrState {
         // Sort attributes by (index, name_len, name) for deterministic output.
         let mut sorted: Vec<&ExtendedAttribute> = self.block_attrs.iter().collect();
         sorted.sort_by(|a, b| {
-            a.index.cmp(&b.index)
+            a.index
+                .cmp(&b.index)
                 .then_with(|| a.name.len().cmp(&b.name.len()))
                 .then_with(|| a.name.cmp(&b.name))
         });
@@ -415,10 +412,7 @@ mod tests {
             "system.posix_acl_access"
         );
         // Unknown index returns suffix as-is.
-        assert_eq!(
-            ExtendedAttribute::decompress_name(99, "foo"),
-            "foo"
-        );
+        assert_eq!(ExtendedAttribute::decompress_name(99, "foo"), "foo");
     }
 
     #[test]
@@ -500,10 +494,7 @@ mod tests {
         for full_name in names {
             let (idx, suffix) = ExtendedAttribute::compress_name(full_name);
             let reconstructed = ExtendedAttribute::decompress_name(idx, &suffix);
-            assert_eq!(
-                reconstructed, full_name,
-                "roundtrip failed for {full_name}"
-            );
+            assert_eq!(reconstructed, full_name, "roundtrip failed for {full_name}");
         }
     }
 

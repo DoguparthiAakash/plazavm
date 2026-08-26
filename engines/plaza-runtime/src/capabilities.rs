@@ -91,4 +91,3 @@ impl RuntimeCapabilities {
         self.custom.contains_key(name)
     }
 }
-

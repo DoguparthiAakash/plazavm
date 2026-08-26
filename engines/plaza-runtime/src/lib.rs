@@ -10,18 +10,19 @@
 //! making it possible to add new backends without modifying core code.
 
 mod backend;
+pub mod backends;
 mod capabilities;
 mod instance;
 mod machine;
-pub mod resolver;
-pub mod storage;
 mod manager;
-pub mod backends;
+pub mod resolver;
+pub mod runtime;
+pub mod storage;
 
 pub use backend::RuntimeBackend;
 pub use capabilities::RuntimeCapabilities;
 pub use instance::{ConsoleStream, RuntimeInstance, RuntimeMetrics, RuntimeStatus, SnapshotInfo};
 pub use machine::{MachineConfig, OperatingSystemTarget};
 pub use manager::RuntimeManager;
+pub use runtime::{GuestRuntime, GuestRuntimeKind, GuestRuntimeParams, ResolvedArtifacts};
 pub use storage::RuntimeStorage;
-

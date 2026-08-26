@@ -163,10 +163,7 @@ impl CapabilityGrants {
 
     /// Returns `true` if network access is explicitly enabled.
     pub fn has_network(&self) -> bool {
-        self.network
-            .as_ref()
-            .map(|n| n.enabled)
-            .unwrap_or(false)
+        self.network.as_ref().map(|n| n.enabled).unwrap_or(false)
     }
 
     /// Returns `true` if any clipboard access is granted.

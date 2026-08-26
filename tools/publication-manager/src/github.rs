@@ -1,8 +1,17 @@
-use std::process::Command;
 use colored::*;
+use std::process::Command;
 
-pub async fn publish(dry_run: bool, stage: Option<String>, repo: Option<String>) -> anyhow::Result<()> {
-    println!("{}", "Starting PlazaVM GitHub Publication Pipeline...".bold().blue());
+pub async fn publish(
+    dry_run: bool,
+    stage: Option<String>,
+    repo: Option<String>,
+) -> anyhow::Result<()> {
+    println!(
+        "{}",
+        "Starting PlazaVM GitHub Publication Pipeline..."
+            .bold()
+            .blue()
+    );
 
     if dry_run {
         println!("{} Running in DRY RUN mode", "ℹ".cyan());
@@ -16,11 +25,21 @@ pub async fn publish(dry_run: bool, stage: Option<String>, repo: Option<String>)
 
     // Temporarily wrap the existing publish-all-to-github.ps1 logic
     let status = Command::new("powershell.exe")
-        .args(["-ExecutionPolicy", "Bypass", "-File", "publish-all-to-github.ps1"])
+        .args([
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            "publish-all-to-github.ps1",
+        ])
         .status()?;
 
     if status.success() {
-        println!("{}", "Publication Pipeline completed successfully!".bold().green());
+        println!(
+            "{}",
+            "Publication Pipeline completed successfully!"
+                .bold()
+                .green()
+        );
     } else {
         println!("{}", "Publication Pipeline failed.".bold().red());
         anyhow::bail!("Publication failed");

@@ -188,21 +188,42 @@ mod tests {
 
         // Write "." entry.
         write_dir_entry(
-            &mut buf, ".", 2, file_mode::S_IFDIR | 0o755,
-            None, None, block_size, &mut left,
-        ).unwrap();
+            &mut buf,
+            ".",
+            2,
+            file_mode::S_IFDIR | 0o755,
+            None,
+            None,
+            block_size,
+            &mut left,
+        )
+        .unwrap();
 
         // Write ".." entry.
         write_dir_entry(
-            &mut buf, "..", 2, file_mode::S_IFDIR | 0o755,
-            None, None, block_size, &mut left,
-        ).unwrap();
+            &mut buf,
+            "..",
+            2,
+            file_mode::S_IFDIR | 0o755,
+            None,
+            None,
+            block_size,
+            &mut left,
+        )
+        .unwrap();
 
         // Write a regular file entry.
         write_dir_entry(
-            &mut buf, "hello.txt", 11, file_mode::S_IFREG | 0o644,
-            None, None, block_size, &mut left,
-        ).unwrap();
+            &mut buf,
+            "hello.txt",
+            11,
+            file_mode::S_IFREG | 0o644,
+            None,
+            None,
+            block_size,
+            &mut left,
+        )
+        .unwrap();
 
         // Finish the block.
         finish_dir_entry_block(&mut buf, &mut left, block_size).unwrap();
@@ -239,10 +260,16 @@ mod tests {
         // Write a hard link entry: display name "link.txt", but pointing to inode 42
         // which is a regular file.
         write_dir_entry(
-            &mut buf, "link.txt", 99, file_mode::S_IFREG | 0o644,
-            Some(42), Some(file_mode::S_IFREG | 0o644),
-            block_size, &mut left,
-        ).unwrap();
+            &mut buf,
+            "link.txt",
+            99,
+            file_mode::S_IFREG | 0o644,
+            Some(42),
+            Some(file_mode::S_IFREG | 0o644),
+            block_size,
+            &mut left,
+        )
+        .unwrap();
 
         finish_dir_entry_block(&mut buf, &mut left, block_size).unwrap();
 

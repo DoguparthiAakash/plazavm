@@ -2,12 +2,12 @@
 
 use super::evidence::EvidenceCollector;
 use super::{StageResult, StageStatus};
-use std::time::Instant;
 use plaza_api::bootstrap::BootstrapBuilder;
 use plaza_foundation::config::workspace_config::PlazaYaml;
 use plaza_foundation::events::PlazaEvent;
 use plaza_workspace::model::{DesiredState, WorkspaceSpec, WorkspaceState};
 use std::sync::Arc;
+use std::time::Instant;
 pub struct StageExecutor;
 
 impl StageExecutor {
@@ -549,11 +549,17 @@ impl StageExecutor {
         let details = vec![
             format!(
                 "Container Spec -> Selected Backend: '{}' (Reasoning: {})",
-                dec1["selected_backend"]["backend_id"].as_str().unwrap_or(""), dec1["selected_backend"]["reason"].as_str().unwrap_or("")
+                dec1["selected_backend"]["backend_id"]
+                    .as_str()
+                    .unwrap_or(""),
+                dec1["selected_backend"]["reason"].as_str().unwrap_or("")
             ),
             format!(
                 "VirtualMachine Spec -> Selected Backend: '{}' (Reasoning: {})",
-                dec2["selected_backend"]["backend_id"].as_str().unwrap_or(""), dec2["selected_backend"]["reason"].as_str().unwrap_or("")
+                dec2["selected_backend"]["backend_id"]
+                    .as_str()
+                    .unwrap_or(""),
+                dec2["selected_backend"]["reason"].as_str().unwrap_or("")
             ),
         ];
 
@@ -638,7 +644,7 @@ impl StageExecutor {
             serde_json::json!({"id": "virtualbox", "display_name": "VirtualBox", "manifest_name": "VirtualBox", "version": "1.0.0", "capabilities": ["Execute"]}),
             serde_json::json!({"id": "qemu", "display_name": "QEMU", "manifest_name": "QEMU", "version": "1.0.0", "capabilities": ["Execute"]}),
             serde_json::json!({"id": "podman", "display_name": "Podman", "manifest_name": "Podman", "version": "1.0.0", "capabilities": ["Execute"]}),
-            serde_json::json!({"id": "hyperv", "display_name": "Hyper-V", "manifest_name": "Hyper-V", "version": "1.0.0", "capabilities": ["Execute"]})
+            serde_json::json!({"id": "hyperv", "display_name": "Hyper-V", "manifest_name": "Hyper-V", "version": "1.0.0", "capabilities": ["Execute"]}),
         ];
 
         let metrics = serde_json::json!({
@@ -1121,4 +1127,3 @@ intent:
         }
     }
 }
-

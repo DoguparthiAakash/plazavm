@@ -225,5 +225,3 @@ impl PlazaEvent {
         }
     }
 }
-
-

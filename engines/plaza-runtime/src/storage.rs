@@ -1,6 +1,6 @@
+use plaza_image::VirtualBlockDevice;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use plaza_image::VirtualBlockDevice;
 
 /// A runtime-facing handle/adapter over the underlying image/block storage.
 ///
@@ -11,7 +11,7 @@ use plaza_image::VirtualBlockDevice;
 pub struct RuntimeStorage {
     /// The underlying synchronized block device.
     pub device: Arc<Mutex<dyn VirtualBlockDevice>>,
-    
+
     /// The secondary workspace writable device.
     pub workspace_device: Option<Arc<Mutex<dyn VirtualBlockDevice>>>,
 }
@@ -24,7 +24,7 @@ impl RuntimeStorage {
             workspace_device: None,
         }
     }
-    
+
     /// Add a secondary workspace device.
     pub fn with_workspace_device<T: VirtualBlockDevice + 'static>(mut self, device: T) -> Self {
         self.workspace_device = Some(Arc::new(Mutex::new(device)));

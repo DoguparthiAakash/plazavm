@@ -24,7 +24,12 @@ fn div_ceil(n: u32, d: u32) -> u32 {
 /// Build extent leaves that cover `num_blocks` starting at physical block
 /// `start`, using at most `MAX_BLOCKS_PER_EXTENT` blocks per extent.
 /// `offset` is the starting logical block number.
-fn fill_extent_leaves(start: u32, num_blocks: u32, num_extents: u32, offset: u32) -> Vec<ExtentLeaf> {
+fn fill_extent_leaves(
+    start: u32,
+    num_blocks: u32,
+    num_extents: u32,
+    offset: u32,
+) -> Vec<ExtentLeaf> {
     let mut leaves = Vec::with_capacity(num_extents as usize);
     let mut remaining = num_blocks;
     let mut phys = start;
@@ -82,7 +87,15 @@ pub fn write_extents<W: Write + Seek>(
     } else {
         // Case: 5+ extents -- depth-1 tree with index entries in the inode
         // and leaf blocks written to the output.
-        write_indexed_extents(inode, blocks.start, data_blocks, num_extents, block_size, writer, current_block)?;
+        write_indexed_extents(
+            inode,
+            blocks.start,
+            data_blocks,
+            num_extents,
+            block_size,
+            writer,
+            current_block,
+        )?;
     }
 
     Ok(())
@@ -144,13 +157,17 @@ fn write_indexed_extents<W: Write + Seek>(
     // How many leaf entries fit in one extent block?
     // Block layout: header(12) + N * leaf(12) + tail(4).
     // N = (block_size - 12 - 4) / 12
-    let leaves_per_block = (block_size as usize - ExtentHeader::SIZE - ExtentTail::SIZE) / ExtentLeaf::SIZE;
+    let leaves_per_block =
+        (block_size as usize - ExtentHeader::SIZE - ExtentTail::SIZE) / ExtentLeaf::SIZE;
 
     // How many index blocks do we need?
     let num_index_blocks = div_ceil(num_extents, leaves_per_block as u32);
 
     // The inode can hold up to 4 index entries (same 60-byte limit).
-    debug_assert!(num_index_blocks <= 4, "files requiring >4 index blocks (depth>1) are not supported");
+    debug_assert!(
+        num_index_blocks <= 4,
+        "files requiring >4 index blocks (depth>1) are not supported"
+    );
 
     let all_leaves = fill_extent_leaves(start, data_blocks, num_extents, 0);
 
@@ -310,11 +327,13 @@ fn parse_depth1<R: Read + Seek>(
         let phys_block = index.leaf() as u64;
         let byte_offset = phys_block * block_size;
 
-        reader.seek(SeekFrom::Start(byte_offset))
+        reader
+            .seek(SeekFrom::Start(byte_offset))
             .map_err(|_| crate::error::ReadError::CouldNotReadBlock(phys_block as u32))?;
 
         let mut leaf_buf = vec![0u8; block_size as usize];
-        reader.read_exact(&mut leaf_buf)
+        reader
+            .read_exact(&mut leaf_buf)
             .map_err(|_| crate::error::ReadError::CouldNotReadBlock(phys_block as u32))?;
 
         let leaf_header = ExtentHeader::read_from(&leaf_buf);
@@ -373,7 +392,14 @@ mod tests {
         let mut cursor = Cursor::new(Vec::new());
         let mut current_block = 100u32;
 
-        write_extents(&mut inode, blocks, block_size, &mut cursor, &mut current_block).unwrap();
+        write_extents(
+            &mut inode,
+            blocks,
+            block_size,
+            &mut cursor,
+            &mut current_block,
+        )
+        .unwrap();
 
         // Should have written nothing to the cursor (all inline).
         assert_eq!(cursor.get_ref().len(), 0);
