@@ -236,23 +236,47 @@ impl RuntimeBackend for QemuPlugin {
             .ok_or_else(|| PlazaError::process("No machine config associated with instance"))?;
 
         // Configure adapter with machine config
-        let qemu_bin = if cfg!(windows) {
-            "plaza-qemu.exe"
-        } else {
-            "plaza-qemu"
+        let qemu_bin = match config.os_target {
+            crate::OperatingSystemTarget::Inferno => {
+                if cfg!(windows) {
+                    "qemu-system-i386.exe"
+                } else {
+                    "qemu-system-i386"
+                }
+            }
+            _ => {
+                if cfg!(windows) {
+                    "plaza-qemu.exe"
+                } else {
+                    "plaza-qemu"
+                }
+            }
         };
-        let qemu_path = std::env::current_exe()
-            .unwrap_or_else(|_| std::path::PathBuf::from("."))
-            .parent()
-            .unwrap_or_else(|| std::path::Path::new("."))
-            .join(qemu_bin);
+
+        // For standard QEMU binaries (qemu-system-i386), try PATH first, then fallback to local dir
+        let qemu_path = if qemu_bin.starts_with("qemu-") {
+            std::path::PathBuf::from(qemu_bin)
+        } else {
+            std::env::current_exe()
+                .unwrap_or_else(|_| std::path::PathBuf::from("."))
+                .parent()
+                .unwrap_or_else(|| std::path::Path::new("."))
+                .join(qemu_bin)
+        };
+        
         let mut adapter = adapter::QemuAdapter::new(qemu_path);
         adapter = adapter.apply_config(&config)?;
 
+        let drive_if = match config.os_target {
+            crate::OperatingSystemTarget::Inferno => "ide",
+            _ => "virtio",
+        };
+
         #[cfg(unix)]
         let drive_arg = format!(
-            "file=nbd+unix:///?socket={},format=raw",
-            socket_path.display()
+            "file=nbd+unix:///?socket={},format=raw,if={}",
+            socket_path.display(),
+            drive_if
         );
 
         #[cfg(windows)]
@@ -263,7 +287,7 @@ impl RuntimeBackend for QemuPlugin {
                     e
                 ))
             })?;
-            format!("file=nbd:127.0.0.1:{},format=raw,if=virtio", port_str)
+            format!("file=nbd:127.0.0.1:{},format=raw,if={}", port_str, drive_if)
         };
 
         // Add NBD drive parameter for base image (vda)
@@ -274,8 +298,9 @@ impl RuntimeBackend for QemuPlugin {
         if let Some(ws_socket_path) = workspace_socket_path {
             #[cfg(unix)]
             let ws_drive_arg = format!(
-                "file=nbd+unix:///?socket={},format=raw",
-                ws_socket_path.display()
+                "file=nbd+unix:///?socket={},format=raw,if={}",
+                ws_socket_path.display(),
+                drive_if
             );
 
             #[cfg(windows)]
@@ -289,7 +314,7 @@ impl RuntimeBackend for QemuPlugin {
                                 e
                             ))
                         })?;
-                format!("file=nbd:127.0.0.1:{},format=raw,if=virtio", ws_port_str)
+                format!("file=nbd:127.0.0.1:{},format=raw,if={}", ws_port_str, drive_if)
             };
 
             adapter.add_arg("-drive".into());
@@ -301,14 +326,20 @@ impl RuntimeBackend for QemuPlugin {
             adapter.add_arg("-drive".into());
             adapter.add_arg(
                 format!(
-                    "file={},format=raw,if=virtio,readonly=on",
-                    modloop.display()
+                    "file={},format=raw,if={},readonly=on",
+                    modloop.display(),
+                    drive_if
                 )
                 .into(),
             );
         }
 
-        let process = QemuProcess::spawn(adapter, instance_id).await?;
+        let readiness_marker = match config.os_target {
+            crate::OperatingSystemTarget::Inferno => "SUCCESS_INFERNO_GUEST_READY",
+            _ => plaza_machine::OS_READY_MARKER,
+        };
+
+        let process = QemuProcess::spawn(adapter, instance_id, readiness_marker).await?;
         entry.2 = Some(process);
         entry.0.status = RuntimeStatus::Running;
 

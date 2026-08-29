@@ -117,6 +117,7 @@ impl InfernoAcquisitionSource {
             PathBuf::from("/opt/inferno"),
             home_inferno,
             PathBuf::from("C:\\inferno"),
+            PathBuf::from("e:\\plazavm\\inferno-os"),
         ];
 
         let arch = Self::target_arch();
@@ -155,6 +156,7 @@ impl InfernoAcquisitionSource {
             PathBuf::from("/opt/inferno"),
             home_inferno,
             PathBuf::from("C:\\inferno"),
+            PathBuf::from("e:\\plazavm\\inferno-os"),
         ];
 
         for candidate in &candidates {

@@ -42,17 +42,6 @@ impl InfernoImageBuilder {
         kernel_path: PathBuf,
         image_manager: Arc<ImageManager>,
     ) -> PlazaResult<String> {
-        // Validate this is a real kernel, not a placeholder
-        if kernel_path.to_string_lossy().contains("placeholder") {
-            return Err(PlazaError::InfernoKernelUnavailable {
-                reason: format!(
-                    "Kernel at {:?} is a placeholder, not a real Inferno kernel. \
-                     Build with: ./scripts/build-inferno-kernel.sh",
-                    kernel_path
-                ),
-            });
-        }
-
         // Validate the kernel file exists and has reasonable size
         let metadata = tokio::fs::metadata(&kernel_path)
             .await
@@ -70,6 +59,29 @@ impl InfernoImageBuilder {
                     "Kernel at {:?} is too small ({} bytes). \
                      A real Inferno kernel should be at least 100KB.",
                     kernel_path, file_size
+                ),
+            });
+        }
+
+        // Validate this is a real kernel, not a placeholder, by checking ELF magic
+        use tokio::io::AsyncReadExt;
+        let mut file = tokio::fs::File::open(&kernel_path)
+            .await
+            .map_err(|e| PlazaError::InfernoKernelUnavailable {
+                reason: format!("Failed to open kernel at {:?}: {}", kernel_path, e),
+            })?;
+        let mut magic = [0u8; 4];
+        file.read_exact(&mut magic).await.map_err(|e| PlazaError::InfernoKernelUnavailable {
+            reason: format!("Failed to read kernel magic at {:?}: {}", kernel_path, e),
+        })?;
+        
+        if magic != [0x7F, b'E', b'L', b'F'] {
+            return Err(PlazaError::InfernoKernelUnavailable {
+                reason: format!(
+                    "Kernel at {:?} is not a valid ELF binary. \
+                     A real Inferno kernel is required. \
+                     Build with: ./scripts/build-inferno-kernel.sh",
+                    kernel_path
                 ),
             });
         }
@@ -186,7 +198,7 @@ mod tests {
 
         // Try to build with a placeholder kernel
         let placeholder_path = temp_dir.join("inferno-386-placeholder");
-        std::fs::write(&placeholder_path, b"#!/bin/sh\necho test").unwrap();
+        std::fs::write(&placeholder_path, vec![b'x'; 1024]).unwrap();
 
         let result = InfernoImageBuilder::build(
             "test-image",
@@ -201,7 +213,7 @@ mod tests {
 
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("placeholder"));
+        assert!(err.to_string().contains("ELF binary"));
 
         // Cleanup
         std::fs::remove_file(&placeholder_path).unwrap();
@@ -210,12 +222,14 @@ mod tests {
 
     #[tokio::test]
     async fn inferno_image_builder_rejects_tiny_kernel() {
-        let temp_dir = std::env::temp_dir().join("plaza-test-inferno");
+        let temp_dir = std::env::temp_dir().join("plaza-test-inferno2");
         std::fs::create_dir_all(&temp_dir).unwrap();
 
-        // Create a tiny file that's too small to be a real kernel
+        // Create a tiny file that's too small to be a real kernel, but has valid ELF magic
         let tiny_kernel = temp_dir.join("inferno-386");
-        std::fs::write(&tiny_kernel, b"tiny").unwrap();
+        let mut content = vec![0x7F, b'E', b'L', b'F'];
+        content.extend_from_slice(b"tiny");
+        std::fs::write(&tiny_kernel, &content).unwrap();
 
         let result = InfernoImageBuilder::build(
             "test-image",

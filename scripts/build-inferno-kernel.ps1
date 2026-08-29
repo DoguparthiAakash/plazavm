@@ -46,10 +46,21 @@ Write-Host "[2/6] Cloning Inferno OS source..." -ForegroundColor Yellow
 if (Test-Path $BuildDir) {
     Write-Host "  ✓ Build directory already exists, using cached source" -ForegroundColor Green
 } else {
-    git clone --depth 1 https://github.com/inferno-os/inferno-os.git $BuildDir
-    Write-Host "  ✓ Cloned Inferno source" -ForegroundColor Green
+    $LocalSource = "e:\plazavm\inferno-os"
+    if (Test-Path $LocalSource) {
+        Write-Host "  ✓ Copying from local source $LocalSource" -ForegroundColor Green
+        Copy-Item -Path $LocalSource -Destination $BuildDir -Recurse -Force
+    } else {
+        Write-Host "  ✗ Local source $LocalSource not found, falling back to git clone" -ForegroundColor Yellow
+        git clone --depth 1 https://github.com/inferno-os/inferno-os.git $BuildDir
+    }
 }
 Write-Host ""
+
+# Copy our plaza scripts into the build directory
+$PlazaScriptsDir = Join-Path $BuildDir "plaza-scripts"
+New-Item -ItemType Directory -Force -Path $PlazaScriptsDir | Out-Null
+Copy-Item -Path (Join-Path $PSScriptRoot "..\engines\plaza-workspace\src\runtime\*.b") -Destination $PlazaScriptsDir -Force
 
 # Step 3: Build the Docker image
 Write-Host "[3/6] Building Inferno kernel via Docker..." -ForegroundColor Yellow
@@ -79,12 +90,44 @@ ENV PATH="`$INFERNO/Linux/386/bin:`$PATH"
 RUN mk nuke
 RUN mk install
 
+# Compile PlazaVM Limbo scripts
+WORKDIR `$INFERNO/plaza-scripts
+RUN limbo -I`$INFERNO/module -o `$INFERNO/dis/inferno_workspace.dis inferno_workspace.b
+RUN limbo -I`$INFERNO/module -o `$INFERNO/dis/linux_compat.dis linux_compat.b
+
 WORKDIR `$INFERNO/os/pc
-RUN mk 'CONF=pc' nuke
-RUN mk 'CONF=pc'
+# Create a custom PlazaVM kernel configuration
+RUN echo "dev" > plaza
+RUN echo "    root cons arch env mnt pipe prog rtc srv dup cap" >> plaza
+RUN echo "    ip ether draw pointer vga sd ds uart tinyfs" >> plaza
+RUN echo "ip" >> plaza
+RUN echo "    tcp udp ipifc icmp icmp6 ipmux" >> plaza
+RUN echo "lib" >> plaza
+RUN echo "    interp keyring sec mp draw memlayer memdraw tk math kern" >> plaza
+RUN echo "link" >> plaza
+RUN echo "    ether2114x ether83815 etherelnk3 ps2mouse ethermedium" >> plaza
+RUN echo "misc" >> plaza
+RUN echo "    vgas3 vgamach64xx cga sdata sd53c8xx uarti8250" >> plaza
+RUN echo "mod" >> plaza
+RUN echo "    sys draw tk keyring crypt ipints math" >> plaza
+RUN echo "init" >> plaza
+RUN echo "    inferno_workspace" >> plaza
+RUN echo "code" >> plaza
+RUN echo "    int kernel_pool_pcnt = 10; int main_pool_pcnt = 40; int heap_pool_pcnt = 20; int image_pool_pcnt = 40; int cflag=0; int swcursor=0; int consoleprint=0; int novgascreen=1;" >> plaza
+RUN echo "port" >> plaza
+RUN echo "    alarm alloc allocb chan dev dial dis discall exception exportfs inferno latin1 nocache nodynld parse pgrp print proc qio qlock random sysfile taslock xalloc" >> plaza
+RUN echo "root" >> plaza
+RUN echo "    /chan /dev /dis /env /fd /n /n/remote /net /nvfs /prog" >> plaza
+RUN echo "    /dis/lib /dis/svc /dis/wm" >> plaza
+RUN echo "    /dis/sh.dis /dis/ls.dis /dis/cat.dis /dis/bind.dis /dis/mount.dis /dis/pwd.dis /dis/echo.dis /dis/cd.dis" >> plaza
+RUN echo "    /dis/lib/bufio.dis /dis/lib/string.dis /dis/lib/readdir.dis /dis/lib/workdir.dis /dis/lib/daytime.dis /dis/lib/auth.dis /dis/lib/ssl.dis /dis/disk/kfs.dis /dis/lib/arg.dis /dis/lib/styx.dis" >> plaza
+RUN echo "    /dis/inferno_workspace.dis /dis/linux_compat.dis" >> plaza
+
+RUN mk 'CONF=plaza' nuke
+RUN mk 'CONF=plaza'
 
 RUN mkdir -p /output
-RUN cp -v `$INFERNO/os/pc/pc/inferno.386 /output/inferno.386
+RUN cp -v `$INFERNO/os/pc/plaza/inferno.386 /output/inferno.386
 
 WORKDIR /output
 "@

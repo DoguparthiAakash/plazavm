@@ -21,7 +21,7 @@ pub struct QemuProcess {
 
 impl QemuProcess {
     /// Spawn QEMU with the given adapter arguments.
-    pub async fn spawn(adapter: QemuAdapter, _instance_id: &str) -> PlazaResult<Self> {
+    pub async fn spawn(adapter: QemuAdapter, _instance_id: &str, readiness_marker: &str) -> PlazaResult<Self> {
         // Find an open port for QMP on localhost
         let listener = TcpListener::bind("127.0.0.1:0")
             .map_err(|e| PlazaError::process(format!("Failed to bind QMP port: {}", e)))?;
@@ -66,10 +66,11 @@ impl QemuProcess {
 
         let (mut serial_rx, serial_tx) = serial_stream.into_split();
 
-        // Monitor stdout for PLAZA_GUEST_READY
+        // Monitor stdout for the specified readiness marker
         let stdout = child.stdout.take().unwrap();
         let stderr = child.stderr.take().unwrap();
         let (ready_tx, ready_rx) = mpsc::channel(1);
+        let marker = readiness_marker.to_string();
 
         tokio::spawn(async move {
             let mut buf = [0u8; 1024];
@@ -82,7 +83,7 @@ impl QemuProcess {
                 print!("{}", chunk);
                 debug!("QEMU output: {}", chunk);
                 line_buf.push_str(&chunk);
-                if line_buf.contains(plaza_machine::OS_READY_MARKER) {
+                if line_buf.contains(&marker) {
                     let _ = ready_tx.send(()).await;
                     line_buf.clear(); // prevent multiple sends
                 }

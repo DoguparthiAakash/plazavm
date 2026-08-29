@@ -65,6 +65,7 @@ async fn test_3_wasm_instantiates() {
         env.engine(),
         V86State {
             storage_bridge: None,
+            devices: Default::default(),
         },
     );
     let instance = env.instantiate(&mut store).await;
@@ -99,6 +100,7 @@ async fn test_4_v86_initializes() {
         env.engine(),
         V86State {
             storage_bridge: None,
+            devices: Default::default(),
         },
     );
     let instance = env.instantiate(&mut store).await.unwrap();

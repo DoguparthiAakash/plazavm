@@ -16,28 +16,24 @@ PlazaVM is built on a unified virtualization and emulation engine that abstracts
                             │
                       Runtime Manager
                             │
-                ┌───────────┴───────────┐
-                │                       │
-              v86                     QEMU
-        (WASM/Browser)          (Native/Hardware)
+                      Inferno OS (Guest)
+                            │
+                      QEMU (Host TCG)
 ```
 
 ## Core Engines
 
 ### 1. Workspace Engine
-The **Workspace Engine** manages the lifecycle, configuration, and state transitions of virtual environments. It parses the declarative `plaza.yaml` configuration and orchestrates the reconciliation pipeline.
+The **Workspace Engine** manages the lifecycle, configuration, and state transitions of virtual environments. It parses the declarative `plaza.yaml` configuration, provisions `.plaza/workspace`, and orchestrates the QEMU boot process.
 
 ### 2. Image Engine
-The **Image Engine** handles content-addressable storage, OCI-style image layers, and virtual block devices. It composes root filesystems dynamically without relying on host-level mounting (avoiding the need for root privileges).
+The **Image Engine** locates, builds, and manages the `inferno.386` kernels. It dynamically injects Limbo boot scripts (`inferno_workspace.b`, `linux_compat.b`) so the kernel boots directly into a managed state.
 
 ### 3. Capability Engine
-The **Capability Engine** enforces a strict **Default-Deny Security Model**. Every capability (filesystem access, networking, environment variables, etc.) must be explicitly granted in the workspace configuration and validated against host constraints before execution.
+The **Capability Engine** enforces a strict **Default-Deny Security Model**. Every capability (filesystem access, networking, environment variables, etc.) must be explicitly granted in the workspace configuration. During execution, it mediates the 9P/Styx protocol connection to enforce host-side limits.
 
-## Runtime Backends
+## Runtime Backend
 
-PlazaVM abstracts execution through the **Runtime Manager**, supporting multiple backends:
+PlazaVM abstracts execution through a unified backend:
 
-- **QEMU (TCG)**: Software emulation for native hardware targets. Avoids host kernel virtualization (like KVM or Hyper-V) to ensure maximum portability.
-- **v86**: WebAssembly-based x86 emulation, allowing workloads to run efficiently in constrained or browser-like environments.
-
-The backend is selected automatically based on the `WorkspaceSpec` and host capabilities, completely transparent to the user.
+- **Inferno OS over QEMU (TCG)**: Software emulation for native hardware targets (`i386`). Avoids host kernel virtualization (like KVM or Hyper-V) to ensure maximum portability across all platforms (Windows, macOS, Linux). The guest OS is extremely lightweight and starts in milliseconds.

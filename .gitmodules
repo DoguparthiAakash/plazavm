@@ -1,0 +1,3 @@
+[submodule "inferno-os"]
+	path = inferno-os
+	url = https://github.com/DoguparthiAakash/inferno-os.git
