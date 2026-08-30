@@ -18,5 +18,6 @@ pub fn create_guest_runtime(kind: GuestRuntimeKind) -> Box<dyn plaza_runtime::Gu
     match kind {
         GuestRuntimeKind::Linux => Box::new(LinuxGuestRuntime::new()),
         GuestRuntimeKind::Inferno => Box::new(InfernoGuestRuntime::new()),
+        _ => Box::new(LinuxGuestRuntime::new()),
     }
 }

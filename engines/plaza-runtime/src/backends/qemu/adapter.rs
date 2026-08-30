@@ -64,6 +64,13 @@ impl QemuAdapter {
             self.args.push("-append".into());
             self.args.push(args.into());
         }
+
+        // Attach the SquashFS workspace injection as a read-only virtio block device
+        if let Some(sqfs) = &config.workspace_sqfs_path {
+            self.args.push("-drive".into());
+            self.args.push(format!("file={},format=raw,if=virtio,readonly=on", sqfs.display()).into());
+        }
+
         Ok(self)
     }
 

@@ -3735,6 +3735,7 @@ dependencies = [
  "indicatif",
  "plaza-api",
  "plaza-command",
+ "plaza-env",
  "plaza-foundation",
  "plaza-image",
  "plaza-registry",
@@ -3780,6 +3781,7 @@ dependencies = [
  "plaza-workspace",
  "serde",
  "serde_json",
+ "serde_yaml",
  "tauri",
  "tauri-build",
  "tokio",
@@ -3805,6 +3807,26 @@ dependencies = [
 [[package]]
 name = "plaza-docs"
 version = "0.1.0"
+
+[[package]]
+name = "plaza-env"
+version = "0.1.0-dp1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "flate2",
+ "plaza-foundation",
+ "plaza-image",
+ "plaza-runtime",
+ "plaza-workspace",
+ "serde",
+ "serde_json",
+ "tar",
+ "thiserror 2.0.19",
+ "tokio",
+ "tracing",
+ "walkdir",
+]
 
 [[package]]
 name = "plaza-examples"
@@ -4028,6 +4050,7 @@ dependencies = [
  "toml 0.8.23",
  "tracing",
  "uuid",
+ "walkdir",
 ]
 
 [[package]]

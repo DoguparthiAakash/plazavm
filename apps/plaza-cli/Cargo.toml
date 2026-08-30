@@ -12,6 +12,7 @@ plaza-workspace.workspace = true
 plaza-registry.workspace = true
 plaza-image = { path = "../../engines/plaza-image" }
 plaza-runtime = { path = "../../engines/plaza-runtime" }
+plaza-env = { path = "../../engines/plaza-env" }
 
 anyhow.workspace = true
 clap.workspace = true

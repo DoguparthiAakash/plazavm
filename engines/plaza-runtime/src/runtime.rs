@@ -16,13 +16,41 @@ use crate::RuntimeStorage;
 use std::sync::Arc;
 
 /// The type of guest runtime to use inside the workspace VM.
+///
+/// ## Open-source runtimes (source vendored in project)
+/// These are compiled from source inside an Inferno build workspace.
+/// Source paths are resolved from the `inferno-os/` directory or user-overridden
+/// via `plaza.yaml` (`env.source_path`).
+///
+/// ## Reference platforms (manual / user-built)
+/// Windows-compatible and macOS-compatible environments are NOT shipped with
+/// PlazaVM source. See `docs/manual/platforms/windows.md` (ReactOS) and
+/// `docs/manual/platforms/macos.md` (Darling) for build instructions.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum GuestRuntimeKind {
-    /// Standard Linux runtime (Alpine, etc.)
+    /// Standard Linux runtime — LTS kernel + musl libc + BusyBox.
+    /// Source: `vendors/linux/` (configurable via plaza.yaml `env.source_path`)
     Linux,
-    /// Experimental Inferno OS runtime
+    /// Inferno OS runtime (default).
+    /// Source: `inferno-os/`
     Inferno,
+    /// FreeBSD runtime.
+    /// Source: `inferno-os/FreeBSD/` (configurable via plaza.yaml `env.source_path`)
+    #[serde(rename = "freebsd")]
+    FreeBsd,
+    /// OpenBSD runtime.
+    /// Source: `inferno-os/OpenBSD/` (configurable via plaza.yaml `env.source_path`)
+    #[serde(rename = "openbsd")]
+    OpenBsd,
+    /// NetBSD runtime.
+    /// Source: `inferno-os/NetBSD/` (configurable via plaza.yaml `env.source_path`)
+    #[serde(rename = "netbsd")]
+    NetBsd,
+    /// DragonFlyBSD runtime.
+    /// Source: `inferno-os/DragonFly/` (configurable via plaza.yaml `env.source_path`)
+    #[serde(rename = "dragonfly")]
+    DragonFly,
 }
 
 impl Default for GuestRuntimeKind {
@@ -34,8 +62,12 @@ impl Default for GuestRuntimeKind {
 impl std::fmt::Display for GuestRuntimeKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Linux => write!(f, "linux"),
-            Self::Inferno => write!(f, "inferno"),
+            Self::Linux     => write!(f, "linux"),
+            Self::Inferno   => write!(f, "inferno"),
+            Self::FreeBsd   => write!(f, "freebsd"),
+            Self::OpenBsd   => write!(f, "openbsd"),
+            Self::NetBsd    => write!(f, "netbsd"),
+            Self::DragonFly => write!(f, "dragonfly"),
         }
     }
 }
@@ -45,15 +77,70 @@ impl std::str::FromStr for GuestRuntimeKind {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "linux" => Ok(Self::Linux),
-            "inferno" => Ok(Self::Inferno),
+            "linux"                     => Ok(Self::Linux),
+            "inferno"                   => Ok(Self::Inferno),
+            "freebsd" | "free-bsd"      => Ok(Self::FreeBsd),
+            "openbsd" | "open-bsd"      => Ok(Self::OpenBsd),
+            "netbsd"  | "net-bsd"       => Ok(Self::NetBsd),
+            "dragonfly" | "dragonflybsd" | "dragonfly-bsd" => Ok(Self::DragonFly),
             other => Err(PlazaError::config(format!(
-                "Unknown guest runtime kind: '{}'. Supported: linux, inferno",
+                "Unknown guest runtime kind: '{}'. Supported: linux, inferno, freebsd, openbsd, netbsd, dragonfly",
                 other
             ))),
         }
     }
 }
+
+impl GuestRuntimeKind {
+    /// Returns all supported runtime kinds in display order.
+    pub fn all() -> &'static [GuestRuntimeKind] {
+        &[
+            GuestRuntimeKind::Inferno,
+            GuestRuntimeKind::Linux,
+            GuestRuntimeKind::FreeBsd,
+            GuestRuntimeKind::OpenBsd,
+            GuestRuntimeKind::NetBsd,
+            GuestRuntimeKind::DragonFly,
+        ]
+    }
+
+    /// Returns true if this runtime is built from open-source source trees
+    /// shipped within the PlazaVM project.
+    pub fn is_open_source_vendored(&self) -> bool {
+        matches!(self,
+            Self::Linux | Self::FreeBsd | Self::OpenBsd | Self::NetBsd | Self::DragonFly
+        )
+    }
+
+    /// Returns the default vendored source directory for this runtime,
+    /// relative to the workspace root.
+    ///
+    /// Returns `None` for `Inferno` (uses `inferno-os/` natively, no build step)
+    /// and for any future reference-only platform.
+    pub fn default_source_dir(&self) -> Option<std::path::PathBuf> {
+        match self {
+            Self::Linux     => Some(std::path::PathBuf::from("vendors/linux")),
+            Self::Inferno   => None,
+            Self::FreeBsd   => Some(std::path::PathBuf::from("inferno-os/FreeBSD")),
+            Self::OpenBsd   => Some(std::path::PathBuf::from("inferno-os/OpenBSD")),
+            Self::NetBsd    => Some(std::path::PathBuf::from("inferno-os/NetBSD")),
+            Self::DragonFly => Some(std::path::PathBuf::from("inferno-os/DragonFly")),
+        }
+    }
+
+    /// Human-readable display name for UIs and logs.
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::Linux     => "Linux (LTS kernel + musl + BusyBox)",
+            Self::Inferno   => "Inferno OS",
+            Self::FreeBsd   => "FreeBSD",
+            Self::OpenBsd   => "OpenBSD",
+            Self::NetBsd    => "NetBSD",
+            Self::DragonFly => "DragonFlyBSD",
+        }
+    }
+}
+
 
 /// Parameters passed to a GuestRuntime for provisioning.
 ///
@@ -188,35 +275,63 @@ mod tests {
     }
 
     #[test]
+    fn guest_runtime_kind_from_str_bsd_variants() {
+        assert_eq!(GuestRuntimeKind::from_str("freebsd").unwrap(), GuestRuntimeKind::FreeBsd);
+        assert_eq!(GuestRuntimeKind::from_str("FreeBSD").unwrap(), GuestRuntimeKind::FreeBsd);
+        assert_eq!(GuestRuntimeKind::from_str("free-bsd").unwrap(), GuestRuntimeKind::FreeBsd);
+
+        assert_eq!(GuestRuntimeKind::from_str("openbsd").unwrap(), GuestRuntimeKind::OpenBsd);
+        assert_eq!(GuestRuntimeKind::from_str("OpenBSD").unwrap(), GuestRuntimeKind::OpenBsd);
+        assert_eq!(GuestRuntimeKind::from_str("open-bsd").unwrap(), GuestRuntimeKind::OpenBsd);
+
+        assert_eq!(GuestRuntimeKind::from_str("netbsd").unwrap(), GuestRuntimeKind::NetBsd);
+        assert_eq!(GuestRuntimeKind::from_str("NetBSD").unwrap(), GuestRuntimeKind::NetBsd);
+        assert_eq!(GuestRuntimeKind::from_str("net-bsd").unwrap(), GuestRuntimeKind::NetBsd);
+
+        assert_eq!(GuestRuntimeKind::from_str("dragonfly").unwrap(), GuestRuntimeKind::DragonFly);
+        assert_eq!(GuestRuntimeKind::from_str("DragonFly").unwrap(), GuestRuntimeKind::DragonFly);
+        assert_eq!(GuestRuntimeKind::from_str("dragonflybsd").unwrap(), GuestRuntimeKind::DragonFly);
+        assert_eq!(GuestRuntimeKind::from_str("dragonfly-bsd").unwrap(), GuestRuntimeKind::DragonFly);
+    }
+
+    #[test]
     fn guest_runtime_kind_from_str_invalid() {
-        let result = GuestRuntimeKind::from_str("docker");
-        assert!(result.is_err());
+        assert!(GuestRuntimeKind::from_str("docker").is_err());
+        assert!(GuestRuntimeKind::from_str("windows").is_err());
+        assert!(GuestRuntimeKind::from_str("macos").is_err());
+        assert!(GuestRuntimeKind::from_str("").is_err());
     }
 
     #[test]
     fn guest_runtime_kind_display() {
-        assert_eq!(GuestRuntimeKind::Linux.to_string(), "linux");
-        assert_eq!(GuestRuntimeKind::Inferno.to_string(), "inferno");
+        assert_eq!(GuestRuntimeKind::Linux.to_string(),     "linux");
+        assert_eq!(GuestRuntimeKind::Inferno.to_string(),   "inferno");
+        assert_eq!(GuestRuntimeKind::FreeBsd.to_string(),   "freebsd");
+        assert_eq!(GuestRuntimeKind::OpenBsd.to_string(),   "openbsd");
+        assert_eq!(GuestRuntimeKind::NetBsd.to_string(),    "netbsd");
+        assert_eq!(GuestRuntimeKind::DragonFly.to_string(), "dragonfly");
     }
 
     #[test]
     fn guest_runtime_kind_serde_roundtrip() {
-        let linux = GuestRuntimeKind::Linux;
-        let json = serde_json::to_string(&linux).unwrap();
-        assert_eq!(json, "\"linux\"");
-        let deserialized: GuestRuntimeKind = serde_json::from_str(&json).unwrap();
-        assert_eq!(deserialized, GuestRuntimeKind::Linux);
-
-        let inferno = GuestRuntimeKind::Inferno;
-        let json = serde_json::to_string(&inferno).unwrap();
-        assert_eq!(json, "\"inferno\"");
-        let deserialized: GuestRuntimeKind = serde_json::from_str(&json).unwrap();
-        assert_eq!(deserialized, GuestRuntimeKind::Inferno);
+        let cases = [
+            (GuestRuntimeKind::Linux,     "\"linux\""),
+            (GuestRuntimeKind::Inferno,   "\"inferno\""),
+            (GuestRuntimeKind::FreeBsd,   "\"freebsd\""),
+            (GuestRuntimeKind::OpenBsd,   "\"openbsd\""),
+            (GuestRuntimeKind::NetBsd,    "\"netbsd\""),
+            (GuestRuntimeKind::DragonFly, "\"dragonfly\""),
+        ];
+        for (kind, expected_json) in &cases {
+            let json = serde_json::to_string(kind).unwrap();
+            assert_eq!(json, *expected_json, "serialize {:?}", kind);
+            let deserialized: GuestRuntimeKind = serde_json::from_str(&json).unwrap();
+            assert_eq!(deserialized, *kind, "deserialize {:?}", kind);
+        }
     }
 
     #[test]
     fn guest_runtime_kind_serde_default_for_missing() {
-        // When deserializing from an empty JSON object, guest_runtime should default to Inferno
         #[derive(serde::Deserialize)]
         struct TestSpec {
             #[serde(default)]
@@ -225,4 +340,52 @@ mod tests {
         let spec: TestSpec = serde_json::from_str("{}").unwrap();
         assert_eq!(spec.guest_runtime, GuestRuntimeKind::Inferno);
     }
+
+    #[test]
+    fn guest_runtime_kind_all_covers_every_variant() {
+        let all = GuestRuntimeKind::all();
+        assert_eq!(all.len(), 6);
+        assert!(all.contains(&GuestRuntimeKind::Inferno));
+        assert!(all.contains(&GuestRuntimeKind::Linux));
+        assert!(all.contains(&GuestRuntimeKind::FreeBsd));
+        assert!(all.contains(&GuestRuntimeKind::OpenBsd));
+        assert!(all.contains(&GuestRuntimeKind::NetBsd));
+        assert!(all.contains(&GuestRuntimeKind::DragonFly));
+    }
+
+    #[test]
+    fn guest_runtime_kind_is_open_source_vendored() {
+        assert!(!GuestRuntimeKind::Inferno.is_open_source_vendored());
+        assert!(GuestRuntimeKind::Linux.is_open_source_vendored());
+        assert!(GuestRuntimeKind::FreeBsd.is_open_source_vendored());
+        assert!(GuestRuntimeKind::OpenBsd.is_open_source_vendored());
+        assert!(GuestRuntimeKind::NetBsd.is_open_source_vendored());
+        assert!(GuestRuntimeKind::DragonFly.is_open_source_vendored());
+    }
+
+    #[test]
+    fn guest_runtime_kind_default_source_dirs() {
+        assert_eq!(
+            GuestRuntimeKind::Linux.default_source_dir(),
+            Some(std::path::PathBuf::from("vendors/linux"))
+        );
+        assert_eq!(GuestRuntimeKind::Inferno.default_source_dir(), None);
+        assert_eq!(
+            GuestRuntimeKind::FreeBsd.default_source_dir(),
+            Some(std::path::PathBuf::from("inferno-os/FreeBSD"))
+        );
+        assert_eq!(
+            GuestRuntimeKind::OpenBsd.default_source_dir(),
+            Some(std::path::PathBuf::from("inferno-os/OpenBSD"))
+        );
+        assert_eq!(
+            GuestRuntimeKind::NetBsd.default_source_dir(),
+            Some(std::path::PathBuf::from("inferno-os/NetBSD"))
+        );
+        assert_eq!(
+            GuestRuntimeKind::DragonFly.default_source_dir(),
+            Some(std::path::PathBuf::from("inferno-os/DragonFly"))
+        );
+    }
 }
+

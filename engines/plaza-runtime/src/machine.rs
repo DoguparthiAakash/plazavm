@@ -77,6 +77,9 @@ pub struct MachineConfig {
 
     /// Optional path to the modloop image containing kernel modules
     pub modloop_path: Option<PathBuf>,
+
+    /// Optional path to a SquashFS image containing the read-only host workspace
+    pub workspace_sqfs_path: Option<PathBuf>,
 }
 
 impl Default for MachineConfig {
@@ -95,6 +98,7 @@ impl Default for MachineConfig {
             initrd_path: None,
             kernel_args: None,
             modloop_path: None,
+            workspace_sqfs_path: None,
         }
     }
 }

@@ -1,0 +1,21 @@
+[package]
+name = "plaza-env"
+version.workspace = true
+edition.workspace = true
+description = "Environment build pipeline for PlazaVM — compiles open-source OS environments (Linux, BSD variants) inside Inferno sandbox workspaces"
+
+[dependencies]
+plaza-foundation.workspace = true
+plaza-runtime = { path = "../plaza-runtime" }
+plaza-workspace = { path = "../plaza-workspace" }
+plaza-image = { path = "../plaza-image" }
+async-trait.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+tar = "0.4.46"
+flate2 = "1.1.9"
+walkdir = "2.5"

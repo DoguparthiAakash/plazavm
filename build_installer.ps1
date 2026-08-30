@@ -101,10 +101,9 @@ if ($desktopExit -ne 0) {
     exit 1
 }
 
-$desktopArtifact = Join-Path $PSScriptRoot "apps\plaza-desktop\src-tauri\target\release\PlazaVM.exe"
+$desktopArtifact = Join-Path $PSScriptRoot "target\release\plaza-desktop.exe"
 if (-not (Test-Path $desktopArtifact)) {
-    # Try alternate location if productName was overridden
-    $desktopArtifact = Join-Path $PSScriptRoot "apps\plaza-desktop\src-tauri\target\release\plaza-desktop.exe"
+    $desktopArtifact = Join-Path $PSScriptRoot "target\release\PlazaVM.exe"
     if (-not (Test-Path $desktopArtifact)) {
         Write-Error "Desktop artifact not found. Please check Tauri output directories."
         exit 1

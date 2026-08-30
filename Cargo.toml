@@ -18,6 +18,7 @@ members = [
     "engines/plaza-image",
     "engines/plaza-package",
     "engines/plaza-snapshot",
+    "engines/plaza-env",
 
     # ── Platform ──
     "platform/plaza-security",

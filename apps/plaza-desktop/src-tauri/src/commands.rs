@@ -95,13 +95,15 @@ pub async fn stop_workspace(state: State<'_, AppState>, id: String) -> Result<()
 }
 
 #[tauri::command]
-pub async fn get_system_metrics(_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    Ok(serde_json::json!({
-        "cpu_usage_percent": 0.0,
-        "memory_used_mb": 0,
-        "memory_total_mb": 0,
-        "active_workspaces": 0
-    }))
+pub async fn delete_workspace(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    let ws_id = WorkspaceId::parse(&id).map_err(|e| e.to_string())?;
+    state
+        .workspace_service
+        .delete_workspace(&ws_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -116,23 +118,16 @@ pub async fn get_platform_info(
 }
 
 #[tauri::command]
-pub async fn list_plugins(_state: State<'_, AppState>) -> Result<Vec<serde_json::Value>, String> {
-    Ok(vec![])
-}
-
-#[tauri::command]
-pub async fn check_updates() -> Result<VersionCheckResult, String> {
-    UpdateService::check_for_updates(UpdateChannel::DevPreview)
-        .await
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub async fn generate_diagnostics_bundle(state: State<'_, AppState>) -> Result<String, String> {
-    let path = DiagnosticsBundle::generate(&state.container)
-        .await
-        .map_err(|e| e.to_string())?;
-    Ok(path.to_string_lossy().to_string())
+pub async fn check_system_readiness() -> Result<serde_json::Value, String> {
+    let readiness = serde_json::json!({
+        "plaza_v86_engine": true,
+        "plaza_block_storage": true,
+        "plaza_pur_daemon": true,
+        "rust_installed": true,
+        "git_installed": true,
+        "node_installed": true
+    });
+    Ok(readiness)
 }
 
 #[tauri::command]
@@ -157,124 +152,69 @@ pub async fn open_log_folder() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn get_crash_reports() -> Result<Vec<CrashReport>, String> {
-    Ok(CrashHandler::list_crash_reports())
+pub async fn get_workspace_config(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<serde_json::Value, String> {
+    let ws_id = WorkspaceId::parse(&id).map_err(|e| e.to_string())?;
+    let workspace = state
+        .workspace_service
+        .get_workspace(&ws_id)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "Workspace not found".to_string())?;
+
+    let path = workspace
+        .metadata
+        .project_path
+        .ok_or_else(|| "Workspace has no project path".to_string())?;
+    let yaml_path = std::path::PathBuf::from(path).join("plaza.yaml");
+    
+    if !yaml_path.exists() {
+        return Err("plaza.yaml not found".to_string());
+    }
+
+    let content = tokio::fs::read_to_string(&yaml_path)
+        .await
+        .map_err(|e| e.to_string())?;
+    
+    // Parse into PlazaYaml, then to JSON value
+    let yaml = plaza_foundation::config::PlazaYaml::parse_yaml(&content)
+        .map_err(|e| e.to_string())?;
+        
+    let json = serde_json::to_value(&yaml).map_err(|e| e.to_string())?;
+    Ok(json)
 }
 
 #[tauri::command]
-pub async fn export_config(target_path: String) -> Result<(), String> {
-    ConfigManager::export_config(Path::new(&target_path)).map_err(|e| e.to_string())
-}
+pub async fn save_workspace_config(
+    state: State<'_, AppState>,
+    id: String,
+    config_json: serde_json::Value,
+) -> Result<(), String> {
+    let ws_id = WorkspaceId::parse(&id).map_err(|e| e.to_string())?;
+    let workspace = state
+        .workspace_service
+        .get_workspace(&ws_id)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "Workspace not found".to_string())?;
 
-#[tauri::command]
-pub async fn import_config(source_path: String) -> Result<(), String> {
-    ConfigManager::import_config(Path::new(&source_path)).map_err(|e| e.to_string())?;
+    let path = workspace
+        .metadata
+        .project_path
+        .ok_or_else(|| "Workspace has no project path".to_string())?;
+    let yaml_path = std::path::PathBuf::from(path).join("plaza.yaml");
+    
+    let yaml: plaza_foundation::config::PlazaYaml = serde_json::from_value(config_json)
+        .map_err(|e| format!("Invalid configuration format: {}", e))?;
+        
+    let content = serde_yaml::to_string(&yaml)
+        .map_err(|e| format!("Failed to serialize configuration: {}", e))?;
+        
+    tokio::fs::write(&yaml_path, content)
+        .await
+        .map_err(|e| format!("Failed to write configuration: {}", e))?;
+        
     Ok(())
-}
-
-#[tauri::command]
-pub async fn reset_config() -> Result<(), String> {
-    ConfigManager::reset_to_defaults().map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn check_system_readiness() -> Result<serde_json::Value, String> {
-    let readiness = serde_json::json!({
-        "plaza_v86_engine": true,
-        "plaza_block_storage": true,
-        "plaza_pur_daemon": true,
-        "rust_installed": true,
-        "git_installed": true,
-        "node_installed": true
-    });
-    Ok(readiness)
-}
-
-#[tauri::command]
-pub async fn get_pro_images() -> Result<Vec<serde_json::Value>, String> {
-    let images = vec![
-        serde_json::json!({
-            "uri": "pro://ubuntu:24.04",
-            "name": "Ubuntu Userspace",
-            "tag": "24.04",
-            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-            "size_mb": 142,
-            "signature": "Ed25519 Valid",
-            "sbom_packages": 128
-        }),
-        serde_json::json!({
-            "uri": "pro://python-ai:v1",
-            "name": "Python AI/ML Stack",
-            "tag": "v1",
-            "digest": "sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
-            "size_mb": 420,
-            "signature": "Ed25519 Valid",
-            "sbom_packages": 164
-        }),
-        serde_json::json!({
-            "uri": "pro://rust-dev:latest",
-            "name": "Rust Systems Toolchain",
-            "tag": "latest",
-            "digest": "sha256:a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0",
-            "size_mb": 210,
-            "signature": "Ed25519 Valid",
-            "sbom_packages": 92
-        }),
-    ];
-    Ok(images)
-}
-
-#[tauri::command]
-pub async fn get_pur_images() -> Result<Vec<serde_json::Value>, String> {
-    let images = vec![
-        serde_json::json!({
-            "uri": "pri://ubuntu-dev:24.04",
-            "name": "Ubuntu Dev Utility Layer",
-            "tag": "24.04",
-            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-            "size_mb": 128,
-            "signature": "SIG-PUR-1.0",
-            "sbom_packages": 112
-        }),
-        serde_json::json!({
-            "uri": "pri://cuda-pytorch:12.4",
-            "name": "CUDA PyTorch PUR Image",
-            "tag": "12.4",
-            "digest": "sha256:9f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
-            "size_mb": 890,
-            "signature": "SIG-PUR-1.0",
-            "sbom_packages": 198
-        }),
-    ];
-    Ok(images)
-}
-
-#[tauri::command]
-pub async fn get_snapshot_timeline() -> Result<Vec<serde_json::Value>, String> {
-    let commits = vec![
-        serde_json::json!({
-            "commit_id": "c1a8f9204b",
-            "author": "Chief Systems Architect",
-            "message": "Initial workspace creation & manifest commit",
-            "timestamp": "2026-07-25 18:00:00 UTC",
-            "packages_count": 42
-        }),
-        serde_json::json!({
-            "commit_id": "c2b9e0315a",
-            "author": "Developer",
-            "message": "Installed CUDA 12.4 and PyTorch v2.3",
-            "timestamp": "2026-07-25 20:30:00 UTC",
-            "packages_count": 68
-        }),
-    ];
-    Ok(commits)
-}
-
-#[tauri::command]
-pub async fn query_ai_assistant(prompt: String) -> Result<String, String> {
-    Ok(format!(
-        "🤖 Plaza AI: Understood request: '{}'. Generating optimized workspace execution plan with PUR OverlayFS and Ed25519 signature verification...",
-        prompt
-    ))
 }

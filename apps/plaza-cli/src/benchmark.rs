@@ -79,6 +79,7 @@ async fn create_instance(
         initrd_path: Some(initrd_path.to_path_buf()),
         kernel_args: Some("console=ttyS0 root=/dev/vda rw init=/plaza-init".into()),
         modloop_path,
+        workspace_sqfs_path: None,
         os_target: plaza_runtime::OperatingSystemTarget::Linux,
         volume_mounts: std::collections::HashMap::new(),
         port_forwards: std::collections::HashMap::new(),

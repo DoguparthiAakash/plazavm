@@ -143,6 +143,11 @@ enum Commands {
         #[command(subcommand)]
         action: PurAction,
     },
+    /// Plaza Environment Orchestration (plaza env)
+    Env {
+        #[command(subcommand)]
+        action: EnvAction,
+    },
 }
 
 #[derive(Subcommand)]
@@ -195,11 +200,19 @@ enum PurAction {
 }
 
 #[derive(Subcommand)]
+enum EnvAction {
+    /// List available OS environments
+    List,
+    /// Build the Plaza OS components
+    Build,
+}
+
+#[derive(Subcommand)]
 enum WorkspaceAction {
     /// Initialize a new workspace project layout (.space/)
     Init {
-        /// Name of the workspace
-        name: String,
+        /// Name of the workspace (auto-generated if omitted)
+        name: Option<String>,
         /// Guest runtime kind: inferno (default) or linux
         #[arg(short, long, default_value = "inferno")]
         runtime: String,
@@ -219,8 +232,8 @@ enum WorkspaceAction {
     List,
     /// Create a new workspace
     Create {
-        /// Name of the workspace
-        name: String,
+        /// Name of the workspace (auto-generated if omitted)
+        name: Option<String>,
         #[arg(short, long)]
         image: Option<String>,
         /// Guest runtime kind: inferno (default) or linux
@@ -470,6 +483,25 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
         }
+        Commands::Env { action } => {
+            match action {
+                EnvAction::List => {
+                    println!("Listing available environments (integration pending)...");
+                }
+                EnvAction::Build => {
+                    println!("Building environment (integration pending)...");
+                    let config = plaza_env::builder::EnvBuildConfig::new(
+                        plaza_runtime::runtime::GuestRuntimeKind::Linux,
+                        std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
+                    );
+                    let env_builder = plaza_env::builder::EnvBuilder::new(config);
+                    match env_builder.build().await {
+                        Ok(_) => println!("Environment build completed successfully."),
+                        Err(e) => eprintln!("❌ Failed to build environment: {}", e),
+                    }
+                }
+            }
+        }
         Commands::Build { path } => {
             println!("🛠️ Building workspace from {:?}", path);
             println!("(Native PlazaVM Image Builder integration pending...)");
@@ -523,6 +555,10 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
                 WorkspaceAction::Create { name, image, runtime, path } => {
+                    let name = name.unwrap_or_else(|| {
+                        let id = plaza_foundation::core::id::WorkspaceId::new().to_string();
+                        format!("plaza-ws-{}", &id[..8])
+                    });
                     println!("Creating workspace '{}'...", name);
 
                     let workspaces = container.workspace_service.list_workspaces().await?;
@@ -711,6 +747,10 @@ async fn main() -> anyhow::Result<()> {
                     println!("Snapshot action '{action}' executed for '{name}' in workspace '{workspace_id}'");
                 }
                 WorkspaceAction::Init { name, runtime, path } => {
+                    let name = name.unwrap_or_else(|| {
+                        let id = plaza_foundation::core::id::WorkspaceId::new().to_string();
+                        format!("plaza-ws-{}", &id[..8])
+                    });
                     let target_dir = path.map(PathBuf::from).unwrap_or_else(|| {
                         env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
                     });
@@ -1297,6 +1337,7 @@ engine:
                             initrd_path: Some(initrd_path),
                             kernel_args: Some("console=ttyS0 root=/dev/vda rw init=/plaza-init".into()),
                             modloop_path,
+                            workspace_sqfs_path: None,
                             os_target: plaza_runtime::OperatingSystemTarget::Linux,
                             volume_mounts: std::collections::HashMap::new(),
                             port_forwards: std::collections::HashMap::new(),

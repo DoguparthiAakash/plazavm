@@ -142,6 +142,88 @@ impl GuestRuntime for LinuxGuestRuntime {
         let artifacts = self.resolve_artifacts(params).await?;
 
         let machine_section = machine_section::MachineSection::default();
+        
+        let storage_dir = params.workspace_dir.join(".plaza").join("storage");
+        let tar_path = storage_dir.join(format!("{}_snapshot.tar", params.workspace_id));
+        
+        // Take a snapshot of the workspace into a tarball block device
+        if params.workspace_dir.exists() {
+            info!("LinuxGuestRuntime: Taking snapshot of workspace '{}' into tarball", params.workspace_name);
+            let ws_dir = params.workspace_dir.clone();
+            let tar_out = tar_path.clone();
+            
+            // Run in a blocking task since tar operations are synchronous
+            tokio::task::spawn_blocking(move || -> PlazaResult<()> {
+                let file = std::fs::File::create(&tar_out)
+                    .map_err(|e| PlazaError::Io(e))?;
+                let mut builder = tar::Builder::new(file);
+                
+                // Append the contents of the workspace directory, ignoring .plaza
+                for entry in walkdir::WalkDir::new(&ws_dir).into_iter().filter_map(|e| e.ok()) {
+                    let path = entry.path();
+                    if path.components().any(|c| c.as_os_str() == ".plaza") {
+                        continue;
+                    }
+                    if path == ws_dir.as_path() {
+                        continue;
+                    }
+                    
+                    let rel_path = path.strip_prefix(&ws_dir).unwrap_or(path);
+                    if path.is_dir() {
+                        let _ = builder.append_dir(rel_path, path);
+                    } else {
+                        let mut f = std::fs::File::open(path).map_err(|e| PlazaError::Io(e))?;
+                        let _ = builder.append_file(rel_path, &mut f);
+                    }
+                }
+                
+                builder.finish().map_err(|e| PlazaError::Io(e))?;
+                Ok(())
+            })
+            .await
+            .map_err(|e| PlazaError::config(format!("Snapshot task panicked: {}", e)))??;
+        }
+
+        // We use a custom init script to set up the OverlayFS.
+        // /dev/vda is the OS (read-only Alpine squashfs).
+        // /dev/vdb is the 1GB Ext4 writable COW layer.
+        // /dev/vdc is the workspace tarball snapshot.
+        let init_script = "
+#!/bin/sh
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+mount -t devtmpfs dev /dev
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+
+# Mount the COW layer (upperdir)
+mkdir -p /mnt/cow
+mount /dev/vdb /mnt/cow
+
+# Set up OverlayFS directories
+mkdir -p /mnt/cow/upper
+mkdir -p /mnt/cow/work
+
+# Mount a TMPFS for the host snapshot (lowerdir)
+mkdir -p /mnt/lower
+mount -t tmpfs -o size=2G tmpfs /mnt/lower
+
+# Extract the host snapshot from the tarball block device (/dev/vdc)
+echo 'Extracting workspace snapshot...'
+tar -xf /dev/vdc -C /mnt/lower 2>/dev/null || true
+
+# Mount the final workspace overlay
+mkdir -p /workspace
+mount -t overlay overlay -o lowerdir=/mnt/lower,upperdir=/mnt/cow/upper,workdir=/mnt/cow/work /workspace
+
+# Print readiness marker
+echo 'PLAZA_OS_READY'
+
+# Drop into a shell (or execute plaza-agent)
+exec /bin/sh
+";
+        
+        let init_path = storage_dir.join("plaza-init.sh");
+        tokio::fs::write(&init_path, init_script).await.map_err(|e| PlazaError::Io(e))?;
 
         Ok(MachineConfig {
             workspace_id: params.workspace_id.clone(),
@@ -152,8 +234,9 @@ impl GuestRuntime for LinuxGuestRuntime {
             boot_device: PathBuf::from("dummy"),
             kernel_path: Some(artifacts.kernel_path),
             initrd_path: Some(artifacts.initrd_path),
-            kernel_args: Some("console=ttyS0 root=/dev/vda rw init=/plaza-init".to_string()),
+            kernel_args: Some("console=ttyS0 root=/dev/vda rw init=/bin/sh -- -c /mnt/cow/plaza-init.sh".to_string()),
             modloop_path: artifacts.modloop_path,
+            workspace_sqfs_path: if tar_path.exists() { Some(tar_path) } else { None },
             volume_mounts: std::collections::HashMap::new(),
             port_forwards: std::collections::HashMap::new(),
             env_vars: std::collections::HashMap::new(),
