@@ -10,6 +10,7 @@ pub mod commands;
 pub mod diagnostics;
 pub mod distribution;
 pub mod engine;
+pub mod file_transfer;
 pub mod graph;
 pub mod image;
 pub mod import_export;
@@ -26,6 +27,7 @@ pub mod service_manager;
 pub mod session;
 pub mod snapshot;
 pub mod transaction;
+pub mod resource_meter;
 pub mod wsc;
 
 pub use blend::{BlendLayer, BlendOrchestrator};
@@ -45,6 +47,10 @@ pub use pipeline::{BuilderStage, TransactionalPipelineBuilder};
 pub use process::{ProcessSpec, ProcessState, WorkspaceProcessManager};
 pub use reconciler::{ReconcileAction, Reconciler};
 pub use service::WorkspaceService;
-pub use service_manager::{ServiceSpec, ServiceStatus, WorkspaceServiceManager};
+pub use service_manager::{ServiceManager, ServiceStatus};
 pub use session::{SessionManager, SessionStatus, StructuredCommandEntry, WorkspaceSession};
+pub use resource_meter::{
+    AlertLevel, EnforcementAction, GlobalResourceManager, ResourceBudget,
+    ResourceSummary, WorkspaceResourceMeter,
+};
 pub use wsc::{WorkspaceCommit, WorkspaceTimeline, WscEngine};

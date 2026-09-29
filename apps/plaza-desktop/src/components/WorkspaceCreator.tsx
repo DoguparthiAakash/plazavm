@@ -12,6 +12,7 @@ interface WorkspaceCreatorProps {
 
 const IMAGES = [
   { value: "ubuntu:24.04", label: "Ubuntu 24.04 LTS", tag: "Linux", color: "text-orange-400" },
+  { value: "alpine:3.19", label: "Alpine Linux 3.19", tag: "Linux", color: "text-blue-400" },
   { value: "freebsd:14.1", label: "FreeBSD 14.1", tag: "BSD", color: "text-blue-400" },
   { value: "openbsd:7.5", label: "OpenBSD 7.5", tag: "BSD", color: "text-yellow-400" },
   { value: "netbsd:10.0", label: "NetBSD 10.0", tag: "BSD", color: "text-cyan-400" },
@@ -19,6 +20,11 @@ const IMAGES = [
   { value: "rust:latest", label: "Rust Development", tag: "Dev", color: "text-orange-500" },
   { value: "node:22", label: "Node.js 22 LTS", tag: "Dev", color: "text-green-400" },
   { value: "cuda:12.0", label: "CUDA 12 AI Runtime", tag: "AI/ML", color: "text-purple-400" },
+];
+
+const RUNTIMES = [
+  { value: "linux", label: "Linux", description: "Full Linux userspace (Ubuntu/Alpine)" },
+  { value: "inferno", label: "Inferno", description: "Lightweight Inferno OS runtime (experimental)" },
 ];
 
 export const WorkspaceCreator: React.FC<WorkspaceCreatorProps> = ({
@@ -30,6 +36,8 @@ export const WorkspaceCreator: React.FC<WorkspaceCreatorProps> = ({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("ubuntu:24.04");
+  const [runtime, setRuntime] = useState("linux");
+  const [projectPath, setProjectPath] = useState("");
   const [cores, setCores] = useState(2);
   const [memory, setMemory] = useState(2048);
   const [loading, setLoading] = useState(false);
@@ -45,7 +53,14 @@ export const WorkspaceCreator: React.FC<WorkspaceCreatorProps> = ({
     setError("");
     setLoading(true);
     try {
-      const req: CreateWorkspaceRequest = { name: name.trim(), image, cpu_cores: cores, memory_mb: memory };
+      const req: CreateWorkspaceRequest = {
+        name: name.trim(),
+        image,
+        runtime,
+        cpu_cores: cores,
+        memory_mb: memory,
+        path: projectPath || undefined,
+      };
       await createWorkspace(req);
       if (onSuccess) onSuccess();
       if (onCreated) onCreated();
@@ -110,6 +125,44 @@ export const WorkspaceCreator: React.FC<WorkspaceCreatorProps> = ({
                   placeholder="What will you build in this workspace?"
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all"
                 />
+              </div>
+
+              {/* Runtime Select */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
+                  Guest Runtime
+                </label>
+                <div className="relative">
+                  <select
+                    value={runtime}
+                    onChange={(e) => setRuntime(e.target.value)}
+                    className="w-full appearance-none bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all pr-10 cursor-pointer"
+                  >
+                    {RUNTIMES.map((rt) => (
+                      <option key={rt.value} value={rt.value}>
+                        {rt.label} — {rt.description}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Project Path */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
+                  Project Source Path <span className="text-zinc-600">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={projectPath}
+                  onChange={(e) => setProjectPath(e.target.value)}
+                  placeholder="e.g. E:\\freebsd-src\\mobile"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all font-mono"
+                />
+                <p className="text-xs text-zinc-600 mt-1.5">
+                  Source code directory to mount in the workspace
+                </p>
               </div>
 
               {/* Image Select */}

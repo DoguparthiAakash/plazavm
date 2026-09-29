@@ -111,5 +111,6 @@ plaza-runtime = { path = "engines/plaza-runtime" }
 plaza-api = { path = "platform/plaza-api" }
 plaza-foundation = { path = "shared/plaza-foundation" }
 plaza-command = { path = "shared/plaza-command" }
+plaza-network = { path = "platform/plaza-network" }
 
 

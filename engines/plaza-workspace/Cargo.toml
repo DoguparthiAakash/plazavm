@@ -30,4 +30,6 @@ futures-util = "0.3.34"
 reqwest = { version = "0.13.4", default-features = false, features = ["stream", "rustls", "json"] }
 backhand = { version = "0.25.1", default-features = false, features = ["gzip"] }
 walkdir = "2.5"
+arcbox-ext4 = { path = "../../third_party/arcbox-ext4" }
+base64 = "0.22"
 

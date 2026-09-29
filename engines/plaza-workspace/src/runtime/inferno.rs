@@ -136,8 +136,8 @@ impl GuestRuntime for InfernoGuestRuntime {
         let cow_path = storage_dir.join(format!("{}.img", params.workspace_id));
 
         let provider = Ext4WritableFilesystemProvider::new(cow_path, 4096);
-        // 1 GB workspace writable layer
-        provider.create(1024 * 1024 * 1024).await
+        // 256 MB workspace writable layer (reduced for low resource usage)
+        provider.create(256 * 1024 * 1024).await
     }
 
     async fn resolve_artifacts(

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ThemeProvider } from "./components/ui/ThemeContext";
 import { ToastProvider, useToast } from "./components/ui/Toast";
 import { WorkspaceCreator } from "./components/WorkspaceCreator";
@@ -8,15 +8,16 @@ import { PlatformView } from "./components/PlatformView";
 import { TerminalModal } from "./components/ui/TerminalModal";
 import {
   fetchWorkspaces, startWorkspace, stopWorkspace, deleteWorkspace,
-  checkSystemReadiness, WorkspaceDto
+  checkSystemReadiness, execInWorkspace, onPlazaEvent, PlazaEvent,
+  WorkspaceDto
 } from "./api";
 import {
   Terminal, Play, Square, Trash2, Plus, Settings, Layers,
   Cpu, Activity, ChevronRight, Search, RefreshCw,
-  Circle, CheckCircle2, XCircle
+  Circle, CheckCircle2, XCircle, Radio, Zap, ExternalLink
 } from "lucide-react";
 
-type View = "workspaces" | "platform" | "readiness";
+type View = "workspaces" | "platform" | "readiness" | "events";
 
 const Dashboard: React.FC = () => {
   const [view, setView] = useState<View>("workspaces");
@@ -27,6 +28,11 @@ const Dashboard: React.FC = () => {
   const [showPalette, setShowPalette] = useState(false);
   const [readiness, setReadiness] = useState<Record<string, boolean>>({});
   const [wsLoading, setWsLoading] = useState(false);
+  const [events, setEvents] = useState<PlazaEvent[]>([]);
+  const [execWs, setExecWs] = useState<WorkspaceDto | null>(null);
+  const [execCmd, setExecCmd] = useState("");
+  const [execOutput, setExecOutput] = useState<string[]>([]);
+  const [execRunning, setExecRunning] = useState(false);
   const { addToast } = useToast();
 
   const reloadWorkspaces = async () => {
@@ -50,6 +56,22 @@ const Dashboard: React.FC = () => {
       console.error(err);
     }
   };
+
+  // Live event streaming
+  useEffect(() => {
+    const unsubscribe = onPlazaEvent((event: PlazaEvent) => {
+      setEvents(prev => {
+        const next = [...prev, event];
+        return next.length > 200 ? next.slice(-200) : next;
+      });
+
+      // Auto-refresh workspaces on relevant events
+      if (event.type.startsWith('workspace_') || event.type === 'workspaces_updated') {
+        reloadWorkspaces();
+      }
+    });
+    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
+  }, []);
 
   useEffect(() => {
     reloadWorkspaces();
@@ -85,6 +107,9 @@ const Dashboard: React.FC = () => {
       case "VIEW_PLATFORM":
         setView("platform");
         break;
+      case "VIEW_EVENTS":
+        setView("events");
+        break;
       case "OPEN_TERMINAL":
         if (workspaces.length > 0) setTerminalWs(workspaces[0]);
         else addToast({ type: "error", title: "No Workspaces", message: "Create a workspace first." });
@@ -96,7 +121,7 @@ const Dashboard: React.FC = () => {
     try {
       await startWorkspace(ws.id);
       addToast({ type: "success", title: "Started", message: `${ws.name} is starting.` });
-      reloadWorkspaces();
+      setTimeout(reloadWorkspaces, 2000);
     } catch (err: any) {
       addToast({ type: "error", title: "Start Failed", message: err.toString() });
     }
@@ -106,7 +131,7 @@ const Dashboard: React.FC = () => {
     try {
       await stopWorkspace(ws.id);
       addToast({ type: "info", title: "Stopped", message: `${ws.name} was stopped.` });
-      reloadWorkspaces();
+      setTimeout(reloadWorkspaces, 2000);
     } catch (err: any) {
       addToast({ type: "error", title: "Stop Failed", message: err.toString() });
     }
@@ -119,6 +144,26 @@ const Dashboard: React.FC = () => {
       reloadWorkspaces();
     } catch (err: any) {
       addToast({ type: "error", title: "Delete Failed", message: err.toString() });
+    }
+  };
+
+  const handleExec = async (ws: WorkspaceDto, cmd: string) => {
+    setExecWs(ws);
+    setExecCmd(cmd);
+    setExecRunning(true);
+    setExecOutput([`$ ${cmd}`, 'Executing in workspace guest...']);
+    try {
+      const result = await execInWorkspace(ws.id, cmd);
+      setExecOutput(prev => [
+        ...prev,
+        ...(result.output ? result.output.split('\n').filter(l => l.trim()) : []),
+        ...(result.error ? result.error.split('\n').filter(l => l.trim()).map(l => `[stderr] ${l}`) : []),
+        '✓ Command completed',
+      ]);
+    } catch (err: any) {
+      setExecOutput(prev => [...prev, `✗ Error: ${err.message}`]);
+    } finally {
+      setExecRunning(false);
     }
   };
 
@@ -175,6 +220,13 @@ const Dashboard: React.FC = () => {
             badgeVariant={readyCount < totalChecks ? "warn" : "ok"}
             onClick={() => setView("readiness")}
           />
+          <NavItem
+            icon={<Radio className="w-4 h-4" />}
+            label="Live Events"
+            active={view === "events"}
+            badge={events.length > 0 ? String(events.length) : undefined}
+            onClick={() => setView("events")}
+          />
         </nav>
 
         {/* Bottom actions */}
@@ -197,6 +249,11 @@ const Dashboard: React.FC = () => {
             <span className="text-zinc-600">PlazaVM</span>
             <ChevronRight className="w-3 h-3 text-zinc-700" />
             <span className="text-zinc-300 font-medium capitalize">{view}</span>
+            {events.length > 0 && (
+              <span className="ml-2 flex items-center gap-1 text-[10px] text-emerald-500">
+                <Radio className="w-3 h-3 animate-pulse" /> LIVE
+              </span>
+            )}
           </div>
           {view === "workspaces" && (
             <button
@@ -219,12 +276,42 @@ const Dashboard: React.FC = () => {
             onDelete={handleDelete}
             onConfig={(id) => setEditingConfigId(id)}
             onTerminal={(ws) => setTerminalWs(ws)}
+            onExec={handleExec}
             onNew={() => setShowCreator(true)}
           />
         )}
         {view === "platform" && <PlatformView />}
         {view === "readiness" && <ReadinessView readiness={readiness} onRefresh={loadReadiness} />}
+        {view === "events" && (
+          <EventsView events={events} onClear={() => setEvents([])} />
+        )}
       </main>
+
+      {/* ─── EXEC OUTPUT PANEL ─── */}
+      {execWs && (
+        <div className="fixed bottom-0 right-0 w-[500px] max-h-[300px] bg-zinc-950 border border-zinc-800 rounded-tl-xl shadow-2xl z-50 flex flex-col">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800">
+            <div className="flex items-center gap-2">
+              <Zap className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-xs font-medium text-zinc-300">
+                Guest Exec — {execWs.name}
+              </span>
+              {execRunning && <span className="text-[10px] text-amber-400 animate-pulse">RUNNING</span>}
+            </div>
+            <button onClick={() => setExecWs(null)} className="text-zinc-500 hover:text-white text-xs">✕</button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 font-mono text-[11px] text-zinc-400 space-y-0.5">
+            {execOutput.map((line, i) => (
+              <div key={i} className={`${
+                line.startsWith('$') ? 'text-emerald-400 font-bold' :
+                line.startsWith('[') ? 'text-amber-400' :
+                line.startsWith('✓') ? 'text-emerald-400' :
+                line.startsWith('✗') ? 'text-red-400' : ''
+              }`}>{line}</div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ─── MODALS ─── */}
       {showCreator && (
@@ -262,8 +349,9 @@ const WorkspacesView: React.FC<{
   onDelete: (ws: WorkspaceDto) => void;
   onConfig: (id: string) => void;
   onTerminal: (ws: WorkspaceDto) => void;
+  onExec: (ws: WorkspaceDto, cmd: string) => void;
   onNew: () => void;
-}> = ({ workspaces, loading, onStart, onStop, onDelete, onConfig, onTerminal, onNew }) => (
+}> = ({ workspaces, loading, onStart, onStop, onDelete, onConfig, onTerminal, onExec, onNew }) => (
   <div className="flex-1 overflow-y-auto p-5">
     {loading && workspaces.length === 0 ? (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -298,6 +386,7 @@ const WorkspacesView: React.FC<{
             onDelete={() => onDelete(ws)}
             onConfig={() => onConfig(ws.id)}
             onTerminal={() => onTerminal(ws)}
+            onExec={(cmd) => onExec(ws, cmd)}
           />
         ))}
         {/* Add card */}
@@ -320,7 +409,8 @@ const WorkspaceCard: React.FC<{
   onDelete: () => void;
   onConfig: () => void;
   onTerminal: () => void;
-}> = ({ ws, onStart, onStop, onDelete, onConfig, onTerminal }) => {
+  onExec: (cmd: string) => void;
+}> = ({ ws, onStart, onStop, onDelete, onConfig, onTerminal, onExec }) => {
   const isRunning = ws.state === "running";
   const isStopped = ws.state === "stopped";
 
@@ -339,6 +429,12 @@ const WorkspaceCard: React.FC<{
             }`}>{ws.state}</span>
           </div>
           <p className="text-[11px] text-zinc-600 font-mono truncate">{ws.id}</p>
+          {ws.project_path && (
+            <p className="text-[10px] text-zinc-600 mt-0.5 flex items-center gap-1">
+              <ExternalLink className="w-2.5 h-2.5" />
+              <span className="truncate max-w-[200px]">{ws.project_path}</span>
+            </p>
+          )}
         </div>
       </div>
 
@@ -357,6 +453,40 @@ const WorkspaceCard: React.FC<{
           <div className="text-zinc-300 font-medium">{(ws.memory_mb / 1024).toFixed(0)}G</div>
         </div>
       </div>
+
+      {/* Quick exec buttons */}
+      {isRunning && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            onClick={() => onExec("ls /workspace")}
+            title="List workspace"
+            className="px-2 py-1 rounded text-[10px] font-mono bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-all"
+          >
+            ls
+          </button>
+          <button
+            onClick={() => onExec("pwd")}
+            title="Print working directory"
+            className="px-2 py-1 rounded text-[10px] font-mono bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-all"
+          >
+            pwd
+          </button>
+          <button
+            onClick={() => onExec("uname -a")}
+            title="System info"
+            className="px-2 py-1 rounded text-[10px] font-mono bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-all"
+          >
+            uname
+          </button>
+          <button
+            onClick={() => onExec("df -h")}
+            title="Disk usage"
+            className="px-2 py-1 rounded text-[10px] font-mono bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-all"
+          >
+            df
+          </button>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex items-center gap-1.5">
@@ -402,6 +532,71 @@ const WorkspaceCard: React.FC<{
   );
 };
 
+/* ─── EVENTS VIEW ─── */
+const EventsView: React.FC<{ events: PlazaEvent[]; onClear: () => void }> = ({ events, onClear }) => {
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const [autoScroll, setAutoScroll] = useState(true);
+
+  useEffect(() => {
+    if (autoScroll && bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [events, autoScroll]);
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-800/50">
+        <div>
+          <h2 className="text-sm font-bold text-zinc-100">Live Event Stream</h2>
+          <p className="text-[11px] text-zinc-500">{events.length} events • Real-time backend updates</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+            <input
+              type="checkbox"
+              checked={autoScroll}
+              onChange={(e) => setAutoScroll(e.target.checked)}
+              className="rounded"
+            />
+            Auto-scroll
+          </label>
+          <button onClick={onClear} className="text-[11px] text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 transition-colors">
+            Clear
+          </button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 font-mono text-[11px] space-y-1">
+        {events.length === 0 ? (
+          <div className="text-zinc-600 text-center py-10">
+            No events yet. Start or create a workspace to see live updates.
+          </div>
+        ) : (
+          events.map((evt) => (
+            <div key={evt.id} className="flex items-start gap-2 hover:bg-zinc-900/50 px-2 py-1 rounded">
+              <span className="text-zinc-600 shrink-0 w-[70px]">
+                {new Date(evt.timestamp).toLocaleTimeString()}
+              </span>
+              <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                evt.type.includes('error') || evt.type.includes('failed') ? 'bg-red-900/40 text-red-400' :
+                evt.type.includes('completed') || evt.type.includes('created') || evt.type.includes('started') ? 'bg-emerald-900/40 text-emerald-400' :
+                evt.type.includes('progress') || evt.type.includes('output') ? 'bg-blue-900/40 text-blue-400' :
+                'bg-zinc-800 text-zinc-400'
+              }`}>
+                {evt.type}
+              </span>
+              <span className="text-zinc-400 break-all">
+                {typeof evt.data === 'object' ? JSON.stringify(evt.data).slice(0, 120) : String(evt.data)}
+              </span>
+            </div>
+          ))
+        )}
+        <div ref={bottomRef} />
+      </div>
+    </div>
+  );
+};
+
+/* ─── READINESS VIEW ─── */
 const ReadinessView: React.FC<{ readiness: Record<string, boolean>; onRefresh: () => void }> = ({ readiness, onRefresh }) => {
   const entries = Object.entries(readiness);
   const allGood = entries.every(([, v]) => v);
@@ -411,7 +606,7 @@ const ReadinessView: React.FC<{ readiness: Record<string, boolean>; onRefresh: (
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-zinc-100">System Readiness</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Plaza component health checks</p>
+          <p className="text-sm text-zinc-500 mt-0.5">PlazaVM component health checks</p>
         </div>
         <button
           onClick={onRefresh}

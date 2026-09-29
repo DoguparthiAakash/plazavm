@@ -11,7 +11,7 @@
 
 Please do not report security vulnerabilities through public GitHub issues.
 
-Send security reports to `security@plazavm.io` with:
+Send security reports to `doguparthiaakash@gmail.com` with:
 - Description of the vulnerability
 - Steps to reproduce
 - Potential impact assessment

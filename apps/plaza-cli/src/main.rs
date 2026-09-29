@@ -148,6 +148,25 @@ enum Commands {
         #[command(subcommand)]
         action: EnvAction,
     },
+    /// Workspace Networking Operations (plaza network)
+    Network {
+        #[command(subcommand)]
+        action: NetworkAction,
+    },
+    /// Build a workspace image from a source directory (ext4 disk image)
+    BuildImage {
+        /// Source directory to pack into the image
+        source: PathBuf,
+        /// Output path for the image file
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        /// Image size in MB (default: 512)
+        #[arg(short, long, default_value = "512")]
+        size: u64,
+        /// Workspace name
+        #[arg(short, long)]
+        name: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -245,7 +264,12 @@ enum WorkspaceAction {
     /// Inspect details of a workspace by ID or Name
     Inspect { id: String },
     /// Start a workspace
-    Start { id: String },
+    Start {
+        id: String,
+        /// Optional command to execute after the workspace is ready
+        #[arg(short, long)]
+        exec: Option<String>,
+    },
     /// Stop a workspace
     Stop { id: String },
     /// Delete a workspace
@@ -392,13 +416,198 @@ enum ImageAction {
     },
 }
 
+#[derive(Subcommand)]
+enum NetworkAction {
+    /// Create a virtual network bridge
+    BridgeCreate {
+        /// Bridge name
+        name: String,
+        /// Subnet CIDR (e.g. 10.0.0.0/24)
+        subnet: String,
+    },
+    /// Remove a virtual network bridge
+    BridgeRemove {
+        /// Bridge name
+        name: String,
+    },
+    /// List all virtual network bridges
+    BridgeList,
+    /// Inspect a specific virtual network bridge
+    BridgeInspect {
+        /// Bridge name
+        name: String,
+    },
+    /// Connect a workspace to a network bridge
+    Connect {
+        /// Workspace ID or name
+        workspace: String,
+        /// Bridge name to connect to
+        bridge: String,
+    },
+    /// Disconnect a workspace from its network
+    Disconnect {
+        /// Workspace ID or name
+        workspace: String,
+    },
+    /// Add a custom DNS record for a workspace
+    DnsAdd {
+        /// Workspace ID or name
+        workspace: String,
+        /// Hostname to resolve
+        hostname: String,
+        /// IP address to resolve to
+        ip: String,
+    },
+    /// Remove a DNS record for a workspace
+    DnsRemove {
+        /// Workspace ID or name
+        workspace: String,
+        /// Hostname to remove
+        hostname: String,
+    },
+    /// List DNS records for a workspace
+    DnsList {
+        /// Workspace ID or name
+        workspace: String,
+    },
+    /// Resolve a hostname within a workspace
+    DnsResolve {
+        /// Workspace ID or name
+        workspace: String,
+        /// Hostname to resolve
+        hostname: String,
+    },
+    /// Clear the DNS cache for a workspace
+    DnsClear {
+        /// Workspace ID or name
+        workspace: String,
+    },
+    /// Create a port forward from host to guest
+    PortForward {
+        /// Workspace ID or name
+        workspace: String,
+        /// Host port
+        #[arg(short, long)]
+        host_port: u16,
+        /// Guest port
+        #[arg(short, long)]
+        guest_port: u16,
+        /// Protocol: tcp or udp
+        #[arg(short, long, default_value = "tcp")]
+        protocol: String,
+        /// Optional description
+        #[arg(short, long)]
+        description: Option<String>,
+    },
+    /// Remove a port forward rule
+    PortRemove {
+        /// Rule ID
+        rule_id: String,
+    },
+    /// List port forwards for a workspace
+    PortList {
+        /// Workspace ID or name
+        workspace: String,
+    },
+    /// Pause a port forward rule
+    PortPause {
+        /// Rule ID
+        rule_id: String,
+    },
+    /// Resume a port forward rule
+    PortResume {
+        /// Rule ID
+        rule_id: String,
+    },
+    /// Register a service for discovery
+    ServiceRegister {
+        /// Service name
+        name: String,
+        /// Workspace ID or name
+        workspace: String,
+        /// Service address
+        address: String,
+        /// Service port
+        port: u16,
+        /// Protocol (tcp/udp)
+        #[arg(short, long, default_value = "tcp")]
+        protocol: String,
+        /// Tags (comma-separated)
+        #[arg(short, long)]
+        tags: Option<String>,
+    },
+    /// Deregister a service
+    ServiceDeregister {
+        /// Service name
+        name: String,
+        /// Workspace ID or name
+        workspace: String,
+    },
+    /// Look up a service by name
+    ServiceLookup {
+        /// Service name
+        name: String,
+    },
+    /// List services registered by a workspace
+    ServiceList {
+        /// Workspace ID or name
+        workspace: String,
+    },
+    /// Apply network isolation policy to a workspace
+    Isolate {
+        /// Workspace ID or name
+        workspace: String,
+        /// Isolation policy: strict, internet_only, group_shared, permissive
+        #[arg(short, long, default_value = "strict")]
+        policy: String,
+        /// Group name for group_shared policy
+        #[arg(short, long)]
+        group: Option<String>,
+    },
+    /// Check if two workspaces can communicate
+    IsolationCheck {
+        /// Source workspace ID or name
+        source: String,
+        /// Target workspace ID or name
+        target: String,
+    },
+    /// List all isolation policies
+    IsolationList,
+    /// List recorded isolation violations
+    Violations,
+    /// Show network status for a workspace
+    Status {
+        /// Workspace ID or name
+        workspace: String,
+    },
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // CrashHandler::init();
     tracing_subscriber::fmt::init();
-    Logger::info("plaza-cli binary started");
 
     let cli = Cli::parse();
+
+    // ─── LIGHTWEIGHT PATH ───
+    // Skip heavy image manager, runtime manager, engine bootstrap.
+    // Just bootstrap the workspace service for read-only queries.
+    match &cli.command {
+        Some(Commands::Workspace { action: Some(WorkspaceAction::List) })
+        | Some(Commands::Workspace { action: Some(WorkspaceAction::Inspect { .. }) })
+        | Some(Commands::Doctor)
+        | Some(Commands::System)
+        | Some(Commands::Platform)
+        | Some(Commands::BuildImage { .. })
+        | Some(Commands::Logs { .. })
+        | Some(Commands::Config { .. })
+        | Some(Commands::Backend { .. }) => {
+            return run_lightweight(cli).await;
+        }
+        _ => {}
+    }
+
+    // ─── FULL BOOTSTRAP PATH ───
+    Logger::info("plaza-cli full bootstrap");
     let container = BootstrapBuilder::new().build().await?;
 
     // Setup Command Pipeline & Dispatcher
@@ -506,17 +715,131 @@ async fn main() -> anyhow::Result<()> {
             println!("🛠️ Building workspace from {:?}", path);
             println!("(Native PlazaVM Image Builder integration pending...)");
         }
-        Commands::Run { image, command, it } => {
-            println!("🚀 Running ephemeral workspace with image '{}'", image);
-            println!("(Native PlazaVM Runtime integration pending...)");
+        Commands::Run { image, command, it: _ } => {
+            let full_cmd = command.join(" ");
+            if full_cmd.is_empty() {
+                eprintln!("❌ No command specified. Usage: plaza run <image> <command>");
+                std::process::exit(1);
+            }
+
+            // Create an ephemeral workspace
+            let ws_id_str = plaza_foundation::core::id::WorkspaceId::new().to_string();
+            let ws_name = format!("run-{}", &ws_id_str[..8]);
+            eprintln!("🚀 Creating ephemeral workspace '{}' with image '{}'...", ws_name, image);
+
+            // Resolve the image - could be a local .img file or "alpine"
+            let workspace_image_path = if image.ends_with(".img") || image.ends_with(".ext4") {
+                std::path::PathBuf::from(&image)
+            } else {
+                let candidate = std::path::PathBuf::from(format!("{}.img", image));
+                if candidate.exists() {
+                    candidate
+                } else {
+                    eprintln!("❌ Image '{}' not found. Use a .img file or build one with: plaza build-image <dir>", image);
+                    std::process::exit(1);
+                }
+            };
+
+            // Build WorkspaceSpec
+            let mut spec = plaza_workspace::model::WorkspaceSpec::default();
+            spec.guest_runtime = plaza_runtime::runtime::GuestRuntimeKind::Linux;
+            spec.runtime.image = Some(workspace_image_path.to_string_lossy().to_string());
+            spec.runtime.backend = plaza_workspace::model::RuntimeBackendPreference::Pinned("qemu".to_string());
+            spec.resources.memory_mb = 256; // Low memory to prevent system overload
+
+            let workspace = container.workspace_service.create_workspace(&ws_name, spec).await?;
+            let ws_id = workspace.id.to_string();
+            eprintln!("✅ Workspace '{}' created [{}].", ws_name, ws_id);
+            eprintln!("⏳ Starting workspace (provisioning storage + booting guest)...\n");
+
+            // Start the workspace
+            match plaza_workspace::engine::WorkspaceEngine::start_workspace(
+                &workspace,
+                &runtime_manager,
+                &image_manager,
+                &container.workspace_service,
+                "qemu",
+            ).await {
+                Ok(()) => {
+                    eprintln!("✅ Workspace started. Guest booting...\n");
+                }
+                Err(e) => {
+                    eprintln!("❌ Failed to start workspace: {}", e);
+                    let _ = container.workspace_service.delete_workspace(&workspace.id).await;
+                    std::process::exit(1);
+                }
+            }
+
+            // Wait briefly for guest to boot, then execute the command
+            tokio::time::sleep(std::time::Duration::from_secs(8)).await;
+
+            // Try to execute the command
+            let ws_ref = container.workspace_service.get_workspace(&workspace.id).await?;
+            if let Some(ref ws) = ws_ref {
+                if let Some(ref instance_id) = ws.status.runtime_instance_id {
+                    match runtime_manager.get_backend("qemu") {
+                        Ok(backend) => {
+                            let timeout = std::time::Duration::from_secs(30);
+                            match backend.exec_with_output(instance_id, &full_cmd, timeout).await {
+                                Ok(output) => {
+                                    if !output.is_empty() {
+                                        println!("{}", output);
+                                    }
+                                }
+                                Err(_) => {
+                                    let _ = backend.exec(instance_id, &full_cmd).await;
+                                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                                }
+                            }
+                        }
+                        Err(e) => eprintln!("❌ Backend error: {}", e),
+                    }
+                }
+            }
+
+            // Clean up ephemeral workspace
+            eprintln!("\n🧹 Cleaning up ephemeral workspace...");
+            let _ = container.workspace_service.set_desired_state(
+                &workspace.id,
+                plaza_workspace::model::DesiredState::Stopped,
+            ).await;
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            let _ = container.workspace_service.delete_workspace(&workspace.id).await;
+            eprintln!("✅ Done.");
         }
         Commands::Exec {
             workspace,
             command,
-            it,
+            it: _,
         } => {
-            println!("⚙️ Executing command in workspace '{}'", workspace);
-            println!("(Native PlazaVM Runtime integration pending...)");
+            let full_cmd = command.join(" ");
+            if full_cmd.is_empty() {
+                eprintln!("❌ No command specified.");
+                std::process::exit(1);
+            }
+            let ws_id = resolve_ws_id(&container, &workspace).await?;
+            let ws = container.workspace_service.get_workspace(&ws_id).await?;
+            match ws {
+                Some(workspace) => {
+                    if let Some(instance_id) = &workspace.status.runtime_instance_id {
+                        let backend_id = workspace.status.runtime_backend.as_deref().unwrap_or("qemu");
+                        match runtime_manager.get_backend(backend_id) {
+                            Ok(backend) => {
+                                let timeout = std::time::Duration::from_secs(30);
+                                match backend.exec_with_output(instance_id, &full_cmd, timeout).await {
+                                    Ok(output) => { if !output.is_empty() { println!("{}", output); } }
+                                    Err(_) => { let _ = backend.exec(instance_id, &full_cmd).await; }
+                                }
+                            }
+                            Err(e) => eprintln!("❌ Backend error: {}", e),
+                        }
+                    } else {
+                        eprintln!("❌ Workspace '{}' is not running.", workspace.name);
+                        std::process::exit(1);
+                    }
+                }
+                None => { eprintln!("❌ Workspace '{}' not found.", &workspace); std::process::exit(1); }
+            }
         }
         Commands::Ps { all } => {
             let workspaces = container.workspace_service.list_workspaces().await?;
@@ -645,14 +968,68 @@ async fn main() -> anyhow::Result<()> {
                         }
                     }
                 }
-                WorkspaceAction::Start { id } => {
+                WorkspaceAction::Start { id, exec } => {
                     let ws_id = resolve_ws_id(&container, &id).await?;
-                    container
-                        .workspace_service
-                        .set_desired_state(&ws_id, plaza_workspace::model::DesiredState::Running)
-                        .await?;
-
-                    println!("Triggered start for workspace '{id}' [{ws_id}]");
+                    let workspace = container.workspace_service.get_workspace(&ws_id).await?.ok_or_else(|| {
+                        anyhow::anyhow!("Workspace '{}' not found", id)
+                    })?;
+                    let backend_id = match &workspace.spec.runtime.backend {
+                        plaza_workspace::model::RuntimeBackendPreference::Preferred(b) => b.clone(),
+                        plaza_workspace::model::RuntimeBackendPreference::Pinned(b) => b.clone(),
+                        _ => "qemu".to_string(),
+                    };
+                    println!("Starting workspace '{}' [{}] with backend '{}'...", workspace.name, ws_id, backend_id);
+                    match plaza_workspace::engine::WorkspaceEngine::start_workspace(
+                        &workspace,
+                        &runtime_manager,
+                        &image_manager,
+                        &container.workspace_service,
+                        &backend_id,
+                    ).await {
+                        Ok(()) => {
+                            println!("✅ Workspace '{}' started successfully.", workspace.name);
+                            if let Some(ref cmd) = exec {
+                                // Wait for shell to settle before executing
+                                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                                let ws_ref = container.workspace_service.get_workspace(&ws_id).await?;
+                                if let Some(ref ws) = ws_ref {
+                                    if let Some(ref instance_id) = ws.status.runtime_instance_id {
+                                        match runtime_manager.get_backend(&backend_id) {
+                                            Ok(backend) => {
+                                                let timeout = std::time::Duration::from_secs(30);
+                                                match backend.exec_with_output(instance_id, cmd, timeout).await {
+                                                    Ok(output) => { if !output.is_empty() { println!("{}", output); } }
+                                                    Err(_) => { let _ = backend.exec(instance_id, cmd).await; }
+                                                }
+                                            }
+                                            Err(e) => eprintln!("❌ Backend error: {}", e),
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Keep workspace alive until stopped externally
+                                // The workspace stays running until the CLI process exits
+                                loop {
+                                    tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+                                    // Check if workspace is still running
+                                    let ws_check = container.workspace_service.get_workspace(&ws_id).await;
+                                    match ws_check {
+                                        Ok(Some(ref ws)) if ws.status.state == plaza_workspace::model::WorkspaceState::Running => {
+                                            // Still running, continue waiting
+                                        }
+                                        _ => break,
+                                    }
+                                }
+                            }
+                            println!("\nStopping workspace...");
+                            let _ = container.workspace_service.set_desired_state(
+                                &ws_id,
+                                plaza_workspace::model::DesiredState::Stopped,
+                            ).await;
+                            println!("Workspace stopped.");
+                        }
+                        Err(e) => eprintln!("❌ Failed to start workspace: {}", e),
+                    }
                 }
                 WorkspaceAction::Stop { id } => {
                     let ws_id = resolve_ws_id(&container, &id).await?;
@@ -670,10 +1047,8 @@ async fn main() -> anyhow::Result<()> {
                 }
                 WorkspaceAction::Exec { id, cmd } => {
                     let ws_id = resolve_ws_id(&container, &id).await?;
-                    println!(
-                        "Executing inside workspace '{id}' [{ws_id}]: {}",
-                        cmd.join(" ")
-                    );
+                    let full_cmd = cmd.join(" ");
+                    eprintln!("⚙️  Executing in workspace '{}': {}", id, full_cmd);
 
                     let workspace = match container.workspace_service.get_workspace(&ws_id).await? {
                         Some(ws) => ws,
@@ -689,19 +1064,35 @@ async fn main() -> anyhow::Result<()> {
                             .runtime_backend
                             .as_deref()
                             .unwrap_or("qemu");
-                        if let Ok(backend) = runtime_manager.get_backend(backend_id) {
-                            let full_cmd = cmd.join(" ");
-                            // QEMU needs a newline to execute via serial
-                            let full_cmd_with_newline = format!("{}\n", full_cmd);
-                            match backend.exec(instance_id, &full_cmd_with_newline).await {
-                                Ok(_) => println!("Exec command sent successfully"),
-                                Err(e) => eprintln!("❌ Failed to execute command: {}", e),
+                        match runtime_manager.get_backend(backend_id) {
+                            Ok(backend) => {
+                                // Try exec_with_output first to capture and display output
+                                let timeout = std::time::Duration::from_secs(30);
+                                match backend.exec_with_output(instance_id, &full_cmd, timeout).await {
+                                    Ok(output) => {
+                                        if !output.is_empty() {
+                                            println!("{}", output);
+                                        }
+                                    }
+                                    Err(_) => {
+                                        // Fall back to fire-and-forget exec
+                                        match backend.exec(instance_id, &full_cmd).await {
+                                            Ok(_) => eprintln!("(command sent, output not captured)"),
+                                            Err(e) => {
+                                                eprintln!("❌ Failed to execute: {}", e);
+                                                std::process::exit(1);
+                                            }
+                                        }
+                                    }
+                                }
                             }
-                        } else {
-                            eprintln!("❌ Runtime backend '{}' not found.", backend_id);
+                            Err(e) => {
+                                eprintln!("❌ Runtime backend '{}' not found: {}", backend_id, e);
+                                std::process::exit(1);
+                            }
                         }
                     } else {
-                        eprintln!("❌ Cannot execute: Workspace '{}' is not running.", id);
+                        eprintln!("❌ Workspace '{}' is not running. Start it first: plaza workspace start {}", id, id);
                         std::process::exit(1);
                     }
                 }
@@ -1505,6 +1896,358 @@ engine:
                 println!("Active Drivers       : Linux, WSL2, Hyper-V, AppleVirt, Jails, Docker");
             }
         },
+        Commands::Network { action } => {
+            let bridge_mgr = plaza_network::VirtualNetworkManager::new();
+            let dns_resolver = plaza_network::DnsResolver::new();
+            let port_fwd = plaza_network::PortForwarder::new();
+            let svc_disc = plaza_network::ServiceDiscovery::new();
+            let net_isolation = plaza_network::NetworkIsolation::new();
+
+            match action {
+                NetworkAction::BridgeCreate { name, subnet } => {
+                    match bridge_mgr.create_bridge(&name, &subnet).await {
+                        Ok(bridge) => {
+                            println!("✓ Created virtual bridge '{}'", bridge.name);
+                            println!("  Subnet : {}", bridge.subnet);
+                            println!("  Gateway: {}", bridge.gateway);
+                            println!("  DNS    : {}", bridge.dns_servers.join(", "));
+                        }
+                        Err(e) => eprintln!("❌ Failed to create bridge: {}", e),
+                    }
+                }
+                NetworkAction::BridgeRemove { name } => {
+                    match bridge_mgr.remove_bridge(&name).await {
+                        Ok(()) => println!("✓ Removed bridge '{}'", name),
+                        Err(e) => eprintln!("❌ Failed to remove bridge: {}", e),
+                    }
+                }
+                NetworkAction::BridgeList => {
+                    match bridge_mgr.list_bridges().await {
+                        Ok(bridges) => {
+                            println!("Virtual Network Bridges ({}):", bridges.len());
+                            println!("--------------------------------------------------");
+                            if bridges.is_empty() {
+                                println!("  (none)");
+                            }
+                            for b in &bridges {
+                                println!("  {} — {} gateway={} workspaces={}", b.name, b.subnet, b.gateway, b.connected_workspaces.len());
+                            }
+                        }
+                        Err(e) => eprintln!("❌ Failed to list bridges: {}", e),
+                    }
+                }
+                NetworkAction::BridgeInspect { name } => {
+                    match bridge_mgr.get_bridge(&name).await {
+                        Ok(b) => {
+                            println!("Bridge: {}", b.name);
+                            println!("--------------------------------------------------");
+                            println!("  Subnet     : {}", b.subnet);
+                            println!("  Gateway    : {}", b.gateway);
+                            println!("  DNS Servers: {}", b.dns_servers.join(", "));
+                            println!("  Workspaces : {}", b.connected_workspaces.len());
+                            for ws in &b.connected_workspaces {
+                                println!("    - {}", ws);
+                            }
+                        }
+                        Err(e) => eprintln!("❌ {}", e),
+                    }
+                }
+                NetworkAction::Connect { workspace, bridge } => {
+                    match bridge_mgr.connect_workspace(&workspace, &bridge).await {
+                        Ok(alloc) => {
+                            println!("✓ Connected workspace '{}' to bridge '{}'", workspace, bridge);
+                            println!("  IP Address: {}", alloc.ip_address);
+                            println!("  Netmask   : {}", alloc.netmask);
+                            println!("  Gateway   : {}", alloc.gateway);
+                        }
+                        Err(e) => eprintln!("❌ Failed to connect: {}", e),
+                    }
+                }
+                NetworkAction::Disconnect { workspace } => {
+                    match bridge_mgr.disconnect_workspace(&workspace).await {
+                        Ok(()) => println!("✓ Disconnected workspace '{}' from network", workspace),
+                        Err(e) => eprintln!("❌ Failed to disconnect: {}", e),
+                    }
+                }
+                NetworkAction::DnsAdd { workspace, hostname, ip } => {
+                    match dns_resolver.add_record(
+                        &workspace,
+                        plaza_network::DnsRecord {
+                            name: hostname.clone(),
+                            record_type: plaza_network::DnsRecordType::A,
+                            value: ip.clone(),
+                            ttl: 600,
+                        },
+                    ).await {
+                        Ok(()) => println!("✓ Added DNS record: {} → {} for workspace '{}'", hostname, ip, workspace),
+                        Err(e) => eprintln!("❌ Failed to add DNS record: {}", e),
+                    }
+                }
+                NetworkAction::DnsRemove { workspace, hostname } => {
+                    match dns_resolver.remove_record(&workspace, &hostname).await {
+                        Ok(true) => println!("✓ Removed DNS record '{}' for workspace '{}'", hostname, workspace),
+                        Ok(false) => eprintln!("❌ DNS record '{}' not found for workspace '{}'", hostname, workspace),
+                        Err(e) => eprintln!("❌ Failed to remove DNS record: {}", e),
+                    }
+                }
+                NetworkAction::DnsList { workspace } => {
+                    match dns_resolver.list_records(&workspace).await {
+                        Ok(records) => {
+                            println!("DNS Records for workspace '{}':", workspace);
+                            println!("--------------------------------------------------");
+                            if records.is_empty() {
+                                println!("  (none)");
+                            }
+                            for r in &records {
+                                println!("  {} {} → {} (TTL: {}s)", r.record_type, r.name, r.value, r.ttl);
+                            }
+                        }
+                        Err(e) => eprintln!("❌ Failed to list DNS records: {}", e),
+                    }
+                }
+                NetworkAction::DnsResolve { workspace, hostname } => {
+                    match dns_resolver.resolve(&workspace, &hostname).await {
+                        Ok(res) => {
+                            println!("Resolved '{}':", hostname);
+                            println!("--------------------------------------------------");
+                            println!("  IP     : {}", res.resolved_ip);
+                            println!("  Type   : {}", res.record_type);
+                            println!("  TTL    : {}s", res.ttl);
+                            println!("  Source : {:?}", res.source);
+                        }
+                        Err(e) => eprintln!("❌ {}", e),
+                    }
+                }
+                NetworkAction::DnsClear { workspace } => {
+                    match dns_resolver.clear_cache(&workspace).await {
+                        Ok(n) => println!("✓ Cleared {} DNS cache entries for workspace '{}'", n, workspace),
+                        Err(e) => eprintln!("❌ Failed to clear DNS cache: {}", e),
+                    }
+                }
+                NetworkAction::PortForward { workspace, host_port, guest_port, protocol, description } => {
+                    let proto = match protocol.as_str() {
+                        "udp" => plaza_network::PortProtocol::Udp,
+                        _ => plaza_network::PortProtocol::Tcp,
+                    };
+                    match port_fwd.forward_port(&workspace, host_port, guest_port, proto, description).await {
+                        Ok(rule) => {
+                            println!("✓ Port forward created: {}:{} → {}:{} ({})", rule.host_port, rule.protocol, rule.guest_port, rule.protocol, workspace);
+                            println!("  Rule ID: {}", rule.id);
+                        }
+                        Err(e) => eprintln!("❌ Failed to create port forward: {}", e),
+                    }
+                }
+                NetworkAction::PortRemove { rule_id } => {
+                    match port_fwd.remove_rule(&rule_id).await {
+                        Ok(true) => println!("✓ Removed port forward rule '{}'", rule_id),
+                        Ok(false) => eprintln!("❌ Rule '{}' not found", rule_id),
+                        Err(e) => eprintln!("❌ Failed to remove rule: {}", e),
+                    }
+                }
+                NetworkAction::PortList { workspace } => {
+                    match port_fwd.list_rules(&workspace).await {
+                        Ok(rules) => {
+                            println!("Port Forwards for workspace '{}':", workspace);
+                            println!("--------------------------------------------------");
+                            if rules.is_empty() {
+                                println!("  (none)");
+                            }
+                            for r in &rules {
+                                println!("  [{}] host:{} → guest:{} ({}) — {:?}", &r.id[..12.min(r.id.len())], r.host_port, r.guest_port, r.protocol, r.status);
+                            }
+                        }
+                        Err(e) => eprintln!("❌ Failed to list port forwards: {}", e),
+                    }
+                }
+                NetworkAction::PortPause { rule_id } => {
+                    match port_fwd.pause_rule(&rule_id).await {
+                        Ok(()) => println!("✓ Paused port forward rule '{}'", rule_id),
+                        Err(e) => eprintln!("❌ {}", e),
+                    }
+                }
+                NetworkAction::PortResume { rule_id } => {
+                    match port_fwd.resume_rule(&rule_id).await {
+                        Ok(()) => println!("✓ Resumed port forward rule '{}'", rule_id),
+                        Err(e) => eprintln!("❌ {}", e),
+                    }
+                }
+                NetworkAction::ServiceRegister { name, workspace, address, port, protocol, tags } => {
+                    let tag_list = tags.map(|t| t.split(',').map(String::from).collect()).unwrap_or_default();
+                    match svc_disc.register_service(&name, &workspace, &address, port, &protocol, tag_list, std::collections::HashMap::new()).await {
+                        Ok(inst) => {
+                            println!("✓ Registered service '{}' at {}:{} for workspace '{}'", inst.name, inst.address, inst.port, workspace);
+                            let tags_str = if inst.tags.is_empty() { "(none)".to_string() } else { inst.tags.join(", ") };
+                            println!("  Tags: {}", tags_str);
+                        }
+                        Err(e) => eprintln!("❌ Failed to register service: {}", e),
+                    }
+                }
+                NetworkAction::ServiceDeregister { name, workspace } => {
+                    match svc_disc.deregister_service(&name, &workspace).await {
+                        Ok(true) => println!("✓ Deregistered service '{}' for workspace '{}'", name, workspace),
+                        Ok(false) => eprintln!("❌ Service '{}' not found for workspace '{}'", name, workspace),
+                        Err(e) => eprintln!("❌ Failed to deregister service: {}", e),
+                    }
+                }
+                NetworkAction::ServiceLookup { name } => {
+                    match svc_disc.lookup_service(&name).await {
+                        Ok(result) => {
+                            println!("Service: '{}' ({} instances)", result.service_name, result.total);
+                            println!("--------------------------------------------------");
+                            for inst in &result.instances {
+                                println!("  {}:{} ({}) — workspace '{}' [{:?}]", inst.address, inst.port, inst.protocol, inst.workspace_id, inst.health);
+                            }
+                        }
+                        Err(e) => eprintln!("❌ {}", e),
+                    }
+                }
+                NetworkAction::ServiceList { workspace } => {
+                    match svc_disc.list_workspace_services(&workspace).await {
+                        Ok(services) => {
+                            println!("Services for workspace '{}':", workspace);
+                            println!("--------------------------------------------------");
+                            if services.is_empty() {
+                                println!("  (none)");
+                            }
+                            for svc in &services {
+                                println!("  {} at {}:{} ({:?})", svc.name, svc.address, svc.port, svc.health);
+                            }
+                        }
+                        Err(e) => eprintln!("❌ {}", e),
+                    }
+                }
+                NetworkAction::Isolate { workspace, policy, group } => {
+                    let iso_policy = match policy.as_str() {
+                        "internet_only" | "internet" => plaza_network::IsolationPolicy::InternetOnly,
+                        "group_shared" | "group" => plaza_network::IsolationPolicy::GroupShared,
+                        "permissive" => plaza_network::IsolationPolicy::Permissive,
+                        _ => plaza_network::IsolationPolicy::Strict,
+                    };
+                    match net_isolation.isolate(&workspace, iso_policy.clone(), group).await {
+                        Ok(iso) => {
+                            println!("✓ Applied '{}' isolation to workspace '{}'", iso.policy, workspace);
+                        }
+                        Err(e) => eprintln!("❌ Failed to set isolation: {}", e),
+                    }
+                }
+                NetworkAction::IsolationCheck { source, target } => {
+                    match net_isolation.can_communicate(&source, &target).await {
+                        Ok(true) => println!("✓ '{}' CAN communicate with '{}'", source, target),
+                        Ok(false) => println!("✗ '{}' CANNOT communicate with '{}' (isolation enforced)", source, target),
+                        Err(e) => eprintln!("❌ {}", e),
+                    }
+                }
+                NetworkAction::IsolationList => {
+                    match net_isolation.list_isolations().await {
+                        Ok(isolations) => {
+                            println!("Network Isolation Policies ({}):", isolations.len());
+                            println!("--------------------------------------------------");
+                            if isolations.is_empty() {
+                                println!("  (none)");
+                            }
+                            for iso in &isolations {
+                                let group_str = iso.group.as_deref().unwrap_or("-");
+                                println!("  {} → {} (group: {})", iso.workspace_id, iso.policy, group_str);
+                            }
+                        }
+                        Err(e) => eprintln!("❌ {}", e),
+                    }
+                }
+                NetworkAction::Violations => {
+                    match net_isolation.get_violations().await {
+                        Ok(violations) => {
+                            println!("Network Isolation Violations ({}):", violations.len());
+                            println!("--------------------------------------------------");
+                            if violations.is_empty() {
+                                println!("  (none — clean)");
+                            }
+                            for v in &violations {
+                                println!("  {} → {} ({})", v.source_workspace, v.target_workspace, v.violation_type);
+                            }
+                        }
+                        Err(e) => eprintln!("❌ {}", e),
+                    }
+                }
+                NetworkAction::Status { workspace } => {
+                    println!("Network Status for workspace '{}':", workspace);
+                    println!("==================================================");
+                    // Bridge / allocation
+                    match bridge_mgr.get_allocation(&workspace).await {
+                        Ok(alloc) => {
+                            println!("  Bridge     : {}", alloc.bridge_name);
+                            println!("  IP Address : {}", alloc.ip_address);
+                            println!("  Gateway    : {}", alloc.gateway);
+                        }
+                        Err(_) => println!("  Bridge     : (not connected)"),
+                    }
+                    // Port forwards
+                    match port_fwd.get_summary(&workspace).await {
+                        Ok(summary) => {
+                            println!("  Port Forwards : {} active / {} total", summary.active_rules, summary.total_rules);
+                        }
+                        Err(_) => println!("  Port Forwards : (none)"),
+                    }
+                    // Services
+                    match svc_disc.list_workspace_services(&workspace).await {
+                        Ok(svcs) => {
+                            println!("  Services   : {} registered", svcs.len());
+                        }
+                        Err(_) => println!("  Services   : (none)"),
+                    }
+                    // DNS
+                    match dns_resolver.list_records(&workspace).await {
+                        Ok(records) => {
+                            println!("  DNS Records: {} custom", records.len());
+                        }
+                        Err(_) => println!("  DNS Records: (none)"),
+                    }
+                    // Isolation
+                    match net_isolation.get_isolation(&workspace).await {
+                        Ok(iso) => {
+                            println!("  Isolation  : {} (group: {})", iso.policy, iso.group.as_deref().unwrap_or("none"));
+                        }
+                        Err(_) => println!("  Isolation  : (not configured)"),
+                    }
+                    println!("==================================================");
+                }
+            }
+        },
+        Commands::BuildImage { source, output, size, name } => {
+            let ws_name = name.unwrap_or_else(|| {
+                source.file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("workspace")
+                    .to_string()
+            });
+            let output_path = output.unwrap_or_else(|| {
+                std::env::temp_dir().join(format!("plaza-{}-{}.img", ws_name, plaza_foundation::core::id::WorkspaceId::new()))
+            });
+
+            println!("🛠️  Building workspace image for '{}'", ws_name);
+            println!("  Source    : {:?}", source);
+            println!("  Output    : {:?}", output_path);
+            println!("  Size      : {} MB", size);
+
+            let config = plaza_workspace::image::workspace_image::WorkspaceImageConfig::new(
+                &source, &output_path, &ws_name
+            ).with_size_mb(size);
+
+            match plaza_workspace::image::workspace_image::build_workspace_image(config).await {
+                Ok(result) => {
+                    println!("\n✅ Workspace image built successfully!");
+                    println!("  Image    : {:?}", result.image_path);
+                    println!("  Size     : {} bytes", result.image_size_bytes);
+                    println!("  Files    : {} source files packed", result.file_count);
+                    println!("  Source   : {} bytes", result.source_size_bytes);
+                    println!("  SHA256   : {}", result.sha256);
+                    println!("\n  Attach this image as /dev/vdb to a QEMU guest.");
+                }
+                Err(e) => {
+                    eprintln!("❌ Failed to build workspace image: {}", e);
+                    std::process::exit(1);
+                }
+            }
+        },
     }
 
     Ok(())
@@ -1522,4 +2265,98 @@ async fn resolve_ws_id(
         return Ok(target.id);
     }
     anyhow::bail!("Workspace '{}' not found", id_or_name);
+}
+
+// ─── LIGHTWEIGHT CLI PATH ───
+// Bootstrap only workspace service (no image manager, no runtime manager, no engines).
+// ~5x less memory than full bootstrap.
+async fn run_lightweight(cli: Cli) -> anyhow::Result<()> {
+    let active = cli.command.unwrap_or(Commands::System);
+    match active {
+        Commands::Workspace { action } => {
+            let container = BootstrapBuilder::new().build().await?;
+            match action.unwrap_or(WorkspaceAction::List) {
+                WorkspaceAction::List => {
+                    let workspaces = container.workspace_service.list_workspaces().await?;
+                    println!("Workspaces ({}):", workspaces.len());
+                    for ws in workspaces {
+                        let path_str = ws.metadata.project_path.clone().unwrap_or_default();
+                        println!("  - [{}] {} [{}] ({:?}, {})", ws.id, ws.name, path_str, ws.status.state, ws.status.health);
+                    }
+                }
+                WorkspaceAction::Inspect { id } => {
+                    let workspaces = container.workspace_service.list_workspaces().await?;
+                    match workspaces.into_iter().find(|w| w.id.to_string() == id || w.name == id) {
+                        Some(ws) => {
+                            println!("Workspace Details:");
+                            println!("  ID          : {}", ws.id);
+                            println!("  Name        : {}", ws.name);
+                            println!("  State       : {:?}", ws.status.state);
+                            println!("  Health      : {}", ws.status.health);
+                            println!("  Created     : {}", ws.metadata.created_at);
+                            if let Some(pp) = &ws.metadata.project_path { println!("  Project Path: {}", pp); }
+                            if let Some(iid) = &ws.status.runtime_instance_id { println!("  Instance    : {}", iid); }
+                            if let Some(pid) = ws.status.pid { println!("  PID         : {}", pid); }
+                        }
+                        None => println!("Workspace '{}' not found.", id),
+                    }
+                }
+                _ => {
+                    eprintln!("Use full bootstrap for this workspace action.");
+                }
+            }
+        }
+        Commands::BuildImage { source, output, size, name } => {
+            let ws_name = name.unwrap_or_else(|| {
+                source.file_name().and_then(|n| n.to_str()).unwrap_or("workspace").to_string()
+            });
+            let output_path = output.unwrap_or_else(|| {
+                std::env::temp_dir().join(format!("plaza-{}-{}.img", ws_name, plaza_foundation::core::id::WorkspaceId::new()))
+            });
+            println!("Building workspace image '{}'", ws_name);
+            let config = if size > 0 {
+                plaza_workspace::image::workspace_image::WorkspaceImageConfig::new(&source, &output_path, &ws_name).with_size_mb(size)
+            } else {
+                plaza_workspace::image::workspace_image::WorkspaceImageConfig::new(&source, &output_path, &ws_name)
+            };
+            match plaza_workspace::image::workspace_image::build_workspace_image(config).await {
+                Ok(result) => {
+                    println!("Image built: {:?}", result.image_path);
+                    println!("  Size: {} bytes, Files: {}", result.image_size_bytes, result.file_count);
+                    println!("  SHA256: {}", result.sha256);
+                }
+                Err(e) => { eprintln!("Failed: {}", e); std::process::exit(1); }
+            }
+        }
+        Commands::Doctor => { doctor::print_report(); }
+        Commands::System => {
+            println!("PlazaVM {} ({} {})", env!("CARGO_PKG_VERSION"), std::env::consts::OS, std::env::consts::ARCH);
+        }
+        Commands::Platform => {
+            let detector = plaza_foundation::platform::PlatformDetector::new();
+            let caps = detector.scan().await?;
+            println!("{} ({})", caps.os.name, caps.os.arch);
+            println!("CPU: {} cores, Memory: {} MB", caps.cpu.cores_logical, caps.memory.total_mb);
+        }
+        Commands::Logs { lines } => {
+            for line in Logger::read_recent_logs(lines) { println!("{line}"); }
+        }
+        Commands::Config { action } => match action {
+            ConfigAction::Export { target } => { plaza_foundation::config::ConfigManager::export_config(std::path::Path::new(&target))?; }
+            ConfigAction::Import { source } => { plaza_foundation::config::ConfigManager::import_config(std::path::Path::new(&source))?; }
+            ConfigAction::Reset => { plaza_foundation::config::ConfigManager::reset_to_defaults()?; }
+        },
+        Commands::Backend { action } => match action {
+            BackendAction::List => println!("Available backends: qemu, v86"),
+            BackendAction::Current => println!("Default: auto"),
+            BackendAction::Detect => {
+                let detector = plaza_foundation::platform::PlatformDetector::new();
+                let caps = detector.scan().await?;
+                println!("Detected {} runtimes", caps.installed_runtimes.len());
+            }
+            BackendAction::Use { name } => println!("Set default backend to '{}'", name),
+        },
+        _ => { eprintln!("This command requires full runtime bootstrap."); }
+    }
+    Ok(())
 }

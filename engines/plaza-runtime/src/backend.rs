@@ -138,4 +138,17 @@ pub trait RuntimeBackend: Send + Sync {
             backend: self.id().into(),
         })
     }
+
+    /// Execute a command inside a running instance and capture its output.
+    async fn exec_with_output(
+        &self,
+        _instance_id: &str,
+        _cmd: &str,
+        _timeout: std::time::Duration,
+    ) -> PlazaResult<String> {
+        Err(plaza_foundation::core::PlazaError::CapabilityNotSupported {
+            capability: "exec_with_output".into(),
+            backend: self.id().into(),
+        })
+    }
 }

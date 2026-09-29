@@ -127,6 +127,102 @@ impl QmpClient {
         }
     }
 
+    /// Query CPU statistics.
+    pub async fn query_cpus(&mut self) -> PlazaResult<serde_json::Value> {
+        self.execute("query-cpus", None).await
+    }
+
+    /// Query memory statistics.
+    pub async fn query_memstats(&mut self) -> PlazaResult<serde_json::Value> {
+        self.execute("query-memstats", None).await
+    }
+
+    /// Query block device statistics.
+    pub async fn query_blockstats(&mut self) -> PlazaResult<serde_json::Value> {
+        self.execute("query-blockstats", None).await
+    }
+
+    /// Query VM status with full details.
+    pub async fn query_status_detail(&mut self) -> PlazaResult<serde_json::Value> {
+        self.execute("query-status", None).await
+    }
+
+    /// Query character devices (serial ports).
+    pub async fn query_chardev(&mut self) -> PlazaResult<serde_json::Value> {
+        self.execute("query-chardev", None).await
+    }
+
+    /// Query the QEMU version.
+    pub async fn query_version(&mut self) -> PlazaResult<serde_json::Value> {
+        self.execute("query-version", None).await
+    }
+
+    /// Take a snapshot of the current VM state.
+    pub async fn savevm(&mut self, tag: &str) -> PlazaResult<()> {
+        let args = serde_json::json!({"name": tag});
+        self.execute("savevm", Some(args)).await?;
+        Ok(())
+    }
+
+    /// Restore a VM snapshot.
+    pub async fn loadvm(&mut self, tag: &str) -> PlazaResult<()> {
+        let args = serde_json::json!({"name": tag});
+        self.execute("loadvm", Some(args)).await?;
+        Ok(())
+    }
+
+    /// Delete a VM snapshot.
+    pub async fn delvm(&mut self, tag: &str) -> PlazaResult<()> {
+        let args = serde_json::json!({"name": tag});
+        self.execute("delvm", Some(args)).await?;
+        Ok(())
+    }
+
+    /// List available VM snapshots.
+    pub async fn query_snapshots(&mut self) -> PlazaResult<serde_json::Value> {
+        self.execute("query-snapshots", None).await
+    }
+
+    /// Create a block backup (snapshot) of a device.
+    pub async fn blockdev_backup(&mut self, device: &str, target: &str) -> PlazaResult<()> {
+        let args = serde_json::json!({
+            "device": device,
+            "target": target,
+            "sync": "full",
+            "format": "raw"
+        });
+        self.execute("blockdev-backup", Some(args)).await?;
+        Ok(())
+    }
+
+    /// Stop guest CPUs (pause).
+    pub async fn stop(&mut self) -> PlazaResult<()> {
+        self.execute("stop", None).await?;
+        Ok(())
+    }
+
+    /// Resume guest CPUs.
+    pub async fn cont(&mut self) -> PlazaResult<()> {
+        self.execute("cont", None).await?;
+        Ok(())
+    }
+
+    /// Reset the guest.
+    pub async fn system_reset(&mut self) -> PlazaResult<()> {
+        self.execute("system_reset", None).await?;
+        Ok(())
+    }
+
+    /// Send a key event to the guest.
+    pub async fn send_key(&mut self, key: &str, hold: bool) -> PlazaResult<()> {
+        let args = serde_json::json!({
+            "key": key,
+            "hold": hold
+        });
+        self.execute("send-key", Some(args)).await?;
+        Ok(())
+    }
+
     /// Execute an arbitrary QMP command.
     pub async fn execute(
         &mut self,

@@ -156,6 +156,8 @@ pub struct GuestRuntimeParams {
     pub workspace_dir: PathBuf,
     /// The image reference (e.g. "alpine:3.19.1") or None for runtime default.
     pub image_reference: Option<String>,
+    /// The project source directory on the host.
+    pub project_path: Option<PathBuf>,
 }
 
 /// Result of guest runtime artifact resolution.

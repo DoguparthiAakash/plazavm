@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Terminal, Settings, Server, RefreshCw, Cpu, X, ChevronRight } from "lucide-react";
+import { Search, Terminal, Settings, Server, RefreshCw, Cpu, X, ChevronRight, Radio } from "lucide-react";
 
 interface Command {
   id: string;
@@ -23,6 +23,7 @@ const ALL_COMMANDS: Command[] = [
   { id: "check-ready", title: "Check System Readiness", description: "Re-evaluate host system components", icon: <Settings className="w-4 h-4" />, action: "CHECK_READINESS" },
   { id: "view-platform", title: "View Platform Info", description: "Inspect host CPU, memory, and GPU capabilities", icon: <Cpu className="w-4 h-4" />, action: "VIEW_PLATFORM" },
   { id: "open-terminal", title: "Open Terminal", description: "Launch a pseudo-terminal session", icon: <Terminal className="w-4 h-4" />, action: "OPEN_TERMINAL", shortcut: "T" },
+  { id: "view-events", title: "View Live Events", description: "Monitor real-time backend event stream", icon: <Radio className="w-4 h-4" />, action: "VIEW_EVENTS" },
 ];
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onAction }) => {

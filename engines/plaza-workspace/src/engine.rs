@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use plaza_foundation::engine::errors::PfeResult;
 use plaza_foundation::engine::manager::Engine;
 use std::collections::HashMap;
-
+use std::path::PathBuf;
 use std::sync::Arc;
 use crate::service::WorkspaceService;
 use plaza_runtime::RuntimeManager;
@@ -52,7 +52,9 @@ impl Engine for WorkspaceEngine {
 
         tokio::spawn(async move {
             loop {
+                let ws_count;
                 if let Ok(workspaces) = ws_svc.list_workspaces().await {
+                    ws_count = workspaces.len();
                     for ws in workspaces {
                         let id_str = ws.id.to_string();
                         let backend_id = match &ws.spec.runtime.backend {
@@ -115,8 +117,16 @@ impl Engine for WorkspaceEngine {
                             _ => {}
                         }
                     }
+                } else {
+                    ws_count = 0;
                 }
-                sleep(Duration::from_secs(2)).await;
+                // Backoff: poll every 10s normally, 30s when no workspaces exist
+                let poll_interval = if ws_count == 0 {
+                    Duration::from_secs(30)
+                } else {
+                    Duration::from_secs(10)
+                };
+                sleep(poll_interval).await;
             }
         });
         Ok(())
@@ -168,7 +178,7 @@ impl WorkspaceEngine {
     /// 3. Creates the workspace writable storage
     /// 4. Builds the MachineConfig via the GuestRuntime
     /// 5. Creates and starts the runtime instance via the backend
-    async fn start_workspace(
+    pub async fn start_workspace(
         ws: &crate::model::Workspace,
         rt_mgr: &Arc<RuntimeManager>,
         img_mgr: &Arc<ImageManager>,
@@ -189,24 +199,31 @@ impl WorkspaceEngine {
 
         // Build runtime parameters
         let ws_dir = plaza_foundation::core::paths::workspaces_dir().join(&ws.name);
+        let project_path = ws.metadata.project_path.as_ref().map(|p| PathBuf::from(p));
         let params = GuestRuntimeParams {
             workspace_id: id_str.clone(),
             workspace_name: ws.name.clone(),
             workspace_dir: ws_dir,
             image_reference: ws.spec.runtime.image.clone(),
+            project_path,
         };
 
-        // Step 1: Provision immutable base image
-        let _image_id = guest_runtime.provision_image(&params, img_mgr.clone()).await
-            .map_err(|e| format!("Failed to provision image: {}", e))?;
+        // Step 1: Resolve artifacts (kernel, initrd, etc.)
+        let artifacts = guest_runtime.resolve_artifacts(&params).await
+            .map_err(|e| format!("Failed to resolve artifacts: {}", e))?;
 
-        // Step 2: Resolve base image path from ImageManager
-        let manifest = img_mgr.inspect_image(&_image_id).await
-            .map_err(|e| format!("Failed to inspect image: {}", e))?;
-        let base_path = manifest.layers.first()
-            .ok_or_else(|| format!("Image '{}' has no layers", _image_id))
-            .and_then(|layer| img_mgr.get_blob_path(&layer.digest)
-                .map_err(|e| format!("Failed to get blob path: {}", e)))?;
+        // Create a minimal base image for /dev/vda if one doesn't exist.
+        // For initramfs-based boots, this is just a minimal block device.
+        let ws_dir = plaza_foundation::core::paths::workspaces_dir().join(&ws.name);
+        let storage_dir = ws_dir.join(".plaza").join("storage");
+        tokio::fs::create_dir_all(&storage_dir).await.map_err(|e| e.to_string())?;
+        let base_img = storage_dir.join("base.img");
+        if !base_img.exists() {
+            // Create a minimal 1MB base image
+            let file = std::fs::File::create(&base_img).map_err(|e| e.to_string())?;
+            file.set_len(1024 * 1024).map_err(|e| e.to_string())?;
+        }
+        let base_path = base_img;
 
         // Step 3: Create workspace writable storage device
         let ws_dev = guest_runtime.create_workspace_device(&params).await

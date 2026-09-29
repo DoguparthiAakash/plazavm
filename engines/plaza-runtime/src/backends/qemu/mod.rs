@@ -119,23 +119,7 @@ impl RuntimeBackend for QemuPlugin {
     }
 
     async fn is_available(&self) -> bool {
-        let qemu_bin = if cfg!(windows) {
-            "plaza-qemu.exe"
-        } else {
-            "plaza-qemu"
-        };
-        let qemu_path = std::env::current_exe()
-            .unwrap_or_else(|_| std::path::PathBuf::from("."))
-            .parent()
-            .unwrap_or_else(|| std::path::Path::new("."))
-            .join(qemu_bin);
-        let qemu_bin_str = qemu_path.to_str().unwrap_or(qemu_bin);
-        tokio::process::Command::new(qemu_bin_str)
-            .arg("--version")
-            .output()
-            .await
-            .map(|o| o.status.success())
-            .unwrap_or(false)
+        discovery::discover_qemu("x86_64").is_ok()
     }
 
     async fn version(&self) -> PlazaResult<String> {
@@ -236,33 +220,14 @@ impl RuntimeBackend for QemuPlugin {
             .ok_or_else(|| PlazaError::process("No machine config associated with instance"))?;
 
         // Configure adapter with machine config
-        let qemu_bin = match config.os_target {
-            crate::OperatingSystemTarget::Inferno => {
-                if cfg!(windows) {
-                    "qemu-system-i386.exe"
-                } else {
-                    "qemu-system-i386"
-                }
-            }
-            _ => {
-                if cfg!(windows) {
-                    "plaza-qemu.exe"
-                } else {
-                    "plaza-qemu"
-                }
-            }
+        // Use discovery module to find QEMU binary (bundled, PATH, or system install)
+        let arch = match config.os_target {
+            crate::OperatingSystemTarget::Inferno => "i386",
+            _ => "x86_64",
         };
-
-        // For standard QEMU binaries (qemu-system-i386), try PATH first, then fallback to local dir
-        let qemu_path = if qemu_bin.starts_with("qemu-") {
-            std::path::PathBuf::from(qemu_bin)
-        } else {
-            std::env::current_exe()
-                .unwrap_or_else(|_| std::path::PathBuf::from("."))
-                .parent()
-                .unwrap_or_else(|| std::path::Path::new("."))
-                .join(qemu_bin)
-        };
+        let qemu_path = discovery::discover_qemu(arch)
+            .map_err(|e| PlazaError::process(format!("QEMU not available: {}", e)))?;
+        tracing::info!("Using QEMU binary: {:?}", qemu_path);
         
         let mut adapter = adapter::QemuAdapter::new(qemu_path);
         adapter = adapter.apply_config(&config)?;
@@ -501,5 +466,117 @@ impl RuntimeBackend for QemuPlugin {
 
     async fn exec(&self, instance_id: &str, cmd: &str) -> PlazaResult<()> {
         self.send_command(instance_id, cmd).await
+    }
+
+    async fn exec_with_output(
+        &self,
+        instance_id: &str,
+        cmd: &str,
+        timeout: std::time::Duration,
+    ) -> PlazaResult<String> {
+        self.exec_with_output(instance_id, cmd, timeout).await
+    }
+}
+
+impl QemuPlugin {
+    /// Execute a command in the guest and capture its output.
+    /// Uses the broadcast-based serial channel to read output between markers.
+    pub async fn exec_with_output(
+        &self,
+        instance_id: &str,
+        cmd: &str,
+        timeout: std::time::Duration,
+    ) -> PlazaResult<String> {
+        let mut instances = self.instances.lock().await;
+        let entry = instances
+            .get_mut(instance_id)
+            .ok_or_else(|| PlazaError::process(format!("Instance {} not found", instance_id)))?;
+
+        let process = entry
+            .2
+            .as_mut()
+            .ok_or_else(|| PlazaError::process("Instance not running"))?;
+
+        process.exec_with_output(cmd, timeout).await
+    }
+
+    /// Query comprehensive VM metrics.
+    pub async fn query_metrics(&self, instance_id: &str) -> PlazaResult<serde_json::Value> {
+        let mut instances = self.instances.lock().await;
+        let entry = instances
+            .get_mut(instance_id)
+            .ok_or_else(|| PlazaError::process(format!("Instance {} not found", instance_id)))?;
+
+        let process = entry
+            .2
+            .as_mut()
+            .ok_or_else(|| PlazaError::process("Instance not running"))?;
+
+        process.query_metrics().await
+    }
+
+    /// Pause the guest.
+    pub async fn pause_guest(&self, instance_id: &str) -> PlazaResult<()> {
+        let mut instances = self.instances.lock().await;
+        let entry = instances
+            .get_mut(instance_id)
+            .ok_or_else(|| PlazaError::process(format!("Instance {} not found", instance_id)))?;
+
+        if let Some(process) = entry.2.as_mut() {
+            process.pause().await?;
+        }
+        Ok(())
+    }
+
+    /// Resume the guest.
+    pub async fn resume_guest(&self, instance_id: &str) -> PlazaResult<()> {
+        let mut instances = self.instances.lock().await;
+        let entry = instances
+            .get_mut(instance_id)
+            .ok_or_else(|| PlazaError::process(format!("Instance {} not found", instance_id)))?;
+
+        if let Some(process) = entry.2.as_mut() {
+            process.resume().await?;
+        }
+        Ok(())
+    }
+
+    /// Create a snapshot of the guest.
+    pub async fn snapshot(&self, instance_id: &str, tag: &str) -> PlazaResult<()> {
+        let mut instances = self.instances.lock().await;
+        let entry = instances
+            .get_mut(instance_id)
+            .ok_or_else(|| PlazaError::process(format!("Instance {} not found", instance_id)))?;
+
+        if let Some(process) = entry.2.as_mut() {
+            process.snapshot(tag).await?;
+        }
+        Ok(())
+    }
+
+    /// Restore a guest snapshot.
+    pub async fn restore_snapshot(&self, instance_id: &str, tag: &str) -> PlazaResult<()> {
+        let mut instances = self.instances.lock().await;
+        let entry = instances
+            .get_mut(instance_id)
+            .ok_or_else(|| PlazaError::process(format!("Instance {} not found", instance_id)))?;
+
+        if let Some(process) = entry.2.as_mut() {
+            process.restore_snapshot(tag).await?;
+        }
+        Ok(())
+    }
+
+    /// List guest snapshots.
+    pub async fn list_snapshots(&self, instance_id: &str) -> PlazaResult<serde_json::Value> {
+        let mut instances = self.instances.lock().await;
+        let entry = instances
+            .get_mut(instance_id)
+            .ok_or_else(|| PlazaError::process(format!("Instance {} not found", instance_id)))?;
+
+        if let Some(process) = entry.2.as_mut() {
+            return process.list_snapshots().await;
+        }
+        Ok(serde_json::Value::Null)
     }
 }

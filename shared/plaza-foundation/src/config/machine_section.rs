@@ -98,7 +98,7 @@ pub struct MemorySection {
 }
 
 fn default_memory_size() -> String {
-    "2048MiB".into()
+    "256MiB".into()
 }
 
 impl Default for MemorySection {

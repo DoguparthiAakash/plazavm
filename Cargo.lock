@@ -3738,6 +3738,7 @@ dependencies = [
  "plaza-env",
  "plaza-foundation",
  "plaza-image",
+ "plaza-network",
  "plaza-registry",
  "plaza-runtime",
  "plaza-workspace",
@@ -3919,6 +3920,10 @@ version = "0.1.0"
 dependencies = [
  "plaza-foundation",
  "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -4027,8 +4032,10 @@ name = "plaza-workspace"
 version = "0.1.0-dp1"
 dependencies = [
  "anyhow",
+ "arcbox-ext4",
  "async-trait",
  "backhand",
+ "base64 0.22.1",
  "chrono",
  "flate2",
  "futures-util",
