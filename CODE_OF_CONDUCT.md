@@ -15,4 +15,4 @@ Examples of behavior that contributes to a positive environment for our project 
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project team at `security@plazavm.io`. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project team at `doguparthiaakash@gmail.com`. All complaints will be reviewed and investigated promptly and fairly.
