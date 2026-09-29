@@ -16,4 +16,4 @@ Need help with PlazaVM? Here are the best ways to get support:
 
 - **GitHub Discussions**: Ask questions and share feedback.
 - **Issue Tracker**: Report bugs or suggest new features.
-- **Security**: Contact `security@plazavm.io` for security concerns.
+- **Security**: Contact `doguparthiaakash@gmail.com` for security concerns.
