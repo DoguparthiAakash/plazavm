@@ -1,27 +1,40 @@
 # PlazaVM
 
-PlazaVM is an extremely lightweight, secure, and ultra-portable virtual workspace control plane. By entirely ditching heavy containers (Docker/OCI) and full-blown Linux distributions, PlazaVM provides deterministic, instantaneous development environments built on top of **Inferno OS** running seamlessly inside QEMU.
+PlazaVM is a lightweight, secure, and portable virtual workspace control plane designed to provide isolated and reproducible development environments.
 
-PlazaVM is under active development. Its core philosophy is absolute isolation and portability without the heavy runtime footprint of modern container engines.
+PlazaVM uses **Inferno OS** as its workspace environment and **QEMU** as the virtualization layer. Rather than relying on conventional container runtimes, PlazaVM follows a VM-oriented architecture that emphasizes isolation, portability, deterministic environments, and a minimal runtime footprint.
+
+The project is under active development, with ongoing work across workspace lifecycle management, capability control, filesystem integration, and compatibility features.
 
 ## Core Capabilities
 
-- **Inferno OS Native Architecture**: Workspace environments are powered by customized `inferno.386` kernels.
-- **Zero-Dependency Environments**: No Docker, Podman, or third-party container runtimes required. If you have QEMU, you can run PlazaVM.
-- **Lightning Fast Boot**: Boots into a fully interactive Limbo/Dis environment in milliseconds.
-- **9P / Styx Protocol Support**: Host-to-guest directory sharing is natively supported through Inferno's Styx protocol over virtio-serial or network listeners, providing seamless and secure workspace mounting.
-- **Strict Default-Deny Security**: Zero capabilities (network, host mounts) exist unless explicitly declared and approved by the Capability Engine.
-- **Linux Compatibility Layer (WIP)**: A specialized Limbo subsystem that translates subset Linux syscalls, allowing crucial static ELF binaries to run natively inside the Inferno environment.
+* **Inferno OS–based Architecture**
+  Workspace environments are built around customized `inferno.386` kernels and the Inferno runtime.
 
-See [the support matrix](docs/support-matrix.md) for exact status and limitations.
+* **Minimal Runtime Requirements**
+  PlazaVM does not depend on Docker, Podman, or another container runtime for workspace execution. QEMU provides the virtualization layer required to launch the workspace environment.
+
+* **Fast Workspace Startup**
+  The system is designed for rapid boot and initialization of an interactive Limbo/Dis environment.
+
+* **9P / Styx Workspace Integration**
+  Host-to-guest filesystem access is provided through Inferno's Styx protocol. Workspace resources can be exposed through supported virtio-serial or network-based communication channels.
+
+* **Declarative Capability Control**
+  Workspace capabilities such as networking and host filesystem access are disabled by default and can be explicitly declared through PlazaVM's capability configuration.
+
+* **Linux Compatibility Layer — Work in Progress**
+  PlazaVM includes an experimental Limbo-based compatibility subsystem intended to support a subset of Linux system interfaces and enable selected static ELF binaries to operate within the Inferno environment.
+
+See the [support matrix](docs/support-matrix.md) for the current implementation status, supported features, and known limitations.
 
 ## Architecture
 
 ```mermaid
 graph TD
     CLI[plazavm CLI] --> Engine[PlazaVM Workspace Engine]
-    
-    subgraph PlazaVM 
+
+    subgraph PlazaVM
         Engine --> Config[plaza.yaml Parser]
         Engine --> Capability[Capability Engine]
         Engine --> Image[Image & Kernel Builder]
@@ -30,61 +43,144 @@ graph TD
 
     subgraph QEMU Guest
         QEMU --> |Boot| Inferno[inferno.386 Kernel]
-        Inferno --> Limbo[Workspace Init (Limbo)]
-        Limbo --> |9P/Styx| Mount[Workspace Mount]
+        Inferno --> Limbo[Workspace Init - Limbo]
+        Limbo --> |9P / Styx| Mount[Workspace Mount]
         Limbo --> LinuxCompat[Linux Compatibility Subsystem]
     end
 ```
 
-Detailed architectural designs can be found in the `docs/architecture` folder:
-- [Architecture Overview](docs/architecture/overview.md)
-- [Workspace Images](docs/architecture/workspace-images.md)
-- [Inferno Runtime Evaluation](docs/architecture/inferno-runtime-evaluation.md)
+### Architecture Documentation
+
+Detailed architectural information is available in the `docs/architecture` directory:
+
+* [Architecture Overview](docs/architecture/overview.md)
+* [Workspace Images](docs/architecture/workspace-images.md)
+* [Inferno Runtime Evaluation](docs/architecture/inferno-runtime-evaluation.md)
 
 ## Prerequisites
 
-Required for building from source:
-- Rust stable and Cargo
-- Docker (only temporarily required to compile the custom Inferno kernel artifacts)
-- QEMU (`qemu-system-i386`)
+The following components are required when building PlazaVM from source:
+
+* **Rust stable** and Cargo
+* **Docker** — currently used only as part of the custom Inferno kernel build process
+* **QEMU** with `qemu-system-i386`
+
+The Docker dependency is limited to the kernel build workflow and is not required to run PlazaVM workspaces after the required kernel artifacts have been built.
 
 ## Build & Boot
 
-1. **Build the Custom Inferno Kernel**:
-   PlazaVM requires a pre-built custom Inferno kernel equipped with the PlazaVM Limbo boot scripts.
-   ```powershell
-   .\scripts\build-inferno-kernel.ps1
-   ```
+### 1. Build the Custom Inferno Kernel
 
-2. **Build the Engine**:
-   ```powershell
-   cargo build --workspace
-   ```
+PlazaVM requires a customized Inferno kernel together with the Limbo initialization components used by the workspace runtime.
 
-3. **Create a Workspace**:
-   ```powershell
-   cargo run -p plazavm_cli -- workspace create test-ws
-   ```
-   This command provisions the `.plaza` configuration and automatically boots the `inferno.386` kernel under QEMU, waiting for the Limbo init script to signal readiness over the serial console.
+Run:
+
+```powershell
+.\scripts\build-inferno-kernel.ps1
+```
+
+This script performs the required kernel and Limbo build steps.
+
+### 2. Build the PlazaVM Engine
+
+Build the Rust workspace with Cargo:
+
+```powershell
+cargo build --workspace
+```
+
+### 3. Create a Workspace
+
+Create and start a workspace using the PlazaVM CLI:
+
+```powershell
+cargo run -p plazavm_cli -- workspace create test-ws
+```
+
+The command creates the workspace configuration, prepares the required runtime resources, and launches the customized `inferno.386` kernel through QEMU.
+
+The PlazaVM engine then waits for the Limbo initialization process to report workspace readiness through the configured serial communication channel.
 
 ## Project Structure
 
 ```text
 crates/
-  plazavm_core/        Configuration parsing and schema validation
+  plazavm_core/
+    Configuration parsing and schema validation
+
   engines/
-    plaza-workspace/   Orchestrates workspace lifecycle, capabilities, and 9P mounts
-    plaza-runtime/     Manages the physical QEMU process and serial IPC
+    plaza-workspace/
+      Workspace lifecycle orchestration,
+      capability management, and 9P mounts
+
+    plaza-runtime/
+      QEMU process management and serial IPC
+
 scripts/
-  build-inferno-kernel.ps1   Automated kernel and Limbo compilation pipeline
-inferno-os/            Submodule containing the Inferno OS source tree
-docs/                  Architecture and design documents
+  build-inferno-kernel.ps1
+    Automated Inferno kernel and Limbo
+    compilation pipeline
+
+inferno-os/
+  Inferno OS source tree
+
+docs/
+  Architecture, implementation,
+  and design documentation
 ```
 
-## Development Policy
+## Design Principles
 
-- **No Third-Party Bloat**: If it can be done natively or in Limbo, we do not add a heavy dependency.
-- **Portability First**: The system must run on old hardware (i386 targets, standard IDE drives). Avoid strict requirements on hardware virtualization (KVM/WHPX) for the core workspace flow.
-- **Security**: Never grant host capabilities without explicit declarative configuration. 
+### Lightweight Architecture
 
-The staged roadmap is maintained in [ROADMAP.md](ROADMAP.md).
+PlazaVM aims to keep the workspace runtime compact by using components that directly support its execution model. When functionality can be implemented effectively within the existing architecture or through Limbo, additional runtime dependencies are evaluated carefully.
+
+### Portability
+
+Portability is a primary design objective. PlazaVM is intended to support a broad range of systems, including environments where hardware-assisted virtualization may not be available.
+
+The core workspace execution path therefore targets compatibility with QEMU's software-based virtualization capabilities rather than requiring KVM, WHPX, or another hardware acceleration mechanism.
+
+### Explicit Capabilities
+
+Workspace access to host resources should be explicit and declarative.
+
+Capabilities such as:
+
+* Network access
+* Host filesystem access
+* Workspace mounts
+* Other host-integrated resources
+
+are intended to remain unavailable unless explicitly enabled through PlazaVM's capability configuration.
+
+### Reproducible Workspaces
+
+Workspace configuration is represented declaratively through PlazaVM configuration files such as `plaza.yaml`. This allows the runtime environment and its capabilities to be described in a consistent and reproducible manner.
+
+## Development Status
+
+PlazaVM is currently under active development.
+
+Some components are experimental or incomplete, particularly the Linux compatibility subsystem and portions of workspace integration. APIs, configuration formats, and internal architecture may therefore change as development progresses.
+
+For the current implementation status and feature limitations, see the [support matrix](docs/support-matrix.md).
+
+The project's staged development plan is maintained in [ROADMAP.md](ROADMAP.md).
+
+## Contributing
+
+PlazaVM is being developed as an experimental virtualization and workspace platform. Contributions, technical discussions, testing, and architectural feedback are welcome.
+
+When proposing changes, preference is given to solutions that preserve:
+
+* Workspace isolation
+* Portability
+* Reproducibility
+* Minimal runtime complexity
+* Explicit capability management
+* Clear separation between host and guest components
+
+## License
+
+See the project's license file for licensing terms and conditions.
